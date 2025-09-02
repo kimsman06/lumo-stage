@@ -39,22 +39,28 @@ const useStore = create((set) => ({
       return { lights: [...state.lights, newLight] };
     }),
   updateLight: (id, property, value) =>
-    set((state) => ({
-      lights: state.lights.map((light) =>
-        light.id === id ? { ...light, [property]: value } : light
-      ),
-    })),
+    set((state) => {
+      // console.log(`Updating light ${id}: ${property} to ${value}`); // Debug log removed
+      return {
+        lights: state.lights.map((light) =>
+          light.id === id ? { ...light, [property]: value } : light
+        ),
+      };
+    }),
   updateLightPosition: (id, axis, value) =>
-    set((state) => ({
-      lights: state.lights.map((light) => {
-        if (light.id === id) {
-          const newPosition = [...light.position];
-          newPosition[axis] = parseFloat(value);
-          return { ...light, position: newPosition };
-        }
-        return light;
-      }),
-    })),
+    set((state) => {
+      // console.log(`Updating light ${id} position ${axis}: ${value}`); // Debug log removed
+      return {
+        lights: state.lights.map((light) => {
+          if (light.id === id) {
+            const newPosition = [...light.position];
+            newPosition[axis] = parseFloat(value);
+            return { ...light, position: newPosition };
+          }
+          return light;
+        }),
+      };
+    }),
   updateLightPositionArray: (id, position) =>
     set((state) => ({
       lights: state.lights.map((light) =>
