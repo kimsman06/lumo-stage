@@ -1,6 +1,6 @@
-import React, { useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Sphere, Plane, PointLight } from '@react-three/drei';
+import React from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, Sphere, Plane } from '@react-three/drei';
 import { create } from 'zustand';
 import { nanoid } from 'nanoid';
 
@@ -42,7 +42,11 @@ const useStore = create((set) => ({
 
 // 2. 컨트롤 패널 UI 컴포넌트
 function Controls() {
-  const { lights, addLight, updateLight, updateLightPosition } = useStore();
+  // Zustand 스토어에서 상태와 함수를 개별적으로 선택하여 불필요한 리렌더링 방지
+  const lights = useStore((state) => state.lights);
+  const addLight = useStore((state) => state.addLight);
+  const updateLight = useStore((state) => state.updateLight);
+  const updateLightPosition = useStore((state) => state.updateLightPosition);
 
   return (
     <div className="w-1/4 h-screen bg-gray-900 text-white p-4 overflow-y-auto">
@@ -111,9 +115,9 @@ function Scene() {
 
   return (
     <Canvas shadows camera={{ position: cameraSettings.position, fov: cameraSettings.fov }}>
-      {/* Store에서 가져온 조명들을 동적으로 렌더링 */}
+      {/* Store에서 가져온 조명들을 동적으로 렌더링 (기본 <pointLight> 사용) */}
       {lights.map(light => (
-        <PointLight
+        <pointLight
           key={light.id}
           position={light.position}
           color={light.color}
