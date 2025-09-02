@@ -1,30 +1,52 @@
-import React from 'react';
+import React, { useState } from 'react';
 import useStore from '../store';
 
 function Controls() {
-  // 스토어에서 필요한 상태와 함수를 개별적으로 선택하여 구독 (최적화)
-  const lights = useStore((state) => state.lights);
-  const selectedLight = useStore((state) => state.selectedLight);
-  const addLight = useStore((state) => state.addLight);
-  const updateLight = useStore((state) => state.updateLight);
-  const updateLightPosition = useStore((state) => state.updateLightPosition);
-  const setSelectedLight = useStore((state) => state.setSelectedLight);
+  const { 
+    lights, addLight, updateLight, updateLightPosition,
+    selectedLight, setSelectedLight,
+    mainSphereRoughness, mainSphereMetalness, updateMainSphereMaterial
+  } = useStore();
+
+  const [newLightType, setNewLightType] = useState('point'); // 새 조명 타입 선택을 위한 상태
 
   return (
     <div className="w-1/4 h-screen bg-gray-900 text-white p-4 overflow-y-auto">
       <h2 className="text-xl font-bold mb-4">컨트롤 패널</h2>
-      <button onClick={addLight} className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-6">
-        조명 추가
-      </button>
+
+      {/* 새 조명 추가 섹션 */}
+      <div className="mb-6 p-4 bg-gray-800 rounded-lg">
+        <h3 className="font-bold mb-2">새 조명 추가</h3>
+        <select
+          value={newLightType}
+          onChange={(e) => setNewLightType(e.target.value)}
+          className="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded"
+        >
+          <option value="point">Point Light</option>
+          <option value="spot">Spot Light</option>
+          <option value="directional">Directional Light</option>
+        </select>
+        <button
+          onClick={() => addLight(newLightType)}
+          className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          조명 추가
+        </button>
+      </div>
+
+      {/* 선택 해제 버튼 */}
       {selectedLight && (
         <button onClick={() => setSelectedLight(null)} className="w-full bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mb-6">
           선택 해제
         </button>
       )}
 
+      {/* 조명 목록 */}
       {lights.map((light, i) => (
         <div key={light.id} className={`p-4 rounded-lg mb-4 ${selectedLight === light.id ? 'bg-blue-900' : 'bg-gray-800'}`}>
-          <h3 className="font-bold mb-2">조명 {i + 1}</h3>
+          <h3 className="font-bold mb-2">조명 {i + 1} ({light.type})</h3>
+          
+          {/* 공통 컨트롤 */}
           <div className="mb-2">
             <label className="block text-sm">Color</label>
             <input type="color" value={light.color} onChange={(e) => updateLight(light.id, 'color', e.target.value)} className="w-full h-8" />
@@ -39,8 +61,51 @@ function Controls() {
               <input type="range" min="-10" max="10" step="0.1" value={light.position[axisIndex]} onChange={(e) => updateLightPosition(light.id, axisIndex, e.target.value)} className="w-full" />
             </div>
           ))}
+
+          {/* Removed Rotation Controls (for all light types) */}
+          {/* Removed Type-specific controls for distance and decay */}
+          {light.type === 'spot' && (
+            <>
+              <div className="mb-2">
+                <label className="block text-sm">Angle: {light.angle.toFixed(2)}</label>
+                <input type="range" min="0" max={Math.PI / 2} step="0.01" value={light.angle} onChange={(e) => updateLight(light.id, 'angle', parseFloat(e.target.value))} className="w-full" />
+              </div>
+              <div className="mb-2">
+                <label className="block text-sm">Penumbra: {light.penumbra.toFixed(2)}</label>
+                <input type="range" min="0" max="1" step="0.01" value={light.penumbra} onChange={(e) => updateLight(light.id, 'penumbra', parseFloat(e.target.value))} className="w-full" />
+              </div>
+            </>
+          )}
+          {light.type === 'directional' && (
+            <>
+              <h4 className="font-bold mt-4 mb-2">Target Position</h4>
+              {['X', 'Y', 'Z'].map((axis, axisIndex) => (
+                <div key={axis} className="mb-2">
+                  <label className="block text-sm">Target {axis}: {light.targetPosition[axisIndex].toFixed(1)}</label>
+                  <input type="range" min="-10" max="10" step="0.1" value={light.targetPosition[axisIndex]} onChange={(e) => {
+                    const newTargetPosition = [...light.targetPosition];
+                    newTargetPosition[axisIndex] = parseFloat(e.target.value);
+                    updateLight(light.id, 'targetPosition', newTargetPosition);
+                  }} className="w-full" />
+                </div>
+              ))}
+            </>
+          )}
         </div>
       ))}
+
+      {/* 메인 구 재질 컨트롤 */}
+      <div className="mb-6 p-4 bg-gray-800 rounded-lg">
+        <h3 className="font-bold mb-2">메인 구 재질</h3>
+        <div className="mb-2">
+          <label className="block text-sm">Roughness: {mainSphereRoughness.toFixed(2)}</label>
+          <input type="range" min="0" max="1" step="0.01" value={mainSphereRoughness} onChange={(e) => updateMainSphereMaterial('mainSphereRoughness', parseFloat(e.target.value))} className="w-full" />
+        </div>
+        <div className="mb-2">
+          <label className="block text-sm">Metalness: {mainSphereMetalness.toFixed(2)}</label>
+          <input type="range" min="0" max="1" step="0.01" value={mainSphereMetalness} onChange={(e) => updateMainSphereMaterial('mainSphereMetalness', parseFloat(e.target.value))} className="w-full" />
+        </div>
+      </div>
     </div>
   );
 }

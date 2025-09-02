@@ -2,23 +2,42 @@ import { create } from 'zustand';
 import { nanoid } from 'nanoid';
 
 const useStore = create((set) => ({
-  lights: [
-    { id: nanoid(), position: [5, 5, 0], color: '#ff0000', intensity: 10 },
-    { id: nanoid(), position: [-5, 5, -5], color: '#0000ff', intensity: 10 },
-  ],
+  // Global Scene Settings
   camera: {
     position: [0, 2, 8],
     fov: 75,
   },
+  mainSphereRoughness: 0.2, // For specular control
+  mainSphereMetalness: 0.7, // For specular control
+
+  // Light Management
+  lights: [
+    // Default lights with types (removed rectArea if present)
+    { id: nanoid(), type: 'point', position: [5, 5, 0], color: '#ff0000', intensity: 10 },
+    { id: nanoid(), type: 'spot', position: [-5, 5, -5], color: '#0000ff', intensity: 10, angle: Math.PI / 4, penumbra: 0.5 },
+  ],
   selectedLight: null,
+
+  // Actions
   setSelectedLight: (id) => set({ selectedLight: id }),
-  addLight: () =>
-    set((state) => ({
-      lights: [
-        ...state.lights,
-        { id: nanoid(), position: [0, 3, 0], color: '#ffffff', intensity: 10 },
-      ],
-    })),
+  addLight: (type = 'point') =>
+    set((state) => {
+      let newLight;
+      switch (type) {
+        case 'point':
+          newLight = { id: nanoid(), type: 'point', position: [0, 3, 0], color: '#ffffff', intensity: 10 };
+          break;
+        case 'spot':
+          newLight = { id: nanoid(), type: 'spot', position: [0, 3, 0], color: '#ffffff', intensity: 10, angle: Math.PI / 4, penumbra: 0.5 };
+          break;
+        case 'directional':
+          newLight = { id: nanoid(), type: 'directional', position: [0, 5, 0], color: '#ffffff', intensity: 5, targetPosition: [0, 0, 0] };
+          break;
+        default:
+          newLight = { id: nanoid(), type: 'point', position: [0, 3, 0], color: '#ffffff', intensity: 10 };
+      }
+      return { lights: [...state.lights, newLight] };
+    }),
   updateLight: (id, property, value) =>
     set((state) => ({
       lights: state.lights.map((light) =>
@@ -41,6 +60,10 @@ const useStore = create((set) => ({
       lights: state.lights.map((light) =>
         light.id === id ? { ...light, position: position } : light
       ),
+    })),
+  updateMainSphereMaterial: (property, value) =>
+    set((state) => ({
+      [property]: value,
     })),
 }));
 

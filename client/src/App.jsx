@@ -4,6 +4,8 @@ import Controls from './components/Controls';
 import useStore from './store';
 
 function App() {
+  // Removed debugging display for roughness
+
   // ESC 키를 눌렀을 때 선택 해제하는 전역 이벤트 리스너 추가
   useEffect(() => {
     const handleKeyDown = (event) => {
