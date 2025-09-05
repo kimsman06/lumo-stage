@@ -12,9 +12,9 @@ const useStore = create((set) => ({
 
   // Light Management
   lights: [
-    // Default lights with types (removed rectArea if present)
-    { id: nanoid(), type: 'point', position: [5, 5, 0], color: '#ff0000', intensity: 10 },
-    { id: nanoid(), type: 'spot', position: [-5, 5, -5], color: '#0000ff', intensity: 10, angle: Math.PI / 4, penumbra: 0.5 },
+    // Default lights with types, including rotation, distance, decay
+    { id: nanoid(), type: 'point', position: [5, 5, 0], color: '#ff0000', intensity: 10, rotation: [0, 0, 0], distance: 0, decay: 2 },
+    { id: nanoid(), type: 'spot', position: [-5, 5, -5], color: '#0000ff', intensity: 10, angle: Math.PI / 4, penumbra: 0.5, rotation: [0, 0, 0], distance: 0, decay: 2, targetPosition: [0, 0, 0] },
   ],
   selectedLight: null,
 
@@ -23,44 +23,44 @@ const useStore = create((set) => ({
   addLight: (type = 'point') =>
     set((state) => {
       let newLight;
+      const commonProps = { id: nanoid(), position: [0, 3, 0], color: '#ffffff', intensity: 10, rotation: [0, 0, 0] };
       switch (type) {
         case 'point':
-          newLight = { id: nanoid(), type: 'point', position: [0, 3, 0], color: '#ffffff', intensity: 10 };
+          newLight = { ...commonProps, type: 'point', distance: 0, decay: 2 };
           break;
         case 'spot':
-          newLight = { id: nanoid(), type: 'spot', position: [0, 3, 0], color: '#ffffff', intensity: 10, angle: Math.PI / 4, penumbra: 0.5 };
+          newLight = { ...commonProps, type: 'spot', angle: Math.PI / 4, penumbra: 0.5, distance: 0, decay: 2, targetPosition: [0, 0, 0] };
           break;
         case 'directional':
-          newLight = { id: nanoid(), type: 'directional', position: [0, 5, 0], color: '#ffffff', intensity: 5, targetPosition: [0, 0, 0] };
+          newLight = { ...commonProps, type: 'directional', intensity: 5, targetPosition: [0, 0, 0] };
           break;
         default:
-          newLight = { id: nanoid(), type: 'point', position: [0, 3, 0], color: '#ffffff', intensity: 10 };
+          newLight = { ...commonProps, type: 'point', distance: 0, decay: 2 };
       }
       return { lights: [...state.lights, newLight] };
     }),
+  deleteLight: (id) =>
+    set((state) => ({
+      lights: state.lights.filter((light) => light.id !== id),
+      selectedLight: state.selectedLight === id ? null : state.selectedLight,
+    })),
   updateLight: (id, property, value) =>
-    set((state) => {
-      // console.log(`Updating light ${id}: ${property} to ${value}`); // Debug log removed
-      return {
-        lights: state.lights.map((light) =>
-          light.id === id ? { ...light, [property]: value } : light
-        ),
-      };
-    }),
+    set((state) => ({
+      lights: state.lights.map((light) =>
+        light.id === id ? { ...light, [property]: value } : light
+      ),
+    })),
   updateLightPosition: (id, axis, value) =>
-    set((state) => {
-      // console.log(`Updating light ${id} position ${axis}: ${value}`); // Debug log removed
-      return {
-        lights: state.lights.map((light) => {
-          if (light.id === id) {
-            const newPosition = [...light.position];
-            newPosition[axis] = parseFloat(value);
-            return { ...light, position: newPosition };
-          }
-          return light;
-        }),
-      };
-    }),
+    set((state) => ({
+      lights: state.lights.map((light) => {
+        if (light.id === id) {
+          const newPosition = [...light.position];
+          newPosition[axis] = parseFloat(value);
+          return { ...light, position: newPosition };
+        }
+        return light;
+      }),
+    })),
   updateLightPositionArray: (id, position) =>
     set((state) => ({
       lights: state.lights.map((light) =>

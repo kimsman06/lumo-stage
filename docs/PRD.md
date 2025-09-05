@@ -1,7 +1,7 @@
 # LumoStage: 3D 조명 시뮬레이션 웹 앱 (MVP) - 제품 요구사항 문서
 
-**문서 버전:** 1.0  
-**작성일:** 2025년 9월 2일  
+**문서 버전:** 1.1
+**작성일:** 2025년 9월 2일
 **프로젝트 오너:** (사용자 이름)
 
 ## 1. 개요 (Overview)
@@ -65,11 +65,19 @@ MERN 스택과 Three.js (React-Three-Fiber)를 활용하여, 사용자가 웹에
 
 - **조명 추가:** '조명 추가' 버튼 클릭 시, 조명 타입(Point Light, Spot Light, Ambient Light)을 선택할 수 있다.
 - **조명 목록:** 현재 Scene에 추가된 조명들이 목록으로 표시된다. 목록에서 특정 조명을 선택하여 속성을 수정할 수 있다.
-- **속성 제어:** 선택된 조명의 아래 속성을 슬라이더와 컬러 피커로 실시간 제어할 수 있다.
+- **조명 삭제:** 각 조명 제어 카드에 '삭제' 버튼을 추가하여, Scene에서 해당 조명을 제거할 수 있다.
+- **기본 속성 제어:** 선택된 조명의 아래 속성을 슬라이더와 컬러 피커로 실시간 제어할 수 있다.
   - 위치 (Position): X, Y, Z 축 슬라이더
   - 색상 (Color): 컬러 피커
   - 강도 (Intensity): 0-10 사이의 슬라이더
+- **고급 속성 제어 (현실감 강화):**
+  - **회전 (Rotation):** `SpotLight`와 `DirectionalLight`의 방향을 제어하기 위한 X, Y, Z 축 회전 슬라이더.
+  - **감쇠 (Decay):** `PointLight`와 `SpotLight`의 빛이 거리에 따라 어떻게 약해지는지를 제어하는 슬라이더.
+  - **거리 (Distance):** 빛이 도달하는 최대 거리를 제어하는 슬라이더.
   - (Spot Light 전용) 각도 (Angle), 반감 감쇠 (Penumbra) 슬라이더
+- **시각적 헬퍼 (Visual Helpers):**
+  - 선택된 `SpotLight`와 `DirectionalLight`는 빛의 범위와 방향을 나타내는 시각적 도우미(Helper)를 표시한다.
+  - 이 헬퍼는 3D 뷰포트에서 직접 선택하고 `TransformControls`를 통해 위치와 회전을 조작할 수 있다.
 
 ### 4.3. 카메라 제어 (Camera Controls)
 
@@ -92,9 +100,9 @@ MERN 스택과 Three.js (React-Three-Fiber)를 활용하여, 사용자가 웹에
 
 ## 5. 기술 스택 및 아키텍처 (Tech Stack & Architecture)
 
-**Frontend:** React, Vite, Three.js, React-Three-Fiber, React-Three-Drei, Tailwind CSS  
-**Backend:** Node.js, Express.js  
-**Database:** MongoDB (Mongoose ODM 사용)  
+**Frontend:** React, Vite, Three.js, React-Three-Fiber, React-Three-Drei, Tailwind CSS
+**Backend:** Node.js, Express.js
+**Database:** MongoDB (Mongoose ODM 사용)
 **Deployment:** Vercel (Frontend), Heroku/Fly.io (Backend & DB)
 
 ### 아키텍처:

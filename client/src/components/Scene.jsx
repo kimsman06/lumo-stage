@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useThree, useFrame } from '@react-three/fiber'; // Added useFrame
 import { OrbitControls, Sphere, Plane, TransformControls, Cone } from '@react-three/drei';
 import useStore from '../store';
 import * as THREE from 'three';
@@ -15,21 +15,29 @@ function CanvasSetup() {
   return null;
 }
 
-function Scene() {
-  const { lights, selectedLight, setSelectedLight, updateLightPositionArray,
-          mainSphereRoughness, mainSphereMetalness, updateLight } = useStore();
+// New component to manage light orientation
+function LightOrientationManager({ lights, meshRefs, lightTargetObjectsRef }) {
+  useFrame(() => {
+    lights.forEach(light => {
+      if (light.type === 'spot' || light.type === 'directional') {
+        const mesh = meshRefs.current.get(light.id);
+        const targetObject = lightTargetObjectsRef.current.get(light.id);
+        if (mesh && targetObject) {
+          mesh.lookAt(targetObject.position);
+        }
+      }
+    });
+  });
+  return null; // This component doesn't render anything visible
+}
 
-  // Removed DEBUGGING LOGS
-  // console.log('Scene re-rendered');
-  // console.log('Current lights in Scene:', lights);
+function Scene() {
+  const { lights, selectedLight, setSelectedLight, updateLight, updateLightPositionArray,
+          mainSphereRoughness, mainSphereMetalness } = useStore();
 
   const orbitControlsRef = useRef();
   const transformControlsRef = useRef();
-  const meshRefs = useRef(new Map()); // For light visual models
-  const lightRefs = useRef(new Map()); // To store references to actual light objects
-  const helperRefs = useRef(new Map()); // To store references to helper objects
-
-  // To store stable Object3D references for light targets
+  const meshRefs = useRef(new Map()); // For light visual models and target visual models
   const lightTargetObjectsRef = useRef(new Map());
 
   const objectToControl = meshRefs.current.get(selectedLight);
@@ -44,36 +52,27 @@ function Scene() {
     }
   });
 
-  useEffect(() => {
-    lights.forEach(light => {
-      // Update Three.js light targets based on store
-      const targetObject = lightTargetObjectsRef.current.get(light.id);
-      if (targetObject) {
-        // For directional light, use its targetPosition from store
-        if (light.type === 'directional' && light.targetPosition) {
-          targetObject.position.set(...light.targetPosition);
-        } else { // For spot light, or if targetPosition is not in store, default to origin
-          targetObject.position.set(0, 0, 0);
-        }
-      }
-    });
-  }, [lights]);
-
   return (
     <Canvas shadows camera={{ position: [0, 2, 8], fov: 75 }}>
       <CanvasSetup />
+      <LightOrientationManager
+        lights={lights}
+        meshRefs={meshRefs}
+        lightTargetObjectsRef={lightTargetObjectsRef}
+      />
       <ambientLight intensity={0.2} />
       
       {lights.map(light => {
-        // Create a stable target Object3D for each light
         if (!lightTargetObjectsRef.current.has(light.id)) {
           lightTargetObjectsRef.current.set(light.id, new THREE.Object3D());
         }
         const currentLightTargetObject = lightTargetObjectsRef.current.get(light.id);
+        if (light.targetPosition) {
+          currentLightTargetObject.position.set(...light.targetPosition);
+        }
 
         return (
           <React.Fragment key={light.id}>
-            {/* Render the stable target Object3D in the scene */}
             <primitive object={currentLightTargetObject} />
 
             {light.type === 'point' && (
@@ -81,11 +80,11 @@ function Scene() {
                 position={light.position}
                 color={light.color}
                 intensity={light.intensity}
-                rotation={light.rotation}
+                distance={light.distance}
+                decay={light.decay}
                 castShadow
                 shadow-mapSize-width={2048}
                 shadow-mapSize-height={2048}
-                ref={(el) => lightRefs.current.set(light.id, el)} // Store ref
               />
             )}
             {light.type === 'spot' && (
@@ -95,28 +94,24 @@ function Scene() {
                 intensity={light.intensity}
                 angle={light.angle}
                 penumbra={light.penumbra}
-                rotation={light.rotation}
+                distance={light.distance}
+                decay={light.decay}
                 castShadow
                 shadow-mapSize-width={2048}
                 shadow-mapSize-height={2048}
-                target={currentLightTargetObject} // Link to stable Object3D target
-                ref={(el) => lightRefs.current.set(light.id, el)} // Store ref
-              >
-              </spotLight>
+                target={currentLightTargetObject}
+              />
             )}
             {light.type === 'directional' && (
               <directionalLight
                 position={light.position}
                 color={light.color}
                 intensity={light.intensity}
-                rotation={light.rotation}
                 castShadow
                 shadow-mapSize-width={2048}
                 shadow-mapSize-height={2048}
                 target={currentLightTargetObject}
-                ref={(el) => lightRefs.current.set(light.id, el)} // Store ref
-              >
-              </directionalLight>
+              />
             )}
 
             {/* Visual models for lights */}
@@ -124,7 +119,7 @@ function Scene() {
               <Sphere
                 position={light.position}
                 args={[0.2, 16, 16]}
-                onClick={(e) => { e.stopPropagation(); setSelectedLight(light.id); }} // Select visual mesh
+                onClick={(e) => { e.stopPropagation(); setSelectedLight(light.id); }}
                 ref={(el) => meshRefs.current.set(light.id, el)}
               >
                 <meshBasicMaterial color={light.color} />
@@ -134,8 +129,7 @@ function Scene() {
               <Cone
                 position={light.position}
                 args={[0.2, 0.5, 32]}
-                rotation={light.rotation}
-                onClick={(e) => { e.stopPropagation(); setSelectedLight(light.id); }} // Select visual mesh
+                onClick={(e) => { e.stopPropagation(); setSelectedLight(light.id); }}
                 ref={(el) => meshRefs.current.set(light.id, el)}
               >
                 <meshBasicMaterial color={light.color} />
@@ -144,12 +138,23 @@ function Scene() {
             {light.type === 'directional' && (
               <group
                 position={light.position}
-                rotation={light.rotation}
-                onClick={(e) => { e.stopPropagation(); setSelectedLight(light.id); }} // Select visual mesh
+                onClick={(e) => { e.stopPropagation(); setSelectedLight(light.id); }}
                 ref={(el) => meshRefs.current.set(light.id, el)}
               >
-                <arrowHelper args={[new THREE.Vector3(0, -1, 0), new THREE.Vector3(0, 0, 0), 1, light.color]} />
+                <arrowHelper args={[new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), 1, light.color]} />
               </group>
+            )}
+
+            {/* Visual Target for Directional and Spot Lights */}
+            {(light.type === 'directional' || light.type === 'spot') && (
+              <Sphere
+                position={light.targetPosition}
+                args={[0.1, 16, 16]}
+                onClick={(e) => { e.stopPropagation(); setSelectedLight(`${light.id}-target`); }}
+                ref={(el) => meshRefs.current.set(`${light.id}-target`, el)}
+              >
+                <meshBasicMaterial color="hotpink" wireframe />
+              </Sphere>
             )}
           </React.Fragment>
         );
@@ -159,21 +164,25 @@ function Scene() {
         <TransformControls
           ref={transformControlsRef}
           object={objectToControl}
-          mode="translate" // Default to translate
+          mode="translate"
           onMouseUp={(e) => {
             if (e.target.object) {
               const { x, y, z } = e.target.object.position;
-              const { x: rotX, y: rotY, z: rotZ } = e.target.object.rotation;
               
-              // Always update light's position and rotation
-              updateLight(selectedLight, 'position', [x, y, z]);
-              updateLight(selectedLight, 'rotation', [rotX, rotY, rotZ]);
+              const isTarget = selectedLight && selectedLight.endsWith('-target');
+              const lightId = isTarget ? selectedLight.replace('-target', '') : selectedLight;
+              
+              if (isTarget) {
+                updateLight(lightId, 'targetPosition', [x, y, z]);
+              } else {
+                updateLight(lightId, 'position', [x, y, z]);
+              }
             }
           }}
         />
       )}
 
-      <Sphere args={[1, 32, 32]} position={[0, 0, 0]} castShadow> {/* Reverted main sphere position */}
+      <Sphere args={[1, 32, 32]} position={[0, 0, 0]} castShadow>
         <meshStandardMaterial color="white" roughness={mainSphereRoughness} metalness={mainSphereMetalness} />
       </Sphere>
 

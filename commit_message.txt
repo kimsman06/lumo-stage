@@ -1,6 +1,10 @@
-fix: Resolve light control panel not updating scene
+feat: Implement advanced light controls and delete functionality
 
-- Fixed a bug where manipulating light properties (color, intensity, position) via the control panel did not visually update the 3D scene.
-- The issue was traced to a `TypeError` related to `SpotLight`'s target property not being correctly linked to a stable `THREE.Object3D` instance within the scene graph, causing the rendering pipeline to break.
-- Implemented a fix by ensuring `SpotLight` and `DirectionalLight` targets are linked to stable `THREE.Object3D` instances created with `useRef` and rendered as primitives within the Canvas.
-- Removed all debugging `console.log` statements.
+- Adds the ability to delete lights from the control panel.
+- Implements advanced light properties in the store and UI:
+  - `distance` and `decay` for PointLight and SpotLight.
+- Implements a manipulable target for SpotLight and DirectionalLight:
+  - A visual target (pink sphere) appears for selected lights.
+  - The target can be moved with TransformControls to aim the light.
+  - The light's visual model (cone, arrow) now correctly orients itself to point at the target using `lookAt`.
+- Updates the PRD to reflect these new features.

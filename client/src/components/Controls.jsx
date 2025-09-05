@@ -3,12 +3,12 @@ import useStore from '../store';
 
 function Controls() {
   const { 
-    lights, addLight, updateLight, updateLightPosition,
+    lights, addLight, deleteLight, updateLight, updateLightPosition,
     selectedLight, setSelectedLight,
     mainSphereRoughness, mainSphereMetalness, updateMainSphereMaterial
   } = useStore();
 
-  const [newLightType, setNewLightType] = useState('point'); // 새 조명 타입 선택을 위한 상태
+  const [newLightType, setNewLightType] = useState('point');
 
   return (
     <div className="w-1/4 h-screen bg-gray-900 text-white p-4 overflow-y-auto">
@@ -44,7 +44,15 @@ function Controls() {
       {/* 조명 목록 */}
       {lights.map((light, i) => (
         <div key={light.id} className={`p-4 rounded-lg mb-4 ${selectedLight === light.id ? 'bg-blue-900' : 'bg-gray-800'}`}>
-          <h3 className="font-bold mb-2">조명 {i + 1} ({light.type})</h3>
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="font-bold">조명 {i + 1} ({light.type})</h3>
+            <button
+              onClick={() => deleteLight(light.id)}
+              className="bg-red-600 hover:bg-red-800 text-white text-xs font-bold py-1 px-2 rounded"
+            >
+              삭제
+            </button>
+          </div>
           
           {/* 공통 컨트롤 */}
           <div className="mb-2">
@@ -62,8 +70,21 @@ function Controls() {
             </div>
           ))}
 
-          {/* Removed Rotation Controls (for all light types) */}
-          {/* Removed Type-specific controls for distance and decay */}
+          {/* Removed Rotation Controls */}
+
+          {/* Type-specific controls */}
+          {(light.type === 'point' || light.type === 'spot') && (
+            <>
+              <div className="mb-2">
+                <label className="block text-sm">Distance: {light.distance.toFixed(1)}</label>
+                <input type="range" min="0" max="100" step="0.1" value={light.distance} onChange={(e) => updateLight(light.id, 'distance', parseFloat(e.target.value))} className="w-full" />
+              </div>
+              <div className="mb-2">
+                <label className="block text-sm">Decay: {light.decay.toFixed(1)}</label>
+                <input type="range" min="0" max="5" step="0.1" value={light.decay} onChange={(e) => updateLight(light.id, 'decay', parseFloat(e.target.value))} className="w-full" />
+              </div>
+            </>
+          )}
           {light.type === 'spot' && (
             <>
               <div className="mb-2">
@@ -76,7 +97,7 @@ function Controls() {
               </div>
             </>
           )}
-          {light.type === 'directional' && (
+          {(light.type === 'spot' || light.type === 'directional') && (
             <>
               <h4 className="font-bold mt-4 mb-2">Target Position</h4>
               {['X', 'Y', 'Z'].map((axis, axisIndex) => (
