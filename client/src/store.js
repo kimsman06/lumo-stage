@@ -3,15 +3,19 @@ import { nanoid } from 'nanoid';
 
 const useStore = create((set) => ({
   // Global Scene Settings
-  camera: {
+  cameraState: {
     position: [0, 2, 8],
-    fov: 75,
+    target: [0, 0, 0],
+    focalLength: 50, // Changed from fov to focalLength (mm)
   },
   mainSphereRoughness: 0.2, // For specular control
   mainSphereMetalness: 0.7, // For specular control
 
   // UI State
+  viewMode: 'free', // 'free' or 'camera'
   transformMode: 'translate', // 'translate' or 'rotate'
+  isDragging: false, // To manage controls conflict
+  isDragging: false, // To manage controls conflict
 
   // Light Management
   lights: [
@@ -22,6 +26,12 @@ const useStore = create((set) => ({
   selectedLight: null,
 
   // Actions
+  setIsDragging: (isDragging) => set({ isDragging }),
+  setViewMode: (mode) => set({ viewMode: mode }),
+  updateCameraState: (property, value) =>
+    set((state) => ({
+      cameraState: { ...state.cameraState, [property]: value },
+    })),
   setTransformMode: (mode) => set({ transformMode: mode }),
   setSelectedLight: (id) => set({ selectedLight: id }),
   addLight: (type = 'point') =>

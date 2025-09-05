@@ -4,20 +4,60 @@ import { OrbitControls, Sphere, Plane, TransformControls, Cone } from '@react-th
 import useStore from '../store';
 import * as THREE from 'three';
 
-// New component for Canvas-specific setup
-function CanvasSetup() {
-  const { gl } = useThree();
-  useEffect(() => {
-    gl.capabilities.isWebGL2 = true;
-    gl.physicallyCorrectLights = true;
-    gl.outputEncoding = THREE.sRGBEncoding;
-  }, [gl]);
-  return null;
-}
+// This component will contain all the 3D logic and objects.
+// It is rendered inside the Canvas, so it can safely use R3F hooks.
+function Experience() {
+  const { 
+    transformMode,
+    lights, selectedLight, setSelectedLight, updateLight,
+    mainSphereRoughness, mainSphereMetalness, 
+    cameraState, viewMode, setIsDragging
+  } = useStore();
 
-// New component to manage light orientation
-function LightOrientationManager({ lights, meshRefs, lightTargetObjectsRef }) {
+  const { camera, controls } = useThree();
+  const transformControlsRef = useRef();
+  const meshRefs = useRef(new Map());
+  const lightTargetObjectsRef = useRef(new Map());
+  const virtualCamera = useRef(new THREE.PerspectiveCamera());
+
+  const objectToControl = meshRefs.current.get(selectedLight);
+
+  // This useEffect now correctly handles the controls conflict directly.
+  useEffect(() => {
+    const transformCtrl = transformControlsRef.current;
+    if (transformCtrl) {
+      const callback = (event) => {
+        setIsDragging(event.value);
+      };
+      transformCtrl.addEventListener('dragging-changed', callback);
+      return () => transformCtrl.removeEventListener('dragging-changed', callback);
+    }
+  }, [objectToControl, setIsDragging]);
+
+  // This useFrame is now the single source of truth for all per-frame logic.
   useFrame(() => {
+    // 1. Handle OrbitControls enabling/disabling
+    if (controls) {
+      controls.enabled = viewMode === 'free' && !useStore.getState().isDragging;
+    }
+
+    // 2. Update virtual camera from store
+    const vCam = virtualCamera.current;
+    vCam.position.set(...cameraState.position);
+    vCam.lookAt(new THREE.Vector3(...cameraState.target));
+    const sensorHeight = 24;
+    vCam.fov = 2 * Math.atan(sensorHeight / (2 * cameraState.focalLength)) * (180 / Math.PI);
+    vCam.updateProjectionMatrix();
+
+    // 3. Handle camera view mode
+    if (viewMode === 'camera') {
+      camera.position.copy(vCam.position);
+      camera.quaternion.copy(vCam.quaternion);
+      camera.fov = vCam.fov;
+      camera.updateProjectionMatrix();
+    }
+
+    // 4. Handle light orientation
     lights.forEach(light => {
       if (light.type === 'spot' || light.type === 'directional') {
         const mesh = meshRefs.current.get(light.id);
@@ -28,41 +68,12 @@ function LightOrientationManager({ lights, meshRefs, lightTargetObjectsRef }) {
       }
     });
   });
-  return null; // This component doesn't render anything visible
-}
-
-function Scene() {
-  const { 
-    transformMode,
-    lights, selectedLight, setSelectedLight, updateLight, updateLightPositionArray,
-    mainSphereRoughness, mainSphereMetalness 
-  } = useStore();
-
-  const orbitControlsRef = useRef();
-  const transformControlsRef = useRef();
-  const meshRefs = useRef(new Map()); // For light visual models and target visual models
-  const lightTargetObjectsRef = useRef(new Map());
-
-  const objectToControl = meshRefs.current.get(selectedLight);
-
-
-  useEffect(() => {
-    if (transformControlsRef.current) {
-      const controls = transformControlsRef.current;
-      const callback = (event) => (orbitControlsRef.current.enabled = !event.value);
-      controls.addEventListener('dragging-changed', callback);
-      return () => controls.removeEventListener('dragging-changed', callback);
-    }
-  });
 
   return (
-    <Canvas shadows camera={{ position: [0, 2, 8], fov: 75 }}>
-      <CanvasSetup />
-      <LightOrientationManager
-        lights={lights}
-        meshRefs={meshRefs}
-        lightTargetObjectsRef={lightTargetObjectsRef}
-      />
+    <>
+      {/* Render a helper for our virtual camera, only visible in free view */}
+      {viewMode === 'free' && <cameraHelper args={[virtualCamera.current]} />}
+      
       <ambientLight intensity={0.2} />
       
       {lights.map(light => {
@@ -125,7 +136,7 @@ function Scene() {
                 onClick={(e) => { e.stopPropagation(); setSelectedLight(light.id); }}
                 ref={(el) => meshRefs.current.set(light.id, el)}
               >
-                <meshBasicMaterial color={light.color} />
+                <meshStandardMaterial color={light.color} />
               </Sphere>
             )}
             {light.type === 'spot' && (
@@ -136,9 +147,9 @@ function Scene() {
               >
                 <Cone
                   args={[0.2, 0.5, 32]}
-                  rotation={[-Math.PI / 2, 0, 0]} // Rotate the cone inside the group
+                  rotation={[-Math.PI / 2, 0, 0]}
                 >
-                  <meshBasicMaterial color={light.color} />
+                  <meshStandardMaterial color={light.color} />
                 </Cone>
               </group>
             )}
@@ -160,7 +171,7 @@ function Scene() {
                 onClick={(e) => { e.stopPropagation(); setSelectedLight(`${light.id}-target`); }}
                 ref={(el) => meshRefs.current.set(`${light.id}-target`, el)}
               >
-                <meshBasicMaterial color="hotpink" wireframe />
+                <meshStandardMaterial color="hotpink" wireframe />
               </Sphere>
             )}
           </React.Fragment>
@@ -172,7 +183,7 @@ function Scene() {
           ref={transformControlsRef}
           object={objectToControl}
           mode={transformMode}
-          onObjectChange={(e) => { // Changed from onMouseUp to onObjectChange
+          onObjectChange={(e) => {
             if (e?.target?.object) {
               const obj = e.target.object;
               const isTarget = selectedLight && selectedLight.endsWith('-target');
@@ -194,7 +205,6 @@ function Scene() {
                 const direction = new THREE.Vector3(0, 0, -1);
                 direction.applyQuaternion(obj.quaternion);
                 
-                // Use a fixed distance for stable rotation control
                 const distance = 5; 
                 
                 const newTargetPosition = new THREE.Vector3(...light.position).add(direction.multiplyScalar(distance));
@@ -214,7 +224,15 @@ function Scene() {
         <meshStandardMaterial color="grey" />
       </Plane>
 
-      <OrbitControls ref={orbitControlsRef} makeDefault />
+      <OrbitControls makeDefault />
+    </>
+  );
+}
+
+function Scene() {
+  return (
+    <Canvas shadows>
+      <Experience />
     </Canvas>
   );
 }

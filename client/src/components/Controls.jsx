@@ -3,10 +3,12 @@ import useStore from '../store';
 
 function Controls() {
   const { 
-    transformMode, setTransformMode, // Added
+    transformMode, setTransformMode,
+    viewMode, setViewMode, // Added
     lights, addLight, deleteLight, updateLight, updateLightPosition,
     selectedLight, setSelectedLight,
-    mainSphereRoughness, mainSphereMetalness, updateMainSphereMaterial
+    mainSphereRoughness, mainSphereMetalness, updateMainSphereMaterial,
+    cameraState, updateCameraState,
   } = useStore();
 
   const [newLightType, setNewLightType] = useState('point');
@@ -14,6 +16,25 @@ function Controls() {
   return (
     <div className="w-1/4 h-screen bg-gray-900 text-white p-4 overflow-y-auto">
       <h2 className="text-xl font-bold mb-4">컨트롤 패널</h2>
+
+      {/* View Mode Switcher */}
+      <div className="mb-6 p-4 bg-gray-800 rounded-lg">
+        <h3 className="font-bold mb-2">뷰 모드</h3>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setViewMode('free')}
+            className={`w-full font-bold py-2 px-4 rounded ${viewMode === 'free' ? 'bg-blue-700' : 'bg-gray-600 hover:bg-gray-700'}`}
+          >
+            자유 시점
+          </button>
+          <button
+            onClick={() => setViewMode('camera')}
+            className={`w-full font-bold py-2 px-4 rounded ${viewMode === 'camera' ? 'bg-blue-700' : 'bg-gray-600 hover:bg-gray-700'}`}
+          >
+            카메라 시점
+          </button>
+        </div>
+      </div>
 
       {/* Transform Mode Switcher */}
       <div className="mb-6 p-4 bg-gray-800 rounded-lg">
@@ -115,7 +136,7 @@ function Controls() {
               </div>
             </>
           )}
-          {(light.type === 'spot' || light.type === 'directional') && (
+          {(light.type === 'spot' || light.type === 'directional') && light.targetPosition && ( // Added safety check
             <>
               <h4 className="font-bold mt-4 mb-2">Target Position</h4>
               {['X', 'Y', 'Z'].map((axis, axisIndex) => (
@@ -143,6 +164,59 @@ function Controls() {
         <div className="mb-2">
           <label className="block text-sm">Metalness: {mainSphereMetalness.toFixed(2)}</label>
           <input type="range" min="0" max="1" step="0.01" value={mainSphereMetalness} onChange={(e) => updateMainSphereMaterial('mainSphereMetalness', parseFloat(e.target.value))} className="w-full" />
+        </div>
+      </div>
+
+      {/* 카메라 제어 섹션 */}
+      <div className="mb-6 p-4 bg-gray-800 rounded-lg">
+        <h3 className="font-bold mb-2">카메라 제어</h3>
+        
+        {/* Position Controls */}
+        <h4 className="font-semibold mt-3 mb-1 text-sm">Position</h4>
+        {['X', 'Y', 'Z'].map((axis, axisIndex) => (
+          <div key={`cam-pos-${axis}`} className="mb-2">
+            <label className="block text-sm">Position {axis}: {cameraState.position[axisIndex].toFixed(1)}</label>
+            <input
+              type="range" min="-50" max="50" step="0.1"
+              value={cameraState.position[axisIndex]}
+              onChange={(e) => {
+                const newPosition = [...cameraState.position];
+                newPosition[axisIndex] = parseFloat(e.target.value);
+                updateCameraState('position', newPosition);
+              }}
+              className="w-full"
+            />
+          </div>
+        ))}
+
+        {/* Target Controls */}
+        <h4 className="font-semibold mt-3 mb-1 text-sm">Target</h4>
+        {['X', 'Y', 'Z'].map((axis, axisIndex) => (
+          <div key={`cam-tar-${axis}`} className="mb-2">
+            <label className="block text-sm">Target {axis}: {cameraState.target[axisIndex].toFixed(1)}</label>
+            <input
+              type="range" min="-50" max="50" step="0.1"
+              value={cameraState.target[axisIndex]}
+              onChange={(e) => {
+                const newTarget = [...cameraState.target];
+                newTarget[axisIndex] = parseFloat(e.target.value);
+                updateCameraState('target', newTarget);
+              }}
+              className="w-full"
+            />
+          </div>
+        ))}
+
+        {/* Focal Length Control */}
+        <h4 className="font-semibold mt-3 mb-1 text-sm">초점 거리 (Focal Length)</h4>
+        <div className="mb-2">
+          <label className="block text-sm">Focal Length: {cameraState.focalLength.toFixed(0)}mm</label>
+          <input
+            type="range" min="18" max="200" step="1"
+            value={cameraState.focalLength}
+            onChange={(e) => updateCameraState('focalLength', parseFloat(e.target.value))}
+            className="w-full"
+          />
         </div>
       </div>
     </div>

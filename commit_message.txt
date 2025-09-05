@@ -1,6 +1,0 @@
-feat: Implement intuitive lighting controls
-
-- Implements a mode switcher ('translate'/'rotate') for TransformControls.
-- Fixes the orientation of SpotLight and DirectionalLight visual models to correctly point at their targets.
-- Implements rotation via the gizmo for SpotLight and DirectionalLight, which now intuitively updates the light's target position for aiming.
-- Rotation control is now smoother and more predictable, using `onObjectChange` and a stable distance calculation.

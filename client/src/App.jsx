@@ -4,19 +4,28 @@ import Controls from './components/Controls';
 import useStore from './store';
 
 function App() {
-  // Removed debugging display for roughness
-
-  // ESC 키를 눌렀을 때 선택 해제하는 전역 이벤트 리스너 추가
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        useStore.getState().setSelectedLight(null);
+      // Prevent shortcuts if typing in an input
+      if (event.target.tagName.toLowerCase() === 'input') return;
+
+      switch (event.key.toLowerCase()) {
+        case 'escape':
+          useStore.getState().setSelectedLight(null);
+          break;
+        case 'w':
+          useStore.getState().setTransformMode('translate');
+          break;
+        case 'e':
+          useStore.getState().setTransformMode('rotate');
+          break;
+        default:
+          break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
 
-    // 컴포넌트가 언마운트될 때 이벤트 리스너 정리
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
