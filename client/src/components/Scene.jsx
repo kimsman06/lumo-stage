@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Canvas, useThree, useFrame } from '@react-three/fiber'; // Added useFrame
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sphere, Plane, TransformControls, Cone } from '@react-three/drei';
 import useStore from '../store';
 import * as THREE from 'three';
@@ -32,8 +32,11 @@ function LightOrientationManager({ lights, meshRefs, lightTargetObjectsRef }) {
 }
 
 function Scene() {
-  const { lights, selectedLight, setSelectedLight, updateLight, updateLightPositionArray,
-          mainSphereRoughness, mainSphereMetalness } = useStore();
+  const { 
+    transformMode,
+    lights, selectedLight, setSelectedLight, updateLight, updateLightPositionArray,
+    mainSphereRoughness, mainSphereMetalness 
+  } = useStore();
 
   const orbitControlsRef = useRef();
   const transformControlsRef = useRef();
@@ -126,14 +129,18 @@ function Scene() {
               </Sphere>
             )}
             {light.type === 'spot' && (
-              <Cone
+              <group
                 position={light.position}
-                args={[0.2, 0.5, 32]}
                 onClick={(e) => { e.stopPropagation(); setSelectedLight(light.id); }}
                 ref={(el) => meshRefs.current.set(light.id, el)}
               >
-                <meshBasicMaterial color={light.color} />
-              </Cone>
+                <Cone
+                  args={[0.2, 0.5, 32]}
+                  rotation={[-Math.PI / 2, 0, 0]} // Rotate the cone inside the group
+                >
+                  <meshBasicMaterial color={light.color} />
+                </Cone>
+              </group>
             )}
             {light.type === 'directional' && (
               <group
@@ -141,7 +148,7 @@ function Scene() {
                 onClick={(e) => { e.stopPropagation(); setSelectedLight(light.id); }}
                 ref={(el) => meshRefs.current.set(light.id, el)}
               >
-                <arrowHelper args={[new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), 1, light.color]} />
+                <arrowHelper args={[new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, 0), 1, light.color]} />
               </group>
             )}
 
@@ -164,18 +171,35 @@ function Scene() {
         <TransformControls
           ref={transformControlsRef}
           object={objectToControl}
-          mode="translate"
-          onMouseUp={(e) => {
-            if (e.target.object) {
-              const { x, y, z } = e.target.object.position;
-              
+          mode={transformMode}
+          onObjectChange={(e) => { // Changed from onMouseUp to onObjectChange
+            if (e?.target?.object) {
+              const obj = e.target.object;
               const isTarget = selectedLight && selectedLight.endsWith('-target');
               const lightId = isTarget ? selectedLight.replace('-target', '') : selectedLight;
-              
-              if (isTarget) {
-                updateLight(lightId, 'targetPosition', [x, y, z]);
-              } else {
-                updateLight(lightId, 'position', [x, y, z]);
+              const light = lights.find(l => l.id === lightId);
+
+              if (!light) return;
+
+              if (transformMode === 'translate') {
+                const newPosition = [obj.position.x, obj.position.y, obj.position.z];
+                if (isTarget) {
+                  updateLight(lightId, 'targetPosition', newPosition);
+                } else {
+                  updateLight(lightId, 'position', newPosition);
+                }
+              } else if (transformMode === 'rotate') {
+                if (isTarget) return; // Cannot rotate a target
+
+                const direction = new THREE.Vector3(0, 0, -1);
+                direction.applyQuaternion(obj.quaternion);
+                
+                // Use a fixed distance for stable rotation control
+                const distance = 5; 
+                
+                const newTargetPosition = new THREE.Vector3(...light.position).add(direction.multiplyScalar(distance));
+                
+                updateLight(lightId, 'targetPosition', [newTargetPosition.x, newTargetPosition.y, newTargetPosition.z]);
               }
             }
           }}

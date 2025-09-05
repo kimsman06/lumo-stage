@@ -10,6 +10,9 @@ const useStore = create((set) => ({
   mainSphereRoughness: 0.2, // For specular control
   mainSphereMetalness: 0.7, // For specular control
 
+  // UI State
+  transformMode: 'translate', // 'translate' or 'rotate'
+
   // Light Management
   lights: [
     // Default lights with types, including rotation, distance, decay
@@ -19,6 +22,7 @@ const useStore = create((set) => ({
   selectedLight: null,
 
   // Actions
+  setTransformMode: (mode) => set({ transformMode: mode }),
   setSelectedLight: (id) => set({ selectedLight: id }),
   addLight: (type = 'point') =>
     set((state) => {

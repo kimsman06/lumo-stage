@@ -3,6 +3,7 @@ import useStore from '../store';
 
 function Controls() {
   const { 
+    transformMode, setTransformMode, // Added
     lights, addLight, deleteLight, updateLight, updateLightPosition,
     selectedLight, setSelectedLight,
     mainSphereRoughness, mainSphereMetalness, updateMainSphereMaterial
@@ -13,6 +14,25 @@ function Controls() {
   return (
     <div className="w-1/4 h-screen bg-gray-900 text-white p-4 overflow-y-auto">
       <h2 className="text-xl font-bold mb-4">컨트롤 패널</h2>
+
+      {/* Transform Mode Switcher */}
+      <div className="mb-6 p-4 bg-gray-800 rounded-lg">
+        <h3 className="font-bold mb-2">조작 모드</h3>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setTransformMode('translate')}
+            className={`w-full font-bold py-2 px-4 rounded ${transformMode === 'translate' ? 'bg-blue-700' : 'bg-gray-600 hover:bg-gray-700'}`}
+          >
+            이동 (Translate)
+          </button>
+          <button
+            onClick={() => setTransformMode('rotate')}
+            className={`w-full font-bold py-2 px-4 rounded ${transformMode === 'rotate' ? 'bg-blue-700' : 'bg-gray-600 hover:bg-gray-700'}`}
+          >
+            회전 (Rotate)
+          </button>
+        </div>
+      </div>
 
       {/* 새 조명 추가 섹션 */}
       <div className="mb-6 p-4 bg-gray-800 rounded-lg">
@@ -69,8 +89,6 @@ function Controls() {
               <input type="range" min="-10" max="10" step="0.1" value={light.position[axisIndex]} onChange={(e) => updateLightPosition(light.id, axisIndex, e.target.value)} className="w-full" />
             </div>
           ))}
-
-          {/* Removed Rotation Controls */}
 
           {/* Type-specific controls */}
           {(light.type === 'point' || light.type === 'spot') && (

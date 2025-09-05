@@ -1,10 +1,6 @@
-feat: Implement advanced light controls and delete functionality
+feat: Implement intuitive lighting controls
 
-- Adds the ability to delete lights from the control panel.
-- Implements advanced light properties in the store and UI:
-  - `distance` and `decay` for PointLight and SpotLight.
-- Implements a manipulable target for SpotLight and DirectionalLight:
-  - A visual target (pink sphere) appears for selected lights.
-  - The target can be moved with TransformControls to aim the light.
-  - The light's visual model (cone, arrow) now correctly orients itself to point at the target using `lookAt`.
-- Updates the PRD to reflect these new features.
+- Implements a mode switcher ('translate'/'rotate') for TransformControls.
+- Fixes the orientation of SpotLight and DirectionalLight visual models to correctly point at their targets.
+- Implements rotation via the gizmo for SpotLight and DirectionalLight, which now intuitively updates the light's target position for aiming.
+- Rotation control is now smoother and more predictable, using `onObjectChange` and a stable distance calculation.
