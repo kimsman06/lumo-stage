@@ -3,6 +3,7 @@ import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sphere, Plane, TransformControls, Cone } from '@react-three/drei';
 import useStore from '../store';
 import * as THREE from 'three';
+import { Mannequin } from './Mannequin';
 
 // This component will contain all the 3D logic and objects.
 // It is rendered inside the Canvas, so it can safely use R3F hooks.
@@ -216,9 +217,9 @@ function Experience() {
         />
       )}
 
-      <Sphere args={[1, 32, 32]} position={[0, 0, 0]} castShadow>
-        <meshStandardMaterial color="white" roughness={mainSphereRoughness} metalness={mainSphereMetalness} />
-      </Sphere>
+      <React.Suspense fallback={null}>
+        <Mannequin position={[0, -1.5, 0]} />
+      </React.Suspense>
 
       <Plane receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.5, 0]} args={[100, 100]}>
         <meshStandardMaterial color="grey" />
