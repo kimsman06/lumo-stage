@@ -20,14 +20,15 @@ const boneLabels = {
 };
 const axisLabels = { x: 'X축', y: 'Y축', z: 'Z축' };
 
-function BoneControl({ boneName }) {
-  const { mannequinPose, setBoneRotation } = useStore();
-  const rotation = mannequinPose[boneName];
+function BoneControl({ boneName, mannequinId }) {
+  const { mannequins, setBoneRotation } = useStore();
+  const mannequin = mannequins.find(m => m.id === mannequinId);
+  const rotation = mannequin?.pose[boneName];
 
   if (!rotation) return null; // Safety check
 
   const handleRotationChange = (axis, value) => {
-    setBoneRotation(boneName, axis, parseFloat(value));
+    setBoneRotation(mannequinId, boneName, axis, parseFloat(value));
   };
 
   return (
@@ -52,17 +53,48 @@ function BoneControl({ boneName }) {
 }
 
 function MannequinTab() {
-  const { mannequinPose } = useStore();
-  const bones = Object.keys(mannequinPose);
+  const { mannequins, selectedMannequinId, addMannequin, selectMannequin, deleteMannequin } = useStore();
+  const selectedMannequin = mannequins.find(m => m.id === selectedMannequinId);
 
   return (
     <div className="flex-grow p-1">
-        <p className="text-xs text-gray-400 mt-2 p-4">
-          This work is based on "Wooden Mannequin (Lay Figure) - Rigged" by madeofmesh, licensed under CC-BY-4.0.
-        </p>
-      {bones.map(boneName => (
-        <BoneControl key={boneName} boneName={boneName} />
-      ))}
+      <div className="p-4">
+        <button
+          onClick={addMannequin}
+          className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4"
+        >
+          마네킹 추가
+        </button>
+        <div className="space-y-2 mb-4">
+          {mannequins.map((m, index) => (
+            <div key={m.id} 
+              className={`flex justify-between items-center p-2 rounded cursor-pointer ${selectedMannequinId === m.id ? 'bg-blue-800' : 'bg-gray-700 hover:bg-gray-600'}`}
+              onClick={() => selectMannequin(m.id)}
+            >
+              <span>마네킹 {index + 1}</span>
+              {mannequins.length > 1 && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); deleteMannequin(m.id); }}
+                  className="bg-red-600 hover:bg-red-800 text-white text-xs font-bold py-1 px-2 rounded"
+                >
+                  삭제
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {selectedMannequin && (
+        <>
+          <p className="text-xs text-gray-400 mt-2 p-4 border-t border-gray-700">
+            This work is based on "Wooden Mannequin (Lay Figure) - Rigged" by madeofmesh, licensed under CC-BY-4.0.
+          </p>
+          {Object.keys(selectedMannequin.pose).map(boneName => (
+            <BoneControl key={boneName} boneName={boneName} mannequinId={selectedMannequin.id} />
+          ))}
+        </>
+      )}
     </div>
   );
 }

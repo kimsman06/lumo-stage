@@ -218,7 +218,9 @@ function Experience() {
       )}
 
       <React.Suspense fallback={null}>
-        <Mannequin position={[0, -1.5, 0]} />
+        {useStore.getState().mannequins.map(m => (
+          <Mannequin key={m.id} id={m.id} position={m.position} pose={m.pose} />
+        ))}
       </React.Suspense>
 
       <Plane receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.5, 0]} args={[100, 100]}>

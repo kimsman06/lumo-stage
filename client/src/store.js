@@ -1,42 +1,43 @@
 import { create } from 'zustand';
 import { nanoid } from 'nanoid';
 
-// Define the initial pose for the mannequin
-const initialMannequinPose = {
-  // Head
+// Define the initial pose for a new mannequin
+const createInitialPose = () => ({
   head_02: { x: 0, y: 0, z: 0 },
-  // Left Arm
   l_shoulder_03: { x: 0, y: 0, z: 0 },
   l_forearm_04: { x: 0, y: 0, z: 0 },
   l_hand_05: { x: 0, y: 0, z: 0 },
-  // Right Arm
   r_shoulder_06: { x: 0, y: 0, z: 0 },
   r_forearm_07: { x: 0, y: 0, z: 0 },
   r_hand_08: { x: 0, y: 0, z: 0 },
-  // Body
   waist_00: { x: 0, y: 0, z: 0 },
-  // Left Leg
   l_thigh_09: { x: 0, y: 0, z: 0 },
   l_shin_010: { x: 0, y: 0, z: 0 },
   l_foot_012: { x: 0, y: 0, z: 0 },
-  // Right Leg
   r_thigh_013: { x: 0, y: 0, z: 0 },
   r_shin_014: { x: 0, y: 0, z: 0 },
   r_foot_016: { x: 0, y: 0, z: 0 },
-};
+});
 
-const useStore = create((set) => ({
-  // Mannequin Pose
-  mannequinPose: initialMannequinPose,
+const firstMannequinId = nanoid();
+
+const useStore = create((set, get) => ({
+  // Mannequin Management
+  mannequins: [
+    {
+      id: firstMannequinId,
+      position: [0, -1.5, 0],
+      pose: createInitialPose(),
+    }
+  ],
+  selectedMannequinId: firstMannequinId,
 
   // Global Scene Settings
   cameraState: {
     position: [0, 2, 8],
     target: [0, 0, 0],
-    focalLength: 50, // Changed from fov to focalLength (mm)
+    focalLength: 50,
   },
-  mainSphereRoughness: 0.2, // For specular control
-  mainSphereMetalness: 0.7, // For specular control
 
   // UI State
   viewMode: 'free', // 'free' or 'camera'
@@ -45,21 +46,47 @@ const useStore = create((set) => ({
 
   // Light Management
   lights: [
-    // Default lights with types, including rotation, distance, decay
     { id: nanoid(), type: 'point', position: [5, 5, 0], color: '#ff0000', intensity: 10, rotation: [0, 0, 0], distance: 0, decay: 2 },
     { id: nanoid(), type: 'spot', position: [-5, 5, -5], color: '#0000ff', intensity: 10, angle: Math.PI / 4, penumbra: 0.5, rotation: [0, 0, 0], distance: 0, decay: 2, targetPosition: [0, 0, 0] },
   ],
   selectedLight: null,
 
-  // Actions
-  initializePose: (pose) => set({ mannequinPose: pose }),
-  setBoneRotation: (boneName, axis, value) =>
-    set((state) => ({
-      mannequinPose: {
-        ...state.mannequinPose,
-        [boneName]: { ...state.mannequinPose[boneName], [axis]: value },
-      },
-    })),
+  // --- ACTIONS ---
+
+  // Mannequin Actions
+  addMannequin: () => set((state) => ({
+    mannequins: [...state.mannequins, {
+      id: nanoid(),
+      position: [Math.random() * 4 - 2, -1.5, Math.random() * 4 - 2],
+      pose: createInitialPose(),
+    }]
+  })),
+  selectMannequin: (id) => set({ selectedMannequinId: id }),
+  deleteMannequin: (id) => set((state) => ({
+    mannequins: state.mannequins.filter(m => m.id !== id),
+    selectedMannequinId: state.selectedMannequinId === id ? (state.mannequins[0]?.id || null) : state.selectedMannequinId,
+  })),
+  initializePose: (id, pose) => set((state) => ({
+    mannequins: state.mannequins.map(m => 
+      m.id === id ? { ...m, pose } : m
+    ),
+  })),
+  setBoneRotation: (id, boneName, axis, value) => set((state) => ({
+    mannequins: state.mannequins.map(m => {
+      if (m.id === id) {
+        return {
+          ...m,
+          pose: {
+            ...m.pose,
+            [boneName]: { ...m.pose[boneName], [axis]: value },
+          }
+        };
+      }
+      return m;
+    }),
+  })),
+
+  // Other Actions
   setIsDragging: (isDragging) => set({ isDragging }),
   setViewMode: (mode) => set({ viewMode: mode }),
   updateCameraState: (property, value) =>
@@ -97,27 +124,6 @@ const useStore = create((set) => ({
       lights: state.lights.map((light) =>
         light.id === id ? { ...light, [property]: value } : light
       ),
-    })),
-  updateLightPosition: (id, axis, value) =>
-    set((state) => ({
-      lights: state.lights.map((light) => {
-        if (light.id === id) {
-          const newPosition = [...light.position];
-          newPosition[axis] = parseFloat(value);
-          return { ...light, position: newPosition };
-        }
-        return light;
-      }),
-    })),
-  updateLightPositionArray: (id, position) =>
-    set((state) => ({
-      lights: state.lights.map((light) =>
-        light.id === id ? { ...light, position: position } : light
-      ),
-    })),
-  updateMainSphereMaterial: (property, value) =>
-    set((state) => ({
-      [property]: value,
     })),
 }));
 
