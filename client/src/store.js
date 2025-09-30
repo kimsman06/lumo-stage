@@ -52,6 +52,7 @@ const useStore = create((set) => ({
   selectedLight: null,
 
   // Actions
+  initializePose: (pose) => set({ mannequinPose: pose }),
   setBoneRotation: (boneName, axis, value) =>
     set((state) => ({
       mannequinPose: {
