@@ -9,23 +9,24 @@ import { Mannequin } from './Mannequin';
 // It is rendered inside the Canvas, so it can safely use R3F hooks.
 function Experience() {
   const mannequins = useStore(state => state.mannequins);
-  const { 
+  const {
     transformMode,
     lights, selectedLight, setSelectedLight, updateLight,
     cameraState, viewMode, setIsDragging,
-    selectedMannequinId, setMannequinPosition, // Get mannequin state
+    selectedMannequinId, setMannequinPosition, selectMannequin, selectedBoneName, setSelectedBoneName,
   } = useStore();
 
   const { camera, controls } = useThree();
   const transformControlsRef = useRef();
   const lightRefs = useRef(new Map());
-  const mannequinRefs = useRef(new Map()); // Refs for mannequins
+  const mannequinRefs = useRef(new Map());
   const lightTargetObjectsRef = useRef(new Map());
   const virtualCamera = useRef(new THREE.PerspectiveCamera());
 
   // Determine which object to control
   const lightToControl = lightRefs.current.get(selectedLight);
-  const mannequinToControl = mannequinRefs.current.get(selectedMannequinId);
+  // Only allow mannequin control if no bone is selected
+  const mannequinToControl = !selectedBoneName && mannequinRefs.current.get(selectedMannequinId);
   const objectToControl = selectedLight ? lightToControl : mannequinToControl;
 
   useEffect(() => {
@@ -97,19 +98,47 @@ function Experience() {
               }
             })(light)}
 
-            {/* Visual helpers for lights */}
+            {/* Visual helpers for lights (restored) */}
             {light.type === 'point' && (
               <Sphere
                 position={light.position}
                 args={[0.2, 16, 16]}
-                onClick={(e) => { e.stopPropagation(); setSelectedLight(light.id); }}
+                onClick={(e) => { e.stopPropagation(); setSelectedLight(light.id); selectMannequin(null); }}
                 ref={(el) => lightRefs.current.set(light.id, el)}
               >
                 <meshStandardMaterial color={light.color} emissive={light.color} emissiveIntensity={2} />
               </Sphere>
             )}
-            {/* ... other light helpers ... */}
-          </React.Fragment>
+            {light.type === 'spot' && (
+              <group
+                position={light.position}
+                onClick={(e) => { e.stopPropagation(); setSelectedLight(light.id); selectMannequin(null); }}
+                ref={(el) => lightRefs.current.set(light.id, el)}
+              >
+                <Cone args={[0.4, 0.5, 32]} rotation={[-Math.PI / 2, 0, 0]}>
+                  <meshStandardMaterial color={light.color} emissive={light.color} emissiveIntensity={2} />
+                </Cone>
+              </group>
+            )}
+            {light.type === 'directional' && (
+              <group
+                position={light.position}
+                onClick={(e) => { e.stopPropagation(); setSelectedLight(light.id); selectMannequin(null); }}
+                ref={(el) => lightRefs.current.set(light.id, el)}
+              >
+                <arrowHelper args={[new THREE.Vector3(0, 0, -1).applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1), new THREE.Vector3(...light.position).normalize())), new THREE.Vector3(0,0,0), 1, light.color]} />
+              </group>
+            )}
+            {(light.type === 'directional' || light.type === 'spot') && (
+              <Sphere
+                position={light.targetPosition}
+                args={[0.1, 16, 16]}
+                onClick={(e) => { e.stopPropagation(); setSelectedLight(`${light.id}-target`); selectMannequin(null); }}
+                ref={(el) => lightRefs.current.set(`${light.id}-target`, el)}
+              >
+                <meshStandardMaterial color="hotpink" wireframe />
+              </Sphere>
+            )}          </React.Fragment>
         );
       })}
 
@@ -121,13 +150,15 @@ function Experience() {
           onObjectChange={(e) => {
             if (e?.target?.object) {
               const obj = e.target.object;
-              // Check if we are controlling a mannequin or a light
-              if (mannequinToControl) {
+              const state = useStore.getState(); // Get fresh state
+
+              // Use fresh state to determine what to update
+              if (state.selectedLight) {
                 const newPosition = [obj.position.x, obj.position.y, obj.position.z];
-                setMannequinPosition(selectedMannequinId, newPosition);
-              } else if (lightToControl) {
+                updateLight(state.selectedLight, 'position', newPosition);
+              } else if (state.selectedMannequinId) {
                 const newPosition = [obj.position.x, obj.position.y, obj.position.z];
-                updateLight(selectedLight, 'position', newPosition);
+                setMannequinPosition(state.selectedMannequinId, newPosition);
               }
             }
           }}
@@ -138,15 +169,23 @@ function Experience() {
         {mannequins.map(m => (
           <Mannequin 
             key={m.id} 
-            id={m.id} 
-            position={m.position} 
-            pose={m.pose} 
+            {...m}
             ref={(el) => mannequinRefs.current.set(m.id, el)}
           />
         ))}
       </React.Suspense>
 
-      <Plane receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.5, 0]} args={[100, 100]}>
+      <Plane 
+        receiveShadow 
+        rotation={[-Math.PI / 2, 0, 0]} 
+        position={[0, -1.5, 0]} 
+        args={[100, 100]}
+        onClick={() => {
+          selectMannequin(null);
+          setSelectedLight(null);
+          setSelectedBoneName(null);
+        }}
+      >
         <meshStandardMaterial color="grey" />
       </Plane>
 
@@ -154,7 +193,6 @@ function Experience() {
     </>
   );
 }
-
 function Scene() {
   return (
     <Canvas shadows>
