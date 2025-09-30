@@ -1,7 +1,34 @@
 import { create } from 'zustand';
 import { nanoid } from 'nanoid';
 
+// Define the initial pose for the mannequin
+const initialMannequinPose = {
+  // Head
+  head_02: { x: 0, y: 0, z: 0 },
+  // Left Arm
+  l_shoulder_03: { x: 0, y: 0, z: 0 },
+  l_forearm_04: { x: 0, y: 0, z: 0 },
+  l_hand_05: { x: 0, y: 0, z: 0 },
+  // Right Arm
+  r_shoulder_06: { x: 0, y: 0, z: 0 },
+  r_forearm_07: { x: 0, y: 0, z: 0 },
+  r_hand_08: { x: 0, y: 0, z: 0 },
+  // Body
+  waist_00: { x: 0, y: 0, z: 0 },
+  // Left Leg
+  l_thigh_09: { x: 0, y: 0, z: 0 },
+  l_shin_010: { x: 0, y: 0, z: 0 },
+  l_foot_012: { x: 0, y: 0, z: 0 },
+  // Right Leg
+  r_thigh_013: { x: 0, y: 0, z: 0 },
+  r_shin_014: { x: 0, y: 0, z: 0 },
+  r_foot_016: { x: 0, y: 0, z: 0 },
+};
+
 const useStore = create((set) => ({
+  // Mannequin Pose
+  mannequinPose: initialMannequinPose,
+
   // Global Scene Settings
   cameraState: {
     position: [0, 2, 8],
@@ -15,7 +42,6 @@ const useStore = create((set) => ({
   viewMode: 'free', // 'free' or 'camera'
   transformMode: 'translate', // 'translate' or 'rotate'
   isDragging: false, // To manage controls conflict
-  isDragging: false, // To manage controls conflict
 
   // Light Management
   lights: [
@@ -26,6 +52,13 @@ const useStore = create((set) => ({
   selectedLight: null,
 
   // Actions
+  setBoneRotation: (boneName, axis, value) =>
+    set((state) => ({
+      mannequinPose: {
+        ...state.mannequinPose,
+        [boneName]: { ...state.mannequinPose[boneName], [axis]: value },
+      },
+    })),
   setIsDragging: (isDragging) => set({ isDragging }),
   setViewMode: (mode) => set({ viewMode: mode }),
   updateCameraState: (property, value) =>
