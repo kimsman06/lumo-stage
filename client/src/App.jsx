@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import Scene from './components/Scene';
-import Controls from './components/Controls';
-import MannequinControls from './components/MannequinControls'; // Import the new controls
+import EditorPanel from './components/EditorPanel'; // Import the new unified panel
 import useStore from './store';
 
 function App() {
@@ -34,16 +33,13 @@ function App() {
 
   return (
     <div className="w-screen h-screen bg-black flex">
-      {/* Left Panel: Mannequin Controls */}
-      <MannequinControls />
-      
       {/* Center Panel: 3D Scene */}
       <div className="flex-grow h-full">
         <Scene />
       </div>
       
-      {/* Right Panel: Light and Camera Controls */}
-      <Controls />
+      {/* Right Panel: Unified Editor Panel */}
+      <EditorPanel />
     </div>
   );
 }
