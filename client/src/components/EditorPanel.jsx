@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import useStore from '../store';
+import { standPose, sitPose } from '../presets'; // Import presets
 
 // Mannequin Controls Tab
 const boneLabels = {
@@ -21,9 +22,16 @@ const boneLabels = {
 const axisLabels = { x: 'X축', y: 'Y축', z: 'Z축' };
 
 function BoneControl({ boneName, mannequinId }) {
-  const { mannequins, setBoneRotation } = useStore();
+  const { mannequins, setBoneRotation, highlightedBone } = useStore();
   const mannequin = mannequins.find(m => m.id === mannequinId);
   const rotation = mannequin?.pose[boneName];
+  const ref = useRef();
+
+  useEffect(() => {
+    if (highlightedBone === boneName) {
+      ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [highlightedBone, boneName]);
 
   if (!rotation) return null; // Safety check
 
@@ -31,8 +39,10 @@ function BoneControl({ boneName, mannequinId }) {
     setBoneRotation(mannequinId, boneName, axis, parseFloat(value));
   };
 
+  const isHighlighted = highlightedBone === boneName;
+
   return (
-    <div className="p-4 border-b border-gray-700">
+    <div ref={ref} className={`p-4 border-b border-gray-700 ${isHighlighted ? 'bg-blue-900' : ''}`}>
       <h4 className="text-md font-bold text-white mb-2">{boneLabels[boneName] || boneName}</h4>
       {Object.keys(rotation).map((axis) => (
         <div key={axis} className="mb-2">
@@ -87,6 +97,24 @@ function MannequinTab() {
 
       {selectedMannequin && (
         <>
+          <div className="p-4 border-b border-gray-700">
+            <h4 className="text-md font-bold text-white mb-3">포즈 프리셋</h4>
+            <div className="flex space-x-2">
+              <button 
+                onClick={() => applyPosePreset(selectedMannequin.id, standPose)}
+                className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded text-sm"
+              >
+                서기
+              </button>
+              <button 
+                onClick={() => applyPosePreset(selectedMannequin.id, sitPose)}
+                className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded text-sm"
+              >
+                앉기
+              </button>
+            </div>
+          </div>
+
           <p className="text-xs text-gray-400 mt-2 p-4 border-t border-gray-700">
             This work is based on "Wooden Mannequin (Lay Figure) - Rigged" by madeofmesh, licensed under CC-BY-4.0.
           </p>
@@ -149,6 +177,61 @@ function LightingTab() {
           <div className="mb-2">
             <label className="block text-sm">Intensity: {light.intensity.toFixed(1)}</label>
             <input type="range" min="0" max="50" step="0.5" value={light.intensity} onChange={(e) => updateLight(light.id, 'intensity', parseFloat(e.target.value))} className="w-full" />
+          </div>
+
+          {/* Type-specific controls */}
+          {(light.type === 'point' || light.type === 'spot') && (
+            <>
+              <div className="mb-2">
+                <label className="block text-sm">Distance: {light.distance.toFixed(1)}</label>
+                <input type="range" min="0" max="100" step="0.1" value={light.distance} onChange={(e) => updateLight(light.id, 'distance', parseFloat(e.target.value))} className="w-full" />
+              </div>
+              <div className="mb-2">
+                <label className="block text-sm">Decay: {light.decay.toFixed(1)}</label>
+                <input type="range" min="0" max="5" step="0.1" value={light.decay} onChange={(e) => updateLight(light.id, 'decay', parseFloat(e.target.value))} className="w-full" />
+              </div>
+            </>
+          )}
+          {light.type === 'spot' && (
+            <>
+              <div className="mb-2">
+                <label className="block text-sm">Angle: {light.angle.toFixed(2)}</label>
+                <input type="range" min="0" max={Math.PI / 2} step="0.01" value={light.angle} onChange={(e) => updateLight(light.id, 'angle', parseFloat(e.target.value))} className="w-full" />
+              </div>
+              <div className="mb-2">
+                <label className="block text-sm">Penumbra: {light.penumbra.toFixed(2)}</label>
+                <input type="range" min="0" max="1" step="0.01" value={light.penumbra} onChange={(e) => updateLight(light.id, 'penumbra', parseFloat(e.target.value))} className="w-full" />
+              </div>
+            </>
+          )}
+          
+          {/* Target Position for Spot and Directional Lights */}
+          {(light.type === 'spot' || light.type === 'directional') && light.targetPosition && (
+            <>
+              <h4 className="font-bold mt-4 mb-2 text-sm">Target Position</h4>
+              {['X', 'Y', 'Z'].map((axis, axisIndex) => (
+                <div key={axis} className="mb-2">
+                  <label className="block text-sm">Target {axis}: {light.targetPosition[axisIndex].toFixed(1)}</label>
+                  <input type="range" min="-10" max="10" step="0.1" value={light.targetPosition[axisIndex]} onChange={(e) => {
+                    const newTargetPosition = [...light.targetPosition];
+                    newTargetPosition[axisIndex] = parseFloat(e.target.value);
+                    updateLight(light.id, 'targetPosition', newTargetPosition);
+                  }} className="w-full" />
+                </div>
+              ))}
+            </>
+          )}
+
+          {/* Cast Shadow Checkbox */}
+          <div className="flex items-center mt-4">
+            <input
+              type="checkbox"
+              id={`cast-shadow-${light.id}`}
+              checked={light.castShadow}
+              onChange={(e) => updateLight(light.id, 'castShadow', e.target.checked)}
+              className="h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+            />
+            <label htmlFor={`cast-shadow-${light.id}`} className="ml-2 text-sm font-medium text-gray-300">Cast Shadow</label>
           </div>
         </div>
       ))}

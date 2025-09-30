@@ -7,18 +7,26 @@ Source: https://sketchfab.com/3d-models/wooden-mannequin-lay-figure-rigged-f119f
 Title: Wooden Mannequin (Lay Figure) - Rigged
 */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, forwardRef } from 'react';
 import { useGLTF } from '@react-three/drei';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useGraph } from '@react-three/fiber';
+import { SkeletonUtils } from 'three-stdlib';
 import useStore from '../store';
 
-export function Mannequin({ id, pose, ...props }) {
-  const { nodes, materials } = useGLTF('/wooden_mannequine/scene.gltf');
-  const { initializePose, selectMannequin } = useStore();
+export const Mannequin = forwardRef(({ id, pose, ...props }, ref) => {
+  const { scene, materials } = useGLTF('/wooden_mannequine/scene.gltf');
+  // Create a unique clone for each instance to allow independent animations
+  const clone = useMemo(() => SkeletonUtils.clone(scene), [scene]);
+  const { nodes } = useGraph(clone);
+
+  const { initializePose, selectMannequin, setHighlightedBone } = useStore();
   const hasInitialized = useRef(false);
 
+  const skinnedMesh = nodes.Object_9; // Find the skinned mesh from the cloned graph
+
   useEffect(() => {
-    if (nodes && !hasInitialized.current) {
+    // Initialize pose from the model's default, but do it only once per instance
+    if (skinnedMesh && !hasInitialized.current) {
       const initialPose = {};
       Object.keys(pose).forEach(boneName => {
         const bone = nodes[boneName];
@@ -29,10 +37,11 @@ export function Mannequin({ id, pose, ...props }) {
       initializePose(id, initialPose);
       hasInitialized.current = true;
     }
-  }, [nodes, id, pose, initializePose]);
+  }, [skinnedMesh, id, pose, initializePose, nodes]);
 
   useFrame(() => {
-    if (!nodes || !hasInitialized.current) return;
+    // Apply pose from props to the unique cloned bones
+    if (!skinnedMesh || !hasInitialized.current) return;
     Object.keys(pose).forEach(boneName => {
       const bone = nodes[boneName];
       if (bone) {
@@ -42,24 +51,45 @@ export function Mannequin({ id, pose, ...props }) {
     });
   });
 
+  const handleJointClick = (event) => {
+    event.stopPropagation();
+    selectMannequin(id);
+    if (!skinnedMesh) return;
+
+    const geometry = skinnedMesh.geometry;
+    const skeleton = skinnedMesh.skeleton;
+    const bones = skeleton.bones;
+    const boneNames = Object.keys(pose);
+
+    if (event.face) {
+      const vertexIndex = event.face.a;
+      const skinIndex = geometry.attributes.skinIndex.getX(vertexIndex);
+      const bone = bones[skinIndex];
+      if (bone && boneNames.includes(bone.name)) {
+        setHighlightedBone(bone.name);
+      }
+    }
+  };
+
   return (
-    <group {...props} dispose={null} onClick={(e) => { e.stopPropagation(); selectMannequin(id); }}>
-      <group rotation={[-Math.PI / 2, 0, 0]} scale={2.329}>
+    <group ref={ref} {...props} dispose={null}>
+       <group rotation={[-Math.PI / 2, 0, 0]} scale={2.329}>
         <group rotation={[Math.PI / 2, 0, 0]} scale={0.01}>
           <group position={[0, 97.263, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={100}>
             <primitive object={nodes._rootJoint} />
             <skinnedMesh
               castShadow
               receiveShadow
-              geometry={nodes.Object_9.geometry}
+              geometry={skinnedMesh.geometry}
               material={materials.lay_figure_material}
-              skeleton={nodes.Object_9.skeleton}
+              skeleton={skinnedMesh.skeleton}
+              onClick={handleJointClick}
             />
           </group>
         </group>
       </group>
     </group>
   );
-}
+});
 
 useGLTF.preload('/wooden_mannequine/scene.gltf');

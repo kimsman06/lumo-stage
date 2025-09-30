@@ -4,6 +4,7 @@ import { nanoid } from 'nanoid';
 // Define the initial pose for a new mannequin
 const createInitialPose = () => ({
   head_02: { x: 0, y: 0, z: 0 },
+  waist_00: { x: 0, y: 0, z: 0 }, // Add waist control
   l_shoulder_03: { x: 0, y: 0, z: 0 },
   l_forearm_04: { x: 0, y: 0, z: 0 },
   l_hand_05: { x: 0, y: 0, z: 0 },
@@ -43,17 +44,21 @@ const useStore = create((set, get) => ({
   viewMode: 'free', // 'free' or 'camera'
   transformMode: 'translate', // 'translate' or 'rotate'
   isDragging: false, // To manage controls conflict
+  highlightedBone: null, // For direct joint selection
 
   // Light Management
   lights: [
-    { id: nanoid(), type: 'point', position: [5, 5, 0], color: '#ff0000', intensity: 10, rotation: [0, 0, 0], distance: 0, decay: 2 },
-    { id: nanoid(), type: 'spot', position: [-5, 5, -5], color: '#0000ff', intensity: 10, angle: Math.PI / 4, penumbra: 0.5, rotation: [0, 0, 0], distance: 0, decay: 2, targetPosition: [0, 0, 0] },
+    // Default three-point lighting setup
+    { id: nanoid(), type: 'spot', color: '#FFFFFF', intensity: 15, position: [5, 7, 5], angle: Math.PI / 6, penumbra: 0.5, distance: 20, decay: 2, castShadow: true, targetPosition: [0, 1, 0] }, // Key Light
+    { id: nanoid(), type: 'spot', color: '#FFFFFF', intensity: 5, position: [-5, 4, 5], angle: Math.PI / 6, penumbra: 0.7, distance: 20, decay: 2, castShadow: true, targetPosition: [0, 1, 0] }, // Fill Light
+    { id: nanoid(), type: 'spot', color: '#FFFFFF', intensity: 8, position: [0, 5, -8], angle: Math.PI / 4, penumbra: 0.5, distance: 20, decay: 2, castShadow: true, targetPosition: [0, 1, 0] }, // Back Light
   ],
   selectedLight: null,
 
   // --- ACTIONS ---
 
   // Mannequin Actions
+  setHighlightedBone: (boneName) => set({ highlightedBone: boneName }),
   addMannequin: () => set((state) => ({
     mannequins: [...state.mannequins, {
       id: nanoid(),
@@ -65,6 +70,11 @@ const useStore = create((set, get) => ({
   deleteMannequin: (id) => set((state) => ({
     mannequins: state.mannequins.filter(m => m.id !== id),
     selectedMannequinId: state.selectedMannequinId === id ? (state.mannequins[0]?.id || null) : state.selectedMannequinId,
+  })),
+  applyPosePreset: (id, presetPose) => set((state) => ({
+    mannequins: state.mannequins.map(m => 
+      m.id === id ? { ...m, pose: { ...presetPose } } : m // Create a shallow copy to ensure re-render
+    ),
   })),
   initializePose: (id, pose) => set((state) => ({
     mannequins: state.mannequins.map(m => 
@@ -85,6 +95,11 @@ const useStore = create((set, get) => ({
       return m;
     }),
   })),
+  setMannequinPosition: (id, position) => set((state) => ({
+    mannequins: state.mannequins.map(m => 
+      m.id === id ? { ...m, position } : m
+    ),
+  })),
 
   // Other Actions
   setIsDragging: (isDragging) => set({ isDragging }),
@@ -98,7 +113,7 @@ const useStore = create((set, get) => ({
   addLight: (type = 'point') =>
     set((state) => {
       let newLight;
-      const commonProps = { id: nanoid(), position: [0, 3, 0], color: '#ffffff', intensity: 10, rotation: [0, 0, 0] };
+      const commonProps = { id: nanoid(), position: [0, 3, 0], color: '#ffffff', intensity: 10, castShadow: true };
       switch (type) {
         case 'point':
           newLight = { ...commonProps, type: 'point', distance: 0, decay: 2 };
