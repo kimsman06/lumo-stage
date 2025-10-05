@@ -1,67 +1,99 @@
-import { motion } from 'framer-motion';
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Lightbulb, Camera, Save } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Lightbulb, Camera, Zap, Play, Sparkles, Grid3x3 } from 'lucide-react';
 
-const features = [
-  {
-    icon: <Lightbulb className="h-8 w-8 text-primary" />,
-    title: '직관적인 조명 설계',
-    description: '원하는 곳에 조명을 추가하고, 슬라이더로 즉시 제어하세요.',
-  },
-  {
-    icon: <Camera className="h-8 w-8 text-primary" />,
-    title: '자유로운 카메라 워크',
-    description: '다양한 앵글과 렌즈(FOV)를 테스트하며 완벽한 샷을 찾으세요.',
-  },
-  {
-    icon: <Save className="h-8 w-8 text-primary" />,
-    title: '저장 및 공유',
-    description: '작업한 장면을 저장하고, 팀원과 URL 하나로 공유하세요.',
-  },
-];
+const Badge = ({ children, variant = 'default', className = '' }) => {
+  const variants = {
+    default: 'bg-primary/10 text-primary border-primary/20',
+    secondary: 'bg-secondary text-secondary-foreground',
+  };
+  
+  return (
+    <div className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold transition-all ${variants[variant]} ${className}`}>
+      {children}
+    </div>
+  );
+};
 
-const cardVariants = {
-  hidden: { opacity: 0, y: 50 },
-  visible: (i) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      delay: i * 0.2,
-      duration: 0.5,
-      ease: "easeOut",
-    },
-  }),
+const FeatureCard = ({ icon: Icon, title, description, delay = 0 }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), delay);
+    return () => clearTimeout(timer);
+  }, [delay]);
+  
+  return (
+    <div 
+      className={`group relative p-6 rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-all duration-300 hover:border-primary/50 ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+      }`}
+    >
+      <div className="mb-4 inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+        <Icon className="w-6 h-6" />
+      </div>
+      <h3 className="text-lg font-semibold mb-2">{title}</h3>
+      <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+    </div>
+  );
 };
 
 const FeatureSection = () => {
   return (
-    <section id="features" className="py-24 sm:py-32">
+    <section className="py-24 bg-background">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">핵심 기능</h2>
-          <p className="mt-2 max-w-2xl mx-auto text-muted-foreground md:text-lg">LumoStage가 제공하는 강력하고 편리한 기능들을 만나보세요.</p>
+        <div className="text-center mb-16 space-y-4">
+          <Badge variant="secondary" className="gap-1">
+            <Zap className="w-3 h-3" />
+            Key Features
+          </Badge>
+          <h2 className="text-3xl lg:text-4xl font-bold">
+            Everything You Need for{' '}
+            <span className="bg-gradient-to-r from-primary to-yellow-500 bg-clip-text text-transparent">
+              Perfect Lighting
+            </span>
+          </h2>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            전문가를 위한 강력한 기능, 누구나 쉽게 사용할 수 있는 인터페이스
+          </p>
         </div>
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-          {features.map((feature, i) => (
-            <motion.div
-              key={feature.title}
-              custom={i}
-              variants={cardVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.5 }}
-            >
-              <Card className="h-full text-center">
-                <CardHeader>
-                  <div className="mx-auto bg-muted rounded-full p-3 w-fit mb-4">
-                    {feature.icon}
-                  </div>
-                  <CardTitle>{feature.title}</CardTitle>
-                  <CardDescription className="pt-2">{feature.description}</CardDescription>
-                </CardHeader>
-              </Card>
-            </motion.div>
-          ))}
+        
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          <FeatureCard
+            icon={Lightbulb}
+            title="Dynamic Light Control"
+            description="Point, Spot, Directional 조명을 자유롭게 추가하고 위치, 색상, 강도를 실시간으로 조절하세요."
+            delay={0}
+          />
+          <FeatureCard
+            icon={Camera}
+            title="Virtual Camera"
+            description="다양한 앵글과 FOV를 테스트하며 최적의 촬영 구도를 미리 확인할 수 있습니다."
+            delay={100}
+          />
+          <FeatureCard
+            icon={Grid3x3}
+            title="3D Viewport"
+            description="Three.js 기반의 고품질 렌더링으로 실제와 같은 조명 효과를 시뮬레이션합니다."
+            delay={200}
+          />
+          <FeatureCard
+            icon={Zap}
+            title="Real-time Preview"
+            description="모든 변경사항이 즉시 반영되어 빠르고 효율적인 작업 흐름을 제공합니다."
+            delay={300}
+          />
+          <FeatureCard
+            icon={Play}
+            title="Scene Sharing"
+            description="작업한 장면을 저장하고 팀원들과 공유하여 원활한 협업을 진행하세요."
+            delay={400}
+          />
+          <FeatureCard
+            icon={Sparkles}
+            title="Easy to Use"
+            description="복잡한 3D 소프트웨어 없이도 직관적인 UI로 누구나 쉽게 사용할 수 있습니다."
+            delay={500}
+          />
         </div>
       </div>
     </section>

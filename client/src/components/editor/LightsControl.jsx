@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
@@ -6,8 +6,18 @@ import LightCard from "./LightCard"
 import useStore from "../../store"
 
 const LightsControl = () => {
-  const { lights, addLight } = useStore();
+  const { lights, addLight, selectedLight } = useStore();
   const [newLightType, setNewLightType] = useState('point');
+  const lightCardRefs = useRef(new Map());
+
+  useEffect(() => {
+    if (selectedLight) {
+      const cardRef = lightCardRefs.current.get(selectedLight);
+      if (cardRef) {
+        cardRef.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [selectedLight]);
 
   return (
     <div className="space-y-6">
@@ -33,7 +43,12 @@ const LightsControl = () => {
       <div className="space-y-4">
         <h3 className="text-lg font-medium">조명 목록</h3>
         {lights.map(light => (
-          <LightCard key={light.id} light={light} />
+          <LightCard 
+            key={light.id} 
+            light={light} 
+            ref={el => lightCardRefs.current.set(light.id, el)}
+            isSelected={light.id === selectedLight}
+          />
         ))}
       </div>
     </div>

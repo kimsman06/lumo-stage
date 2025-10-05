@@ -1,3 +1,4 @@
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -7,8 +8,9 @@ import { Slider } from "@/components/ui/slider"
 import { Separator } from "@/components/ui/separator"
 import { Lightbulb, Trash2 } from "lucide-react"
 import useStore from "../../store"
+import { cn } from "@/lib/utils";
 
-const LightCard = ({ light }) => {
+const LightCard = React.forwardRef(({ light, isSelected }, ref) => {
   const { updateLight, deleteLight } = useStore();
 
   const handleUpdate = (property, value) => {
@@ -22,11 +24,11 @@ const LightCard = ({ light }) => {
   };
 
   return (
-    <Card>
+    <Card ref={ref} className={cn(isSelected && "ring-2 ring-primary")}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-base font-medium flex items-center gap-2">
           <Lightbulb className="w-4 h-4 text-primary" />
-          {light.type} Light
+          {light.type.replace(/\b[a-z]/, letter => letter.toUpperCase())} Light
         </CardTitle>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deleteLight(light.id)}>
           <Trash2 className="h-4 w-4" />
@@ -103,6 +105,6 @@ const LightCard = ({ light }) => {
       </CardContent>
     </Card>
   );
-};
+},)
 
 export default LightCard;
