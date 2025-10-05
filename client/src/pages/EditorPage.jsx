@@ -31,10 +31,12 @@ function EditorPage() {
   }, []);
 
   return (
-    <div className="w-screen h-screen bg-black flex">
-      <div className="flex-grow h-full">
+    <div className="w-screen h-screen bg-black grid grid-flow-col grid-cols-[1fr_auto]">
+      {/* Scene takes up the first column (all remaining space) */}
+      <div className="h-full overflow-hidden">
         <Scene />
       </div>
+      {/* EditorPanel takes up the second column (its own width) */}
       <EditorPanel />
     </div>
   );

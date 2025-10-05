@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,6 +39,18 @@ const BoneSlider = ({ boneName, axis, value, mannequinId }) => {
   );
 };
 
+const boneGroups = {
+  '머리 & 허리': ['head_02', 'waist_00'],
+  '왼팔': ['l_shoulder_03', 'l_forearm_04', 'l_hand_05'],
+  '오른팔': ['r_shoulder_06', 'r_forearm_07', 'r_hand_08'],
+  '왼다리': ['l_thigh_09', 'l_shin_010', 'l_foot_012'],
+  '오른다리': ['r_thigh_013', 'r_shin_014', 'r_foot_016'],
+};
+
+const boneLabels = {
+  head_02: '머리', waist_00: '허리', l_shoulder_03: '왼쪽 어깨', l_forearm_04: '왼쪽 팔뚝', l_hand_05: '왼쪽 손', r_shoulder_06: '오른쪽 어깨', r_forearm_07: '오른쪽 팔뚝', r_hand_08: '오른쪽 손', l_thigh_09: '왼쪽 허벅지', l_shin_010: '왼쪽 정강이', l_foot_012: '왼쪽 발', r_thigh_013: '오른쪽 허벅지', r_shin_014: '오른쪽 정강이', r_foot_016: '오른쪽 발',
+};
+
 const MannequinControl = () => {
   const { 
     mannequins, 
@@ -45,30 +58,32 @@ const MannequinControl = () => {
     selectMannequin, 
     addMannequin, 
     deleteMannequin, 
-    applyPosePreset 
+    applyPosePreset, 
+    highlightedBone 
   } = useStore();
   
+  const [openAccordion, setOpenAccordion] = useState("머리 & 허리");
+
+  useEffect(() => {
+    if (highlightedBone) {
+      for (const [groupName, boneNames] of Object.entries(boneGroups)) {
+        if (boneNames.includes(highlightedBone)) {
+          setOpenAccordion(groupName);
+          break;
+        }
+      }
+    }
+  }, [highlightedBone]);
+
   const selectedMannequin = mannequins.find(m => m.id === selectedMannequinId);
   const pose = selectedMannequin?.pose || {};
-
-  const boneGroups = {
-    '머리 & 허리': ['head_02', 'waist_00'],
-    '왼팔': ['l_shoulder_03', 'l_forearm_04', 'l_hand_05'],
-    '오른팔': ['r_shoulder_06', 'r_forearm_07', 'r_hand_08'],
-    '왼다리': ['l_thigh_09', 'l_shin_010', 'l_foot_012'],
-    '오른다리': ['r_thigh_013', 'r_shin_014', 'r_foot_016'],
-  };
-
-  const boneLabels = {
-    head_02: '머리', waist_00: '허리', l_shoulder_03: '왼쪽 어깨', l_forearm_04: '왼쪽 팔뚝', l_hand_05: '왼쪽 손', r_shoulder_06: '오른쪽 어깨', r_forearm_07: '오른쪽 팔뚝', r_hand_08: '오른쪽 손', l_thigh_09: '왼쪽 허벅지', l_shin_010: '왼쪽 정강이', l_foot_012: '왼쪽 발', r_thigh_013: '오른쪽 허벅지', r_shin_014: '오른쪽 정강이', r_foot_016: '오른쪽 발',
-  };
 
   return (
     <div className="space-y-6">
       <div className="space-y-4 p-4 border rounded-lg">
         <h3 className="text-lg font-medium">마네킹 선택</h3>
         <div className="flex gap-2">
-          <Select value={selectedMannequinId} onValueChange={selectMannequin}>
+          <Select value={selectedMannequinId || ''} onValueChange={selectMannequin}>
             <SelectTrigger>
               <SelectValue placeholder="마네킹 선택" />
             </SelectTrigger>
@@ -96,7 +111,7 @@ const MannequinControl = () => {
           <Separator />
           <div>
             <h3 className="text-lg font-medium mb-4">관절 제어</h3>
-            <Accordion type="single" collapsible className="w-full" defaultValue="머리 & 허리">
+            <Accordion type="single" collapsible className="w-full" value={openAccordion} onValueChange={setOpenAccordion}>
               {Object.entries(boneGroups).map(([groupName, boneNames]) => (
                 <AccordionItem key={groupName} value={groupName}>
                   <AccordionTrigger>{groupName}</AccordionTrigger>
