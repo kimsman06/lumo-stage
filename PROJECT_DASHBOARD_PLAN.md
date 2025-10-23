@@ -12,7 +12,7 @@
 
 ## 2. 데이터 모델링 (UML)
 
-사용자(User)와 프로젝트(Project) 간의 관계는 1:N 입니다. 한 명의 사용자는 여러 개의 프로젝트를 가질 수 있습니다.
+사용자(User)와 프로젝트(Project) 간의 관계는 1:N 입니다. 한 명의 사용자는 여러 개의 프로젝트를 가질 수 있습니다. 프로젝트는 `owner_id` 필드를 통해 해당 사용자를 참조합니다.
 
 ```mermaid
 erDiagram
@@ -23,7 +23,6 @@ erDiagram
         string password
         string googleId
         string naverId
-        array list_of_project_ids
     }
 
     PROJECT {
@@ -47,6 +46,8 @@ erDiagram
 
 ### `User.js`
 
+`User` 모델에서 `projects` 배열 필드를 제거하여 단방향 참조를 구현합니다. 특정 사용자의 프로젝트를 조회할 때는 `Project` 모델에서 `owner` 필드를 사용하여 쿼리합니다.
+
 ```javascript
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
@@ -58,7 +59,7 @@ const UserSchema = new Schema(
     password: { type: String, required: false },
     googleId: { type: String, unique: true, sparse: true },
     naverId: { type: String, unique: true, sparse: true },
-    projects: [{ type: Schema.Types.ObjectId, ref: "Project" }],
+    // projects 필드 제거: User 모델은 Project를 직접 참조하지 않습니다.
   },
   { timestamps: true }
 );
@@ -93,7 +94,7 @@ module.exports = mongoose.model("Project", ProjectSchema);
 - **Model:** 데이터베이스 스키마를 정의합니다. (Mongoose 스키마)
 - **View:** API 서버에서는 JSON 형태의 응답이 View 역할을 대신합니다.
 - **Controller:** HTTP 요청을 받고, 요청에 대한 유효성 검사를 수행한 후, Service 계층에 비즈니스 로직 처리를 위임합니다. 처리 결과를 받아 클라이언트에게 응답(JSON)을 보냅니다.
-- **Service:** 실제 비즈니스 로직을 수행합니다. Controller로부터 전달받은 데이터를 처리하고, 필요한 경우 Model을 통해 데이터베이스와 상호작용합니다.
+- **Service:** 실제 비즈니스 로직을 수행합니다. Controller로부터 전달받은 데이터를 처리하고, 필요한 경우 Model을 통해 데이터베이스와 상호작용합니다. 특정 사용자의 프로젝트를 조회할 때는 `Project` 모델의 `owner` 필드를 사용하여 쿼리합니다.
 
 ### 서버 디렉토리 구조
 
@@ -222,7 +223,8 @@ server/
 - [ ] **테스트 의존성 설치:** `jest`, `supertest`
 - [ ] `jest` 및 `supertest` 설정 파일 구성
 - [ ] MongoDB 연결 설정
-- [ ] `models/User.js`, `models/Project.js` 스키마 파일 작성
+- [ ] `models/User.js` 스키마 파일 작성 (projects 필드 제거)
+- [ ] `models/Project.js` 스키마 파일 작성
 - [ ] **Passport.js 설정 파일 생성 (`server/config/passport.js`)**
 
 ---
@@ -258,7 +260,12 @@ server/
     - [ ] **[Implement]** 테스트를 통과하는 프로젝트 생성 로직 구현
     - [ ] **[Refactor]** 코드 리팩토링
 
-2.  **(이하 생략)** 모든 프로젝트 API에 대해 TDD 사이클 반복
+2.  **사용자 프로젝트 조회 (`GET /api/projects`)**
+    - [ ] **[Test]** 인증된 사용자의 프로젝트 조회 테스트 코드 작성
+    - [ ] **[Implement]** `project.service.js`에서 `owner` 필드를 사용하여 프로젝트를 조회하는 로직 구현
+    - [ ] **[Refactor]** 코드 리팩토링
+
+3.  **(이하 생략)** 모든 프로젝트 API에 대해 TDD 사이클 반복
 
 ---
 
@@ -274,6 +281,7 @@ server/
 - [ ] `ProjectsDashboardPage.jsx` 및 `ProjectCard.jsx` 컴포넌트 생성
 - [ ] 대시보드 페이지에서 `GET /api/projects` API 호출 및 목록 렌더링
 - [ ] '새 프로젝트 만들기' 기능 구현
+- [ ] 각 `ProjectCard` 클릭 시 `/projects/:id` 경로로 이동하는 기능 구현
 
 ### ✅ Phase 4: 에디터 연동
 
