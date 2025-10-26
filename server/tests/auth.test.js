@@ -5,6 +5,21 @@ const passport = require("passport");
 const { app, connectDatabase } = require("../server");
 const User = require("../models/User");
 
+const registerAndGetCookie = async (overrides = {}) => {
+  const payload = {
+    username: overrides.username || "테스트유저",
+    email: overrides.email || "auth-user@example.com",
+    password: overrides.password || "password123"
+  };
+
+  const response = await request(app).post("/api/auth/register").send(payload);
+
+  return {
+    cookie: response.headers["set-cookie"],
+    user: response.body.user
+  };
+};
+
 describe("Auth API", () => {
   beforeAll(async () => {
     await connectDatabase();
@@ -180,6 +195,52 @@ describe("Auth API", () => {
       expect(response.body).toMatchObject({
         message: "이메일 또는 비밀번호가 올바르지 않습니다."
       });
+    });
+  });
+
+  describe("GET /api/auth/me", () => {
+    it("인증된 사용자의 정보를 반환한다", async () => {
+      const { cookie, user } = await registerAndGetCookie({
+        email: "me-user@example.com"
+      });
+
+      const response = await request(app).get("/api/auth/me").set("Cookie", cookie);
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toMatchObject({
+        user: {
+          id: user.id,
+          email: "me-user@example.com"
+        }
+      });
+    });
+
+    it("인증되지 않은 요청이면 401을 반환한다", async () => {
+      const response = await request(app).get("/api/auth/me");
+
+      expect(response.statusCode).toBe(401);
+      expect(response.body).toMatchObject({
+        message: "인증이 필요합니다."
+      });
+    });
+  });
+
+  describe("POST /api/auth/logout", () => {
+    it("로그아웃 시 토큰 쿠키를 제거한다", async () => {
+      const { cookie } = await registerAndGetCookie({
+        email: "logout-user@example.com"
+      });
+
+      const response = await request(app).post("/api/auth/logout").set("Cookie", cookie);
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toMatchObject({
+        message: "로그아웃이 완료되었습니다."
+      });
+      expect(response.headers["set-cookie"]).toEqual(
+        expect.arrayContaining([expect.stringContaining("token=;")])
+      );
+
     });
   });
 });

@@ -1,6 +1,6 @@
 const passport = require("passport");
 
-const { registerUser, loginUser, loginWithProvider } = require("../services/auth.service");
+const { registerUser, loginUser, loginWithProvider, sanitizeUser } = require("../services/auth.service");
 
 const parseExpiresToMs = (value) => {
   if (!value) {
@@ -42,6 +42,17 @@ const setAuthCookie = (res, token) => {
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
     maxAge: parseExpiresToMs(process.env.JWT_EXPIRES_IN)
+  });
+};
+
+const clearAuthCookie = (res) => {
+  const isProduction = process.env.NODE_ENV === "production";
+
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    path: "/"
   });
 };
 
@@ -163,8 +174,29 @@ const oauthCallback = (provider) => (req, res, next) => {
   })(req, res, next);
 };
 
+const me = (req, res, next) => {
+  try {
+    const user = sanitizeUser(req.user);
+
+    res.status(200).json({ user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const logout = (req, res, next) => {
+  try {
+    clearAuthCookie(res);
+    res.status(200).json({ message: "로그아웃이 완료되었습니다." });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
-  oauthCallback
+  oauthCallback,
+  me,
+  logout
 };

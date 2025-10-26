@@ -207,6 +207,41 @@ const useStore = create((set, get) => ({
         light.id === id ? { ...light, [property]: value } : light
       ),
     })),
+
+  // Scene Data 로드 (API에서 받은 데이터로 에디터 상태 초기화)
+  loadSceneData: (sceneData) => {
+    if (!sceneData) return;
+
+    const updates = {};
+
+    // 마네킹 데이터 로드
+    if (sceneData.mannequins && Array.isArray(sceneData.mannequins)) {
+      updates.mannequins = sceneData.mannequins;
+      updates.selectedMannequinId = sceneData.mannequins[0]?.id || null;
+    }
+
+    // 조명 데이터 로드
+    if (sceneData.lights && Array.isArray(sceneData.lights)) {
+      updates.lights = sceneData.lights;
+    }
+
+    // 카메라 데이터 로드
+    if (sceneData.cameraState) {
+      updates.cameraState = sceneData.cameraState;
+    }
+
+    set(updates);
+  },
+
+  // Scene Data 추출 (저장용)
+  getSceneData: () => {
+    const state = get();
+    return {
+      mannequins: state.mannequins,
+      lights: state.lights,
+      cameraState: state.cameraState,
+    };
+  },
 }));
 
 export default useStore;
