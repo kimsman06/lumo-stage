@@ -18,7 +18,12 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const ProjectCard = ({ project, onOpen, onEdit, onDelete, viewMode }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -53,16 +58,13 @@ const ProjectCard = ({ project, onOpen, onEdit, onDelete, viewMode }) => {
           </div>
 
           {/* Actions */}
-          <DropdownMenu
-            open={menuOpen}
-            onOpenChange={setMenuOpen}
-            trigger={
+          <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+            <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="flex-shrink-0">
                 <MoreVertical className="w-4 h-4" />
               </Button>
-            }
-          >
-            <div className="p-1">
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
               <DropdownMenuItem
                 onClick={() => {
                   onOpen(project.id);
@@ -91,7 +93,7 @@ const ProjectCard = ({ project, onOpen, onEdit, onDelete, viewMode }) => {
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete
               </DropdownMenuItem>
-            </div>
+            </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </Card>
@@ -131,10 +133,8 @@ const ProjectCard = ({ project, onOpen, onEdit, onDelete, viewMode }) => {
             </CardDescription>
           </div>
 
-          <DropdownMenu
-            open={menuOpen}
-            onOpenChange={setMenuOpen}
-            trigger={
+          <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+            <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
@@ -142,9 +142,8 @@ const ProjectCard = ({ project, onOpen, onEdit, onDelete, viewMode }) => {
               >
                 <MoreVertical className="w-4 h-4" />
               </Button>
-            }
-          >
-            <div className="p-1">
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
               <DropdownMenuItem
                 onClick={() => {
                   onOpen(project.id);
@@ -173,7 +172,7 @@ const ProjectCard = ({ project, onOpen, onEdit, onDelete, viewMode }) => {
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete
               </DropdownMenuItem>
-            </div>
+            </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </CardHeader>
