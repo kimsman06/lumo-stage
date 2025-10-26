@@ -1,4 +1,4 @@
-import Navbar from '../components/hero/Navbar';
+import AuthNavbar from '../components/layout/AuthNavbar';
 import HeroSection from '../components/hero/HeroSection';
 import FeatureSection from '../components/hero/FeatureSection';
 import CtaSection from '../components/hero/CtaSection';
@@ -8,7 +8,7 @@ const HomePage = () => {
   return (
     <div className="bg-background text-foreground">
       <div className="flex flex-col min-h-screen">
-        <Navbar />
+        <AuthNavbar />
         <main className="flex-grow">
           <HeroSection />
           <FeatureSection />

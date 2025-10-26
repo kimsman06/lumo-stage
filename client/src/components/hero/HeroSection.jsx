@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Play, ArrowRight, Sparkles } from 'lucide-react';
+import { Play, ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import useAuthStore from '../../store/authStore';
 
 const Badge = ({ children, className = '' }) => {
   return (
@@ -37,7 +38,8 @@ const AnimatedLight = ({ delay = 0, position }) => {
 
 const HeroSection = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  
+  const { isAuthenticated } = useAuthStore();
+
   const handleMouseMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     setMousePosition({
@@ -96,17 +98,13 @@ const HeroSection = () => {
           
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-            <Link to="/editor">
+            <Link to={isAuthenticated ? "/projects" : "/register"}>
               <Button size="lg" className="gap-2 group">
                 <Play className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                Start Creating
+                {isAuthenticated ? "내 프로젝트" : "무료로 시작하기"}
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
-            <Button size="lg" variant="outline" className="gap-2">
-              <Camera className="w-5 h-5" />
-              Watch Demo
-            </Button>
           </div>
           
           {/* Stats */}
