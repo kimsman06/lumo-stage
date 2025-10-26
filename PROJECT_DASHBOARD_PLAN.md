@@ -138,19 +138,47 @@ server/
 
 ## 6. API 엔드포인트 설계
 
-### 인증 API (`/api/auth`) (수정)
+`docs/PROJECT_DASHBOARD_API.md` 문서에서 제공된 상세 명세를 반영하여 API 설계를 구체화합니다.
 
-`passport.js`를 이용한 소셜 로그인 경로를 추가합니다.
+### 인증 API (`/api/auth`)
 
-| Method | Path               | 설명                                               | 인증 필요 |
-| ------ | ------------------ | -------------------------------------------------- | --------- |
-| `POST` | `/register`        | 신규 사용자 등록                                   | No        |
-| `POST` | `/login`           | 사용자 로그인 (JWT 발급)                           | No        |
-| `POST` | `/logout`          | 사용자 로그아웃                                    | Yes       |
-| `GET`  | `/google`          | Google 로그인 시작 (Google 인증 페이지로 리디렉션) | No        |
-| `GET`  | `/google/callback` | Google 로그인 후 콜백 처리                         | No        |
-| `GET`  | `/naver`           | Naver 로그인 시작 (Naver 인증 페이지로 리디렉션)   | No        |
-| `GET`  | `/naver/callback`  | Naver 로그인 후 콜백 처리                          | No        |
+| Method | Path               | 설명                       | 인증 필요 |
+| ------ | ------------------ | -------------------------- | --------- |
+| `POST` | `/register`        | 신규 사용자 등록           | No        |
+| `POST` | `/login`           | 사용자 로그인 (JWT 발급)   | No        |
+| `POST` | `/logout`          | 사용자 로그아웃            | Yes       |
+| `GET`  | `/google`          | Google 로그인 시작         | No        |
+| `GET`  | `/google/callback` | Google 로그인 후 콜백 처리 | No        |
+| `GET`  | `/naver`           | Naver 로그인 시작          | No        |
+| `GET`  | `/naver/callback`  | Naver 로그인 후 콜백 처리  | No        |
+
+<details>
+<summary><b>API 상세 응답 예시 (인증)</b></summary>
+
+- **`POST /api/auth/register` (201)**
+  ```json
+  {
+    "message": "회원가입이 완료되었습니다.",
+    "user": { "id": "...", "username": "...", "email": "..." }
+  }
+  ```
+- **`POST /api/auth/login` (200)**
+  ```json
+  {
+    "message": "로그인에 성공했습니다.",
+    "user": { "id": "...", "username": "...", "email": "..." }
+  }
+  ```
+- **`GET /api/auth/google/callback` (JSON Mode)**
+  ```json
+  {
+    "message": "소셜 로그인에 성공했습니다.",
+    "provider": "google",
+    "user": { "id": "...", "username": "...", "email": "..." }
+  }
+  ```
+
+</details>
 
 ### 프로젝트 API (`/api/projects`)
 
@@ -159,8 +187,42 @@ server/
 | `GET`    | `/`    | 로그인된 사용자의 모든 프로젝트 조회 | Yes               |
 | `POST`   | `/`    | 새 프로젝트 생성                     | Yes               |
 | `GET`    | `/:id` | 특정 프로젝트 데이터 조회            | Yes (소유권 확인) |
-| `PUT`    | `/:id` | 특정 프로젝트 데이터 업데이트(저장)  | Yes (소유권 확인) |
+| `PATCH`  | `/:id` | 특정 프로젝트 데이터 업데이트(저장)  | Yes (소유권 확인) |
 | `DELETE` | `/:id` | 특정 프로젝트 삭제                   | Yes (소유권 확인) |
+
+<details>
+<summary><b>API 상세 응답 예시 (프로젝트)</b></summary>
+
+- **`POST /api/projects` (201)**
+  ```json
+  {
+    "message": "프로젝트가 생성되었습니다.",
+    "project": { "id": "...", "name": "...", "owner": "..." }
+  }
+  ```
+- **`GET /api/projects` (200)**
+  ```json
+  {
+    "projects": [{ "id": "...", "name": "...", "owner": "..." }]
+  }
+  ```
+- **`GET /api/projects/:id` (200)**
+  ```json
+  {
+    "project": { "id": "...", "name": "...", "owner": "..." }
+  }
+  ```
+- **`PATCH /api/projects/:id` (200)**
+  ```json
+  {
+    "message": "프로젝트가 업데이트되었습니다.",
+    "project": { "id": "...", "name": "...", "owner": "..." }
+  }
+  ```
+- **`DELETE /api/projects/:id` (204)**
+  - No Content
+
+</details>
 
 ## 7. 프론트엔드 아키텍처 변경
 
@@ -172,123 +234,101 @@ server/
   - `/register`: `RegisterPage`
 - **Private Routes (로그인 필요):**
   - `/projects`: `ProjectsDashboardPage` (프로젝트 목록 대시보드)
-  - `/projects/:id`: `EditorPage` (기존 에디터를 동적으로 변경)
+  - `/editor/:id`: `EditorPage` (기존 에디터를 동적으로 변경)
 
 ### 신규 페이지 및 컴포넌트 (수정)
 
 - `pages/LoginPage.jsx` / `RegisterPage.jsx`: 사용자 인증 폼. **Google/Naver 로그인 버튼 추가.**
 - `pages/ProjectsDashboardPage.jsx`: 사용자의 모든 프로젝트를 `ProjectCard`로 표시. '새 프로젝트 만들기' 기능 포함.
-- `components/ProjectCard.jsx`: 프로젝트 이름, 설명, 썸네일 표시. 클릭 시 해당 에디터 페이지로 이동.
-- `components/common/PrivateRoute.jsx`: 로그인되지 않은 사용자의 접근을 막고 로그인 페이지로 리디렉션하는 HOC.
-- `components/common/Navbar.jsx`: 로그인 상태에 따라 '대시보드', '로그아웃' 또는 '로그인' 메뉴를 동적으로 표시.
+- `components/projects/ProjectCard.jsx`: 프로젝트 이름, 설명, 썸네일 표시. 클릭 시 해당 에디터 페이지로 이동.
+- `components/auth/PrivateRoute.jsx`: 로그인되지 않은 사용자의 접근을 막고 로그인 페이지로 리디렉션하는 HOC.
+- `components/layout/Navbar.jsx`: 로그인 상태에 따라 '대시보드', '로그아웃' 또는 '로그인' 메뉴를 동적으로 표시.
 
 ### 상태 관리 (`zustand`)
 
-`store.js`에 다음 비동기 액션 추가:
+`store/auth.js`와 `store/project.js`로 분리하여 관리합니다.
 
-- `loadProject(projectId)`: `GET /api/projects/:id`를 호출하여 받은 `sceneData`로 스토어 상태를 덮어씀.
-- `saveCurrentProject(projectId)`: 현재 스토어의 `sceneData`를 `PUT /api/projects/:id`로 전송하여 저장.
-- `createNewProject(projectData)`: `POST /api/projects`를 호출하여 새 프로젝트를 생성하고, 반환된 ID로 에디터 페이지로 이동.
-- 인증 관련 상태( `user`, `token`, `isAuthenticated`) 및 액션(`login`, `logout`, `register`) 추가.
+- **`authStore`**:
+  - `user`, `isAuthenticated` 상태
+  - `login`, `logout`, `register`, `checkAuth` 액션
+- **`projectStore` (에디터용)**:
+  - `loadProject(projectId)`: `GET /api/projects/:id` 호출
+  - `saveProject(projectId)`: `PATCH /api/projects/:id` 호출
+  - `autosave` 로직
 
 ## 8. 인증 흐름 (JWT + Passport.js)
 
-### 로컬 인증
-
-1.  **로그인:** 사용자가 이메일/비밀번호 제출 -> 서버에서 확인 후 JWT 발급.
-2.  **토큰 저장:** 서버는 `HttpOnly` 쿠키에 JWT를 담아 클라이언트에 전송.
-3.  **인증된 요청:** 클라이언트는 이후 모든 API 요청 시 브라우저에 의해 자동으로 쿠키를 함께 전송.
-4.  **서버 검증:** 서버의 인증 미들웨어는 요청의 쿠키에서 JWT를 확인하고 유효성을 검증.
-5.  **권한 부여:** 토큰이 유효하면 요청 객체에 사용자 정보를 추가하여 다음 핸들러로 전달.
-6.  **로그아웃:** 클라이언트가 로그아웃 요청 -> 서버는 쿠키를 만료시켜 세션을 종료.
-
-### 소셜 인증 (OAuth 2.0)
-
-1.  **로그인 시작:** 사용자가 프론트엔드의 'Google/Naver로 로그인' 버튼 클릭.
-2.  **백엔드 요청:** 프론트엔드는 `<a>` 태그나 `window.location.href`를 통해 백엔드의 `/api/auth/google` 또는 `/api/auth/naver`로 사용자를 이동시킴.
-3.  **소셜사 리디렉션:** 백엔드의 `passport` 전략이 해당 소셜사의 인증 페이지로 사용자를 리디렉션.
-4.  **사용자 인증:** 사용자는 소셜사 페이지에서 로그인하고 LumoStage 앱의 접근 권한을 승인.
-5.  **콜백 처리:** 소셜사는 사용자를 백엔드의 `/api/auth/google/callback` (또는 naver) 경로로 리디렉션. 이 때 인증 코드를 함께 전달.
-6.  **프로필 조회 및 사용자 처리:** 백엔드의 `passport` 콜백 핸들러가 인증 코드를 사용해 액세스 토큰을 받고, 이를 이용해 사용자 프로필(ID, 이메일 등)을 조회.
-    - 기존에 해당 소셜 ID로 가입한 사용자가 있으면 해당 사용자로 로그인 처리.
-    - 없으면, 받은 프로필 정보로 새로운 사용자를 데이터베이스에 생성한 후 로그인 처리.
-7.  **JWT 발급 및 리디렉션:** 서버는 해당 사용자에 대한 JWT를 생성하여 `HttpOnly` 쿠키에 담아 응답하고, 사용자를 프론트엔드의 대시보드 페이지 (`/projects`)로 리디렉션.
+(기존 내용과 동일)
 
 ## 9. 구현 계획 (To-Do List)
 
-### ✅ Phase 1: 백엔드 구축 (TDD & MVCS 기반)
+### ✅ Phase 1: 백엔드 API 완성 (TDD)
 
-- [ ] `server` 디렉토리 생성 및 `npm init`
-- [ ] 의존성 설치: `express`, `mongoose`, `bcryptjs`, `jsonwebtoken`, `cors`, `dotenv`, `passport`, `passport-google-oauth20`, `passport-naver-v2`
-- [ ] **테스트 의존성 설치:** `jest`, `supertest`
-- [ ] `jest` 및 `supertest` 설정 파일 구성
-- [ ] MongoDB 연결 설정
-- [ ] `models/User.js` 스키마 파일 작성 (projects 필드 제거)
-- [ ] `models/Project.js` 스키마 파일 작성
-- [ ] **Passport.js 설정 파일 생성 (`server/config/passport.js`)**
-
----
-
-**Auth API (TDD Cycle)**
-
-1.  **회원가입 (`POST /api/auth/register`)**
-
-    - [ ] **[Test]** 회원가입 성공 및 실패 케이스 테스트 코드 작성 (`tests/auth.test.js`)
-    - [ ] **[Implement]** `auth.routes.js`, `auth.controller.js`, `auth.service.js` 파일 생성
-    - [ ] **[Implement]** 테스트를 통과하는 최소한의 회원가입 로직 구현 (비밀번호 해싱 포함)
-    - [ ] **[Refactor]** 코드 리팩토링
-
-2.  **로그인 (`POST /api/auth/login`)**
-
-    - [ ] **[Test]** 로그인 성공 및 실패 케이스 테스트 코드 작성
-    - [ ] **[Implement]** 테스트를 통과하는 로그인 로직 구현 (JWT 발급)
-    - [ ] **[Refactor]** 코드 리팩토링
-
-3.  **소셜 로그인 (Google)**
-    - [ ] **[Test]** Google 로그인 콜백 처리 테스트 케이스 작성 (Mock Strategy 사용)
-    - [ ] **[Implement]** Passport Google 전략 설정 및 콜백 로직 구현
-    - [ ] **[Refactor]** 코드 리팩토링
+- **Project API (TDD Cycle)**
+  1.  **단일 프로젝트 조회 (`GET /api/projects/:id`)**
+      - [x] **[Test]** 소유권 및 오류 케이스 테스트 코드 작성 (`tests/project.test.js`)
+      - [x] **[Implement]** 조회 로직 구현
+      - [x] **[Refactor]** 코드 리팩토링
+  2.  **프로젝트 업데이트 (`PATCH /api/projects/:id`)**
+      - [x] **[Test]** 업데이트 및 오류 케이스 테스트 코드 작성
+      - [x] **[Implement]** 업데이트 로직 구현
+      - [x] **[Refactor]** 코드 리팩토링
+  3.  **프로젝트 삭제 (`DELETE /api/projects/:id`)**
+      - [x] **[Test]** 삭제 및 오류 케이스 테스트 코드 작성
+      - [x] **[Implement]** 삭제 로직 구현
+      - [x] **[Refactor]** 코드 리팩토링
 
 ---
 
-**Project API (TDD Cycle)**
+### ✅ Phase 2: 프론트엔드 - 코어 설정 및 인증
 
-1.  **프로젝트 생성 (`POST /api/projects`)**
-
-    - [ ] **[Test]** 인증된 사용자의 프로젝트 생성 테스트 코드 작성 (`tests/project.test.js`)
-    - [ ] **[Implement]** `project.routes.js`, `project.controller.js`, `project.service.js` 파일 생성
-    - [ ] **[Implement]** 테스트를 통과하는 프로젝트 생성 로직 구현
-    - [ ] **[Refactor]** 코드 리팩토링
-
-2.  **사용자 프로젝트 조회 (`GET /api/projects`)**
-    - [ ] **[Test]** 인증된 사용자의 프로젝트 조회 테스트 코드 작성
-    - [ ] **[Implement]** `project.service.js`에서 `owner` 필드를 사용하여 프로젝트를 조회하는 로직 구현
-    - [ ] **[Refactor]** 코드 리팩토링
-
-3.  **(이하 생략)** 모든 프로젝트 API에 대해 TDD 사이클 반복
+- [ ] **의존성 설치**: `axios`
+- [ ] **API 클라이언트 설정**: `axios` 인스턴스를 생성하고, 요청/응답 인터셉터를 설정하여 인증 토큰(쿠키)을 관리합니다. (`client/src/lib/api.js`)
+- [ ] **라우팅 설정**: `App.jsx`에 `react-router-dom`을 사용하여 페이지 라우트를 설정합니다.
+- [ ] **인증 상태 관리**: `store/auth.js`에 `user`, `isAuthenticated` 상태와 `login`, `logout`, `checkAuth` 액션을 구현합니다. `checkAuth`는 앱 시작 시 쿠키를 통해 사용자 정보를 가져옵니다.
+- [ ] **인증 페이지 생성**:
+  - [ ] `pages/LoginPage.jsx`, `pages/RegisterPage.jsx` 생성
+  - [ ] 로그인/회원가입 폼 UI 구현 (`@shadcn/ui` 사용)
+  - [ ] Google/Naver 소셜 로그인 버튼 추가 (`<a>` 태그로 백엔드 경로 연결)
+- [ ] **네비게이션 바**: `components/layout/Navbar.jsx`에서 `authStore`를 구독하여 로그인 상태에 따라 동적으로 메뉴(로그인/로그아웃, 대시보드)를 표시합니다.
+- [ ] **Private Route 구현**: `components/auth/PrivateRoute.jsx`를 구현하여 인증되지 않은 사용자가 `/projects`나 `/editor/*`에 접근 시 `/login`으로 리디렉션합니다.
 
 ---
 
-### ✅ Phase 2: 프론트엔드 기본 설정
+### ✅ Phase 3: 프론트엔드 - 프로젝트 대시보드
 
-- [ ] `react-router-dom`, `axios` 의존성 설치
-- [ ] `App.jsx`에 라우터 설정
-- [ ] `LoginPage.jsx`에 Google/Naver 로그인 버튼 추가
-- [ ] Zustand 스토어에 인증 관련 상태 및 액션 추가
+- [ ] **대시보드 페이지**: `pages/ProjectsDashboardPage.jsx`를 생성합니다.
+- [ ] **프로젝트 목록 조회**:
+  - [ ] 페이지 진입 시 `GET /api/projects` API를 호출하여 프로젝트 목록을 가져옵니다.
+  - [ ] 로딩 중에는 스켈레톤 UI(`@shadcn/ui/skeleton`)를, 데이터가 없으면 "새 프로젝트를 만들어보세요"와 같은 빈 상태(`EmptyState.jsx`) 컴포넌트를 표시합니다.
+- [ ] **프로젝트 카드**: `components/projects/ProjectCard.jsx` 컴포넌트를 생성합니다.
+  - [ ] 프로젝트 이름, 업데이트 날짜, 썸네일을 표시합니다.
+  - [ ] 카드를 클릭하면 `navigate('/editor/:id')`로 해당 에디터 페이지로 이동합니다.
+  - [ ] 카드 우측 상단에 드롭다운 메뉴(`@shadcn/ui/dropdown-menu`)를 추가하여 '이름 변경', '삭제' 기능을 제공합니다.
+- [ ] **새 프로젝트 생성**:
+  - [ ] 대시보드 우측 상단에 '새 프로젝트' 버튼을 추가합니다.
+  - [ ] 클릭 시 `NewProjectDialog.jsx`(`@shadcn/ui/dialog`)가 열리고, 프로젝트 이름과 설명을 입력받습니다.
+  - [ ] '만들기' 버튼 클릭 시 `POST /api/projects` API를 호출하고, 성공하면 반환된 ID로 에디터 페이지(`/editor/:id`)로 이동합니다.
+- [ ] **프로젝트 삭제**:
+  - [ ] `ProjectCard`의 '삭제' 메뉴 클릭 시 확인 다이얼로그(`@shadcn/ui/alert-dialog`)를 띄웁니다.
+  - [ ] 확인 시 `DELETE /api/projects/:id` API를 호출하고, 목록에서 해당 카드를 제거합니다.
 
-### ✅ Phase 3: 프로젝트 대시보드 구현
+---
 
-- [ ] `ProjectsDashboardPage.jsx` 및 `ProjectCard.jsx` 컴포넌트 생성
-- [ ] 대시보드 페이지에서 `GET /api/projects` API 호출 및 목록 렌더링
-- [ ] '새 프로젝트 만들기' 기능 구현
-- [ ] 각 `ProjectCard` 클릭 시 `/projects/:id` 경로로 이동하는 기능 구현
+### ✅ Phase 4: 프론트엔드 - 에디터 연동
 
-### ✅ Phase 4: 에디터 연동
+- [ ] **라우팅 변경**: 기존 `EditorPage`가 `pages/EditorPage.jsx`가 되고, `/editor/:id` 경로로 접근하도록 설정합니다.
+- [ ] **프로젝트 데이터 로딩**:
+  - [ ] `EditorPage`가 마운트될 때 URL의 `id` 파라미터를 사용하여 `GET /api/projects/:id` API를 호출합니다.
+  - [ ] 응답으로 받은 `sceneData`를 에디터의 `zustand` 스토어 (`store/project.js`) 상태에 채워넣습니다.
+- [ ] **프로젝트 저장 (업데이트)**:
+  - [ ] 에디터 상단의 '저장' 버튼 클릭 시, 현재 에디터의 `sceneData`를 `PATCH /api/projects/:id` API를 통해 서버에 전송합니다.
+  - [ ] **(심화)** `use-debounce`와 같은 훅을 사용하여, 에디터 상태가 변경될 때마다 자동으로 저장하는 `autosave` 기능을 구현합니다.
 
-- [ ] `EditorPage`를 `/projects/:id` 경로와 연동
-- [ ] `loadProject` 및 `saveCurrentProject` 액션 구현
+---
 
-### ✅ Phase 5: 최종 정리
+### ✅ Phase 5: 최종 정리 및 테스트
 
-- [ ] `Navbar` 동적 메뉴 및 로그아웃 기능 구현
-- [ ] 전체 사용자 흐름 테스트 (로컬 및 소셜 로그인 포함)
+- [ ] 전체 사용자 흐름 테스트 (회원가입 → 로그인 → 새 프로젝트 생성 → 에디터 진입 → 저장 → 대시보드 복귀 → 로그아웃)
+- [ ] 반응형 디자인 점검 및 개선
+- [ ] 오류 처리 및 사용자 피드백(토스트 메시지 등) 개선
