@@ -282,48 +282,49 @@ server/
 
 ### ✅ Phase 2: 프론트엔드 - 코어 설정 및 인증
 
-- [ ] **의존성 설치**: `axios`
-- [ ] **API 클라이언트 설정**: `axios` 인스턴스를 생성하고, 요청/응답 인터셉터를 설정하여 인증 토큰(쿠키)을 관리합니다. (`client/src/lib/api.js`)
-- [ ] **라우팅 설정**: `App.jsx`에 `react-router-dom`을 사용하여 페이지 라우트를 설정합니다.
-- [ ] **인증 상태 관리**: `store/auth.js`에 `user`, `isAuthenticated` 상태와 `login`, `logout`, `checkAuth` 액션을 구현합니다. `checkAuth`는 앱 시작 시 쿠키를 통해 사용자 정보를 가져옵니다.
-- [ ] **인증 페이지 생성**:
-  - [ ] `pages/LoginPage.jsx`, `pages/RegisterPage.jsx` 생성
-  - [ ] 로그인/회원가입 폼 UI 구현 (`@shadcn/ui` 사용)
-  - [ ] Google/Naver 소셜 로그인 버튼 추가 (`<a>` 태그로 백엔드 경로 연결)
-- [ ] **네비게이션 바**: `components/layout/Navbar.jsx`에서 `authStore`를 구독하여 로그인 상태에 따라 동적으로 메뉴(로그인/로그아웃, 대시보드)를 표시합니다.
-- [ ] **Private Route 구현**: `components/auth/PrivateRoute.jsx`를 구현하여 인증되지 않은 사용자가 `/projects`나 `/editor/*`에 접근 시 `/login`으로 리디렉션합니다.
+- [x] **의존성 설치**: `axios`
+- [x] **API 클라이언트 설정**: `axios` 인스턴스를 생성하고, 요청/응답 인터셉터를 설정하여 인증 토큰(쿠키)을 관리합니다. (`client/src/lib/api.js`)
+- [x] **라우팅 설정**: `App.jsx`에 `react-router-dom`을 사용하여 페이지 라우트를 설정합니다.
+- [x] **인증 상태 관리**: `authStore.js`에 `user`, `isAuthenticated` 상태와 `login`, `logout`, `checkAuth` 액션을 구현합니다. `checkAuth`는 앱 시작 시 쿠키를 통해 사용자 정보를 가져옵니다.
+- [x] **인증 페이지 생성**:
+  - [x] `pages/LoginPage.jsx`, `pages/RegisterPage.jsx` 생성
+  - [x] 로그인/회원가입 폼 UI 구현 (`@shadcn/ui` 사용)
+  - [x] Google/Naver 소셜 로그인 버튼 추가 (`<a>` 태그로 백엔드 경로 연결)
+- [x] **네비게이션 바**: `components/layout/AuthNavbar.jsx`에서 `authStore`를 구독하여 로그인 상태에 따라 동적으로 메뉴(로그인/로그아웃, 대시보드)를 표시합니다.
+- [x] **Private Route 구현**: `components/auth/PrivateRoute.jsx`를 구현하여 인증되지 않은 사용자가 `/projects`나 `/editor/*`에 접근 시 `/login`으로 리디렉션합니다.
 
 ---
 
 ### ✅ Phase 3: 프론트엔드 - 프로젝트 대시보드
 
-- [ ] **대시보드 페이지**: `pages/ProjectsDashboardPage.jsx`를 생성합니다.
-- [ ] **프로젝트 목록 조회**:
-  - [ ] 페이지 진입 시 `GET /api/projects` API를 호출하여 프로젝트 목록을 가져옵니다.
-  - [ ] 로딩 중에는 스켈레톤 UI(`@shadcn/ui/skeleton`)를, 데이터가 없으면 "새 프로젝트를 만들어보세요"와 같은 빈 상태(`EmptyState.jsx`) 컴포넌트를 표시합니다.
-- [ ] **프로젝트 카드**: `components/projects/ProjectCard.jsx` 컴포넌트를 생성합니다.
-  - [ ] 프로젝트 이름, 업데이트 날짜, 썸네일을 표시합니다.
-  - [ ] 카드를 클릭하면 `navigate('/editor/:id')`로 해당 에디터 페이지로 이동합니다.
-  - [ ] 카드 우측 상단에 드롭다운 메뉴(`@shadcn/ui/dropdown-menu`)를 추가하여 '이름 변경', '삭제' 기능을 제공합니다.
-- [ ] **새 프로젝트 생성**:
-  - [ ] 대시보드 우측 상단에 '새 프로젝트' 버튼을 추가합니다.
-  - [ ] 클릭 시 `NewProjectDialog.jsx`(`@shadcn/ui/dialog`)가 열리고, 프로젝트 이름과 설명을 입력받습니다.
-  - [ ] '만들기' 버튼 클릭 시 `POST /api/projects` API를 호출하고, 성공하면 반환된 ID로 에디터 페이지(`/editor/:id`)로 이동합니다.
-- [ ] **프로젝트 삭제**:
-  - [ ] `ProjectCard`의 '삭제' 메뉴 클릭 시 확인 다이얼로그(`@shadcn/ui/alert-dialog`)를 띄웁니다.
-  - [ ] 확인 시 `DELETE /api/projects/:id` API를 호출하고, 목록에서 해당 카드를 제거합니다.
+- [x] **대시보드 페이지**: `pages/ProjectsDashboardPage.jsx`를 생성합니다.
+- [x] **프로젝트 목록 조회**:
+  - [x] 페이지 진입 시 `GET /api/projects` API를 호출하여 프로젝트 목록을 가져옵니다.
+  - [x] 로딩 중에는 스켈레톤 UI를, 데이터가 없으면 "새 프로젝트를 만들어보세요"와 같은 빈 상태(`EmptyState.jsx`) 컴포넌트를 표시합니다.
+- [x] **프로젝트 카드**: `components/projects/ProjectCard.jsx` 컴포넌트를 생성합니다.
+  - [x] 프로젝트 이름, 업데이트 날짜, 썸네일을 표시합니다.
+  - [x] 카드를 클릭하면 `navigate('/editor/:id')`로 해당 에디터 페이지로 이동합니다.
+  - [x] 카드 우측 상단에 드롭다운 메뉴를 추가하여 '삭제' 기능을 제공합니다.
+- [x] **새 프로젝트 생성**:
+  - [x] 대시보드 우측 상단에 '새 프로젝트' 버튼을 추가합니다.
+  - [x] 클릭 시 `NewProjectDialog.jsx`가 열리고, 프로젝트 이름과 설명을 입력받습니다.
+  - [x] '만들기' 버튼 클릭 시 `POST /api/projects` API를 호출하고, 성공하면 반환된 ID로 에디터 페이지(`/editor/:id`)로 이동합니다.
+- [x] **프로젝트 삭제**:
+  - [x] `ProjectCard`의 '삭제' 메뉴 클릭 시 확인 다이얼로그를 띄웁니다.
+  - [x] 확인 시 `DELETE /api/projects/:id` API를 호출하고, 목록에서 해당 카드를 제거합니다.
 
 ---
 
 ### ✅ Phase 4: 프론트엔드 - 에디터 연동
 
-- [ ] **라우팅 변경**: 기존 `EditorPage`가 `pages/EditorPage.jsx`가 되고, `/editor/:id` 경로로 접근하도록 설정합니다.
-- [ ] **프로젝트 데이터 로딩**:
-  - [ ] `EditorPage`가 마운트될 때 URL의 `id` 파라미터를 사용하여 `GET /api/projects/:id` API를 호출합니다.
-  - [ ] 응답으로 받은 `sceneData`를 에디터의 `zustand` 스토어 (`store/project.js`) 상태에 채워넣습니다.
-- [ ] **프로젝트 저장 (업데이트)**:
-  - [ ] 에디터 상단의 '저장' 버튼 클릭 시, 현재 에디터의 `sceneData`를 `PATCH /api/projects/:id` API를 통해 서버에 전송합니다.
-  - [ ] **(심화)** `use-debounce`와 같은 훅을 사용하여, 에디터 상태가 변경될 때마다 자동으로 저장하는 `autosave` 기능을 구현합니다.
+- [x] **라우팅 변경**: 기존 `EditorPage`가 `pages/EditorPage.jsx`가 되고, `/editor/:id` 경로로 접근하도록 설정합니다.
+- [x] **프로젝트 데이터 로딩**:
+  - [x] `EditorPage`가 마운트될 때 URL의 `id` 파라미터를 사용하여 `GET /api/projects/:id` API를 호출합니다.
+  - [x] 응답으로 받은 `sceneData`를 에디터의 `zustand` 스토어 (`store.js`) 상태에 채워넣습니다.
+- [x] **프로젝트 저장 (업데이트)**:
+  - [x] 에디터 상단의 '저장' 버튼 클릭 시, 현재 에디터의 `sceneData`를 `PATCH /api/projects/:id` API를 통해 서버에 전송합니다.
+  - [x] 키보드 단축키 (Ctrl+S / Cmd+S) 지원
+  - [ ] **(심화 - 선택사항)** `use-debounce`와 같은 훅을 사용하여, 에디터 상태가 변경될 때마다 자동으로 저장하는 `autosave` 기능을 구현합니다.
 
 ---
 
