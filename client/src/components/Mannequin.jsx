@@ -11,7 +11,7 @@ import React, { useEffect, useMemo, useRef, forwardRef } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { useFrame, useGraph } from '@react-three/fiber';
 import { SkeletonUtils } from 'three-stdlib';
-import useStore from '../store';
+import useStore from '../store/editorStore';
 
 export const Mannequin = forwardRef(({ id, pose, ...props }, ref) => {
   const { scene, materials } = useGLTF('/wooden_mannequine/scene.gltf');

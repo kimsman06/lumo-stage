@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import LightCard from "./LightCard"
-import useStore from "../../store"
+import useStore from "../../store/editorStore"
 
 const LightsControl = () => {
   const { lights, addLight, selectedLight } = useStore();

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Separator } from "@/components/ui/separator"
 import { Lightbulb, Trash2 } from "lucide-react"
-import useStore from "../../store"
+import useStore from "../../store/editorStore"
 import { cn } from "@/lib/utils";
 
 const LightCard = React.forwardRef(({ light, isSelected }, ref) => {

@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
-import useStore from "../../store";
+import useStore from "../../store/editorStore";
 import { standPose, sitPose } from "../../presets";
 
 const BoneSlider = ({ boneName, axis, value, mannequinId }) => {

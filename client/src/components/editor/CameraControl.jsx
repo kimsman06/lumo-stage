@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import useStore from "../../store";
+import useStore from "../../store/editorStore";
 
 const CameraControl = () => {
   const { cameraState, updateCameraState, viewMode, setViewMode } = useStore();

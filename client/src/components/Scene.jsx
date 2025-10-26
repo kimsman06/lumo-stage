@@ -9,7 +9,7 @@ import {
   Grid,
   Environment,
 } from "@react-three/drei";
-import useStore from "../store";
+import useStore from "../store/editorStore";
 import * as THREE from "three";
 import { Mannequin } from "./Mannequin";
 
