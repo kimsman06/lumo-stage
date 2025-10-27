@@ -237,10 +237,211 @@ Header 상하 → py-6
 
 ---
 
-## 10. 참고 링크
+## 10. 버튼 크기 시스템 (Button Sizes)
+
+### shadcn/ui Button 크기
+
+Button 컴포넌트는 4가지 크기를 제공합니다:
+
+| size | 높이 | 패딩 | 텍스트 | 용도 |
+|------|------|------|--------|------|
+| `sm` | h-8 (32px) | px-3 | text-xs | **작은 버튼** - 부가 액션, 네비게이션 링크 |
+| `default` | h-9 (36px) | px-4 py-2 | text-sm | **기본 버튼** - 일반 액션, Form 제출, Dialog 버튼 |
+| `lg` | h-10 (40px) | px-8 | text-sm | **큰 버튼** - 주요 CTA, Hero 섹션, 중요 액션 |
+| `icon` | h-9 w-9 | - | - | **아이콘 전용** - 메뉴, 삭제, 토글 등 |
+
+### 사용 가이드
+
+#### `size="lg"` - 주요 액션
+주목을 끌어야 하는 주요 CTA (Call-to-Action)에 사용:
+- Hero 섹션 버튼 ("시작하기", "더 알아보기")
+- EmptyState 주요 액션 ("새 프로젝트 만들기")
+- CTA 섹션 버튼
+- 페이지 단위 주요 액션
+
+```jsx
+// Hero 섹션
+<Button size="lg" className="gap-2">
+  시작하기
+  <ArrowRight />
+</Button>
+
+// EmptyState
+<Button size="lg" onClick={onCreateNew} className="gap-2">
+  <Plus /> 새 프로젝트 만들기
+</Button>
+```
+
+#### `size="default"` - 일반 액션 (생략 가능)
+대부분의 일반적인 버튼에 사용. `size` prop을 생략하면 자동 적용:
+- Form 제출 버튼 (로그인, 회원가입, 프로젝트 생성)
+- Dialog 하단 버튼 (취소, 확인, 저장)
+- Dashboard 주요 버튼 ("새 프로젝트")
+- 일반 페이지 액션
+
+```jsx
+// Form 제출 (size 생략 가능)
+<Button type="submit" disabled={isLoading}>
+  로그인
+</Button>
+
+// Dialog 버튼
+<div className="flex justify-end gap-2">
+  <Button variant="outline">취소</Button>
+  <Button>저장</Button>
+</div>
+
+// Dashboard 헤더
+<Button onClick={() => setDialogOpen(true)} className="gap-2">
+  <Plus /> 새 프로젝트
+</Button>
+```
+
+#### `size="sm"` - 부가 액션
+덜 중요한 보조 액션이나 공간이 제한된 곳에 사용:
+- 네비게이션 링크
+- 에디터 헤더 버튼 ("프로젝트 목록", "저장")
+- NotFound 페이지 링크
+- Card 내부 작은 버튼
+
+```jsx
+// 에디터 헤더
+<Button variant="ghost" size="sm" className="gap-2">
+  <ArrowLeft /> 프로젝트 목록
+</Button>
+
+<Button size="sm" className="gap-2">
+  <Save /> 저장
+</Button>
+
+// NotFound 링크
+<Button variant="ghost" size="sm">
+  홈으로
+</Button>
+```
+
+#### `size="icon"` - 아이콘 전용
+아이콘만 표시하는 정사각형 버튼. **반드시 `aria-label` 추가 필수**:
+- 메뉴 버튼 (ProjectCard, Dropdown)
+- 삭제 버튼 (LightCard)
+- 뷰 전환 토글 (Grid/List)
+- 기타 아이콘 액션
+
+```jsx
+// 메뉴 버튼 (접근성 필수)
+<Button
+  variant="ghost"
+  size="icon"
+  aria-label="프로젝트 메뉴 열기"
+>
+  <MoreVertical className="w-4 h-4" />
+</Button>
+
+// 삭제 버튼
+<Button
+  variant="ghost"
+  size="icon"
+  onClick={onDelete}
+  aria-label="조명 삭제"
+>
+  <Trash2 className="w-4 h-4" />
+</Button>
+
+// 뷰 토글
+<Button
+  variant={viewMode === "grid" ? "secondary" : "ghost"}
+  size="icon"
+  onClick={() => setViewMode("grid")}
+  aria-label="그리드 뷰로 전환"
+>
+  <Grid3x3 className="w-4 h-4" />
+</Button>
+```
+
+### 버튼 내부 아이콘 간격
+
+버튼 내부에 아이콘과 텍스트를 함께 사용할 때:
+- **아이콘 크기**: `w-4 h-4` (16px) 또는 `w-5 h-5` (20px, lg 버튼)
+- **간격**: `gap-2` 클래스 사용 (Button 컴포넌트 기본 지원)
+
+```jsx
+// 자동 간격 (Button에 gap-2 기본 포함)
+<Button size="lg">
+  <Plus /> 새 프로젝트
+</Button>
+
+// 명시적 간격 (필요 시)
+<Button className="gap-2">
+  <Save className="w-4 h-4" /> 저장
+</Button>
+```
+
+### 버튼 그룹 간격
+
+여러 버튼을 나란히 배치할 때:
+- **주요 액션 그룹**: `gap-2` (Dialog 하단, Form 하단)
+- **툴바 버튼**: `gap-1` (아이콘 버튼) 또는 `gap-2` (일반 버튼)
+
+```jsx
+// Dialog 하단 버튼 그룹
+<div className="flex justify-end gap-2 p-6 pt-0">
+  <Button variant="outline">취소</Button>
+  <Button>확인</Button>
+</div>
+
+// 아이콘 버튼 그룹 (뷰 토글)
+<div className="flex items-center gap-1">
+  <Button size="icon" variant="secondary">
+    <Grid3x3 />
+  </Button>
+  <Button size="icon" variant="ghost">
+    <List />
+  </Button>
+</div>
+```
+
+### 버튼 크기 선택 플로우차트
+
+```
+주요 CTA / Hero 섹션 / EmptyState
+  → size="lg"
+
+일반 액션 / Form 제출 / Dialog 버튼
+  → size="default" (또는 생략)
+
+부가 액션 / 네비게이션 / 에디터 헤더
+  → size="sm"
+
+아이콘만 표시 / 메뉴 / 삭제 / 토글
+  → size="icon" + aria-label 필수
+```
+
+### 접근성 주의사항
+
+**아이콘 전용 버튼 (`size="icon"`)을 사용할 때**:
+- ✅ **필수**: `aria-label` 속성으로 버튼의 목적 명시
+- ✅ **권장**: 툴팁 추가 (HoverCard 또는 Tooltip 컴포넌트 사용)
+- ❌ **금지**: 텍스트 없이 아이콘만 사용하면서 aria-label 생략
+
+```jsx
+// ✅ 올바른 예시
+<Button size="icon" aria-label="프로젝트 삭제">
+  <Trash2 />
+</Button>
+
+// ❌ 잘못된 예시
+<Button size="icon">
+  <Trash2 />
+</Button>
+```
+
+---
+
+## 11. 참고 링크
 
 - [Tailwind CSS Spacing](https://tailwindcss.com/docs/customizing-spacing)
 - [shadcn/ui Components](https://ui.shadcn.com/)
+- [shadcn/ui Button](https://ui.shadcn.com/docs/components/button)
 - [LumoStage Design Strategy](./DesignStargey.md)
 
 ---
