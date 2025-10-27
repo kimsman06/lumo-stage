@@ -74,12 +74,11 @@ export default function ProjectsDashboard() {
                 </p>
               </div>
               <Button
-                size="lg"
                 onClick={() => setDialogOpen(true)}
                 className="gap-2"
                 disabled={isLoading}
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-4 h-4" />
                 새 프로젝트
               </Button>
             </div>
