@@ -1,13 +1,26 @@
 const Project = require("../models/Project");
+const { normalizeSceneData, applySceneDefaults } = require("./scene.service");
 
-const formatProject = (projectDoc) => {
+const toPlainProject = (projectDoc) => {
   const project = projectDoc.toObject({ versionKey: false });
 
   project.id = project._id.toString();
   project.owner = project.owner.toString();
+  const { data: normalizedScene } = normalizeSceneData(project.sceneData);
+  project.sceneData = normalizedScene;
   delete project._id;
 
   return project;
+};
+
+const formatProject = async (projectDoc) => {
+  applySceneDefaults(projectDoc);
+
+  if (projectDoc.isModified("sceneData")) {
+    await projectDoc.save();
+  }
+
+  return toPlainProject(projectDoc);
 };
 
 const createProject = async (data, ownerId) => {
@@ -17,8 +30,11 @@ const createProject = async (data, ownerId) => {
     throw error;
   }
 
+  const { data: normalizedScene } = normalizeSceneData(data.sceneData);
+
   const project = await Project.create({
     ...data,
+    sceneData: normalizedScene,
     owner: ownerId
   });
 
@@ -40,7 +56,7 @@ const findProjectForOwner = async (projectId, ownerId) => {
 const getProjectsByOwner = async (ownerId) => {
   const projects = await Project.find({ owner: ownerId }).sort({ createdAt: -1 });
 
-  return projects.map(formatProject);
+  return Promise.all(projects.map((project) => formatProject(project)));
 };
 
 const getProjectById = async (projectId, ownerId) => {
@@ -63,6 +79,11 @@ const updateProject = async (projectId, ownerId, updates) => {
     const error = new Error("수정할 필드를 제공해주세요.");
     error.status = 400;
     throw error;
+  }
+
+  if (payload.sceneData) {
+    const { data: normalizedScene } = normalizeSceneData(payload.sceneData);
+    payload.sceneData = normalizedScene;
   }
 
   const project = await findProjectForOwner(projectId, ownerId);

@@ -2,23 +2,45 @@ const request = require("supertest");
 
 const { app, connectDatabase } = require("../server");
 const Project = require("../models/Project");
+const ShareToken = require("../models/ShareToken");
 
-const registerAndGetCookie = async (overrides = {}) => {
+const getCsrfToken = async (agent) => {
+  const response = await agent.get("/api/auth/csrf-token");
+  expect(response.statusCode).toBe(200);
+  return response.body.csrfToken;
+};
+
+const expectSessionCookies = (response) => {
+  const cookies = response.headers["set-cookie"] || [];
+  expect(cookies).toEqual(
+    expect.arrayContaining([
+      expect.stringContaining("token="),
+      expect.stringContaining("refreshToken=")
+    ])
+  );
+};
+
+const registerUser = async (overrides = {}) => {
+  const agent = request.agent(app);
+  const csrfToken = await getCsrfToken(agent);
   const payload = {
     username: "프로젝트유저",
     email: overrides.email || "project-user@example.com",
     password: "password123"
   };
 
-  const response = await request(app).post("/api/auth/register").send(payload);
+  const response = await agent.post("/api/auth/register").set("x-csrf-token", csrfToken).send(payload);
+  expect(response.statusCode).toBe(201);
+  expectSessionCookies(response);
 
   return {
-    cookie: response.headers["set-cookie"],
+    agent,
     user: response.body.user
   };
 };
 
-const createProject = async (cookie, overrides = {}) => {
+const createProject = async (agent, overrides = {}) => {
+  const csrfToken = await getCsrfToken(agent);
   const payload = {
     name: overrides.name || "샘플 프로젝트",
     description: overrides.description || "샘플 설명",
@@ -26,8 +48,12 @@ const createProject = async (cookie, overrides = {}) => {
     thumbnail: overrides.thumbnail || ""
   };
 
-  const response = await request(app).post("/api/projects").set("Cookie", cookie).send(payload);
+  const response = await agent
+    .post("/api/projects")
+    .set("x-csrf-token", csrfToken)
+    .send(payload);
 
+  expect(response.statusCode).toBe(201);
   return response.body.project;
 };
 
@@ -50,63 +76,87 @@ describe("Project API", () => {
       });
     });
 
-    it("인증된 사용자는 프로젝트를 생성할 수 있다", async () => {
-      const { cookie } = await registerAndGetCookie();
+    it("인증된 사용자는 프로젝트를 생성할 수 있고 Scene 데이터가 정규화된다", async () => {
+      const { agent } = await registerUser({ email: "project-create@example.com" });
 
-      const response = await request(app)
+      const csrfToken = await getCsrfToken(agent);
+      const response = await agent
         .post("/api/projects")
-        .set("Cookie", cookie)
+        .set("x-csrf-token", csrfToken)
         .send({
           name: "나의 첫 프로젝트",
           description: "씬 데이터 저장 테스트",
-          sceneData: { nodes: [], lights: [] },
+          sceneData: {
+            nodes: [],
+            lights: [{ id: "l1", type: "rect" }],
+            diffusers: [
+              {
+                id: "d1",
+                position: [0, 2, 2],
+                rotation: [0, 0, 0],
+                scale: [2, 2, 1],
+                diffuseColor: "#ffffff",
+                opacity: 0.6,
+                transmission: 0.9,
+                thickness: 0.4,
+                roughness: 0.7,
+                useShader: true,
+                enableSecondaryLight: false,
+                secondaryLightIntensity: 0,
+                linkedLightIds: ["l1"],
+                blockOriginalLight: false
+              }
+            ]
+          },
           thumbnail: "http://example.com/thumb.png"
         });
 
       expect(response.statusCode).toBe(201);
-      expect(response.body).toMatchObject({
-        message: "프로젝트가 생성되었습니다.",
-        project: {
-          name: "나의 첫 프로젝트",
-          description: "씬 데이터 저장 테스트"
-        }
+      expect(response.body.project).toMatchObject({
+        name: "나의 첫 프로젝트",
+        description: "씬 데이터 저장 테스트",
+        sceneData: expect.objectContaining({
+          schemaVersion: 2,
+          aspectRatio: "16:9",
+          diffusers: [
+            expect.objectContaining({
+              id: "d1",
+              linkedLightIds: ["l1"]
+            })
+          ]
+        })
       });
-      expect(response.body.project).toHaveProperty("id");
 
       const savedProject = await Project.findById(response.body.project.id).lean();
-      expect(savedProject).toBeTruthy();
-      expect(savedProject.sceneData).toMatchObject({ nodes: [], lights: [] });
+      expect(savedProject.sceneData.schemaVersion).toBe(2);
+      expect(savedProject.sceneData.aspectRatio).toBe("16:9");
+      expect(savedProject.sceneData.diffusers).toHaveLength(1);
+      expect(savedProject.sceneData.diffusers[0]).toMatchObject({
+        id: "d1",
+        linkedLightIds: ["l1"]
+      });
     });
   });
 
   describe("GET /api/projects", () => {
     it("사용자의 프로젝트 목록을 반환한다", async () => {
-      const { cookie, user } = await registerAndGetCookie({ email: "list-owner@example.com" });
+      const { agent, user } = await registerUser({ email: "list-owner@example.com" });
 
-      await request(app)
-        .post("/api/projects")
-        .set("Cookie", cookie)
-        .send({
-          name: "프로젝트 A",
-          description: "A 설명",
-          sceneData: { nodes: [{ id: 1 }] }
-        });
+      await createProject(agent, {
+        name: "프로젝트 A",
+        description: "A 설명",
+        sceneData: { nodes: [{ id: 1 }] }
+      });
 
-      await request(app)
-        .post("/api/projects")
-        .set("Cookie", cookie)
-        .send({
-          name: "프로젝트 B",
-          description: "B 설명",
-          sceneData: { nodes: [{ id: 2 }] }
-        });
+      await createProject(agent, {
+        name: "프로젝트 B",
+        description: "B 설명",
+        sceneData: { nodes: [{ id: 2 }] }
+      });
 
-      const response = await request(app).get("/api/projects").set("Cookie", cookie);
+      const response = await agent.get("/api/projects");
 
       expect(response.statusCode).toBe(200);
-      expect(response.body).toMatchObject({
-        projects: expect.any(Array)
-      });
       expect(response.body.projects).toHaveLength(2);
       expect(response.body.projects.every((project) => project.owner === user.id)).toBe(true);
     });
@@ -123,12 +173,10 @@ describe("Project API", () => {
 
   describe("GET /api/projects/:id", () => {
     it("자신의 프로젝트는 조회할 수 있다", async () => {
-      const { cookie, user } = await registerAndGetCookie({ email: "detail-owner@example.com" });
-      const project = await createProject(cookie, { name: "디테일 프로젝트" });
+      const { agent, user } = await registerUser({ email: "detail-owner@example.com" });
+      const project = await createProject(agent, { name: "디테일 프로젝트" });
 
-      const response = await request(app)
-        .get(`/api/projects/${project.id}`)
-        .set("Cookie", cookie);
+      const response = await agent.get(`/api/projects/${project.id}`);
 
       expect(response.statusCode).toBe(200);
       expect(response.body).toMatchObject({
@@ -141,16 +189,14 @@ describe("Project API", () => {
     });
 
     it("다른 사용자의 프로젝트는 조회할 수 없다", async () => {
-      const { cookie } = await registerAndGetCookie({ email: "detail-owner2@example.com" });
-      const project = await createProject(cookie, { name: "비공개 프로젝트" });
+      const { agent } = await registerUser({ email: "detail-owner2@example.com" });
+      const project = await createProject(agent, { name: "비공개 프로젝트" });
 
-      const { cookie: otherCookie } = await registerAndGetCookie({
+      const { agent: otherAgent } = await registerUser({
         email: "detail-other@example.com"
       });
 
-      const response = await request(app)
-        .get(`/api/projects/${project.id}`)
-        .set("Cookie", otherCookie);
+      const response = await otherAgent.get(`/api/projects/${project.id}`);
 
       expect(response.statusCode).toBe(404);
       expect(response.body).toMatchObject({
@@ -159,9 +205,9 @@ describe("Project API", () => {
     });
 
     it("유효하지 않은 ID는 400을 반환한다", async () => {
-      const { cookie } = await registerAndGetCookie({ email: "detail-invalid@example.com" });
+      const { agent } = await registerUser({ email: "detail-invalid@example.com" });
 
-      const response = await request(app).get("/api/projects/not-a-valid-id").set("Cookie", cookie);
+      const response = await agent.get("/api/projects/not-a-valid-id");
 
       expect(response.statusCode).toBe(400);
       expect(response.body).toMatchObject({
@@ -172,44 +218,82 @@ describe("Project API", () => {
 
   describe("PATCH /api/projects/:id", () => {
     it("프로젝트 정보를 수정할 수 있다", async () => {
-      const { cookie } = await registerAndGetCookie({ email: "update-owner@example.com" });
-      const project = await createProject(cookie, { name: "수정 전" });
+      const { agent } = await registerUser({ email: "update-owner@example.com" });
+      const project = await createProject(agent, { name: "수정 전" });
 
-      const response = await request(app)
+      const csrfToken = await getCsrfToken(agent);
+      const response = await agent
         .patch(`/api/projects/${project.id}`)
-        .set("Cookie", cookie)
+        .set("x-csrf-token", csrfToken)
         .send({
           name: "수정 후",
           description: "설명 변경",
-          sceneData: { nodes: [{ id: 3 }] }
+          sceneData: {
+            nodes: [{ id: 3 }],
+            diffusers: [
+              {
+                id: "updated-dif",
+                position: [1, 2, 3],
+                rotation: [0, 1, 0],
+                scale: [1, 1, 1],
+                diffuseColor: "#eeeeee",
+                opacity: 0.7,
+                transmission: 0.8,
+                thickness: 0.6,
+                roughness: 0.5,
+                useShader: false,
+                enableSecondaryLight: true,
+                secondaryLightIntensity: 3,
+                linkedLightIds: ["light-1"],
+                blockOriginalLight: true
+              }
+            ]
+          }
         });
 
       expect(response.statusCode).toBe(200);
       expect(response.body).toMatchObject({
         message: "프로젝트가 업데이트되었습니다.",
-        project: {
+        project: expect.objectContaining({
           name: "수정 후",
           description: "설명 변경",
-          sceneData: { nodes: [{ id: 3 }] }
-        }
+          sceneData: expect.objectContaining({
+            nodes: [{ id: 3 }],
+            diffusers: [
+              expect.objectContaining({
+                id: "updated-dif",
+                enableSecondaryLight: true,
+                blockOriginalLight: true
+              })
+            ],
+            schemaVersion: 2
+          })
+        })
       });
 
       const savedProject = await Project.findById(project.id).lean();
       expect(savedProject.name).toBe("수정 후");
-      expect(savedProject.sceneData).toMatchObject({ nodes: [{ id: 3 }] });
+      expect(savedProject.sceneData.schemaVersion).toBe(2);
+      expect(savedProject.sceneData.diffusers).toHaveLength(1);
+      expect(savedProject.sceneData.diffusers[0]).toMatchObject({
+        id: "updated-dif",
+        enableSecondaryLight: true,
+        blockOriginalLight: true
+      });
     });
 
     it("다른 사용자의 프로젝트는 수정할 수 없다", async () => {
-      const { cookie } = await registerAndGetCookie({ email: "update-owner2@example.com" });
-      const project = await createProject(cookie, { name: "다른 사람 프로젝트" });
+      const { agent } = await registerUser({ email: "update-owner2@example.com" });
+      const project = await createProject(agent, { name: "다른 사람 프로젝트" });
 
-      const { cookie: otherCookie } = await registerAndGetCookie({
+      const { agent: otherAgent } = await registerUser({
         email: "update-other@example.com"
       });
 
-      const response = await request(app)
+      const csrfToken = await getCsrfToken(otherAgent);
+      const response = await otherAgent
         .patch(`/api/projects/${project.id}`)
-        .set("Cookie", otherCookie)
+        .set("x-csrf-token", csrfToken)
         .send({ name: "해킹 시도" });
 
       expect(response.statusCode).toBe(404);
@@ -219,12 +303,13 @@ describe("Project API", () => {
     });
 
     it("수정할 필드가 없으면 400을 반환한다", async () => {
-      const { cookie } = await registerAndGetCookie({ email: "update-empty@example.com" });
-      const project = await createProject(cookie);
+      const { agent } = await registerUser({ email: "update-empty@example.com" });
+      const project = await createProject(agent);
 
-      const response = await request(app)
+      const csrfToken = await getCsrfToken(agent);
+      const response = await agent
         .patch(`/api/projects/${project.id}`)
-        .set("Cookie", cookie)
+        .set("x-csrf-token", csrfToken)
         .send({});
 
       expect(response.statusCode).toBe(400);
@@ -234,11 +319,12 @@ describe("Project API", () => {
     });
 
     it("잘못된 ID는 400을 반환한다", async () => {
-      const { cookie } = await registerAndGetCookie({ email: "update-invalid@example.com" });
+      const { agent } = await registerUser({ email: "update-invalid@example.com" });
 
-      const response = await request(app)
+      const csrfToken = await getCsrfToken(agent);
+      const response = await agent
         .patch("/api/projects/invalid-id")
-        .set("Cookie", cookie)
+        .set("x-csrf-token", csrfToken)
         .send({ name: "무효" });
 
       expect(response.statusCode).toBe(400);
@@ -250,12 +336,13 @@ describe("Project API", () => {
 
   describe("DELETE /api/projects/:id", () => {
     it("프로젝트를 삭제할 수 있다", async () => {
-      const { cookie } = await registerAndGetCookie({ email: "delete-owner@example.com" });
-      const project = await createProject(cookie);
+      const { agent } = await registerUser({ email: "delete-owner@example.com" });
+      const project = await createProject(agent);
 
-      const response = await request(app)
+      const csrfToken = await getCsrfToken(agent);
+      const response = await agent
         .delete(`/api/projects/${project.id}`)
-        .set("Cookie", cookie);
+        .set("x-csrf-token", csrfToken);
 
       expect(response.statusCode).toBe(204);
       expect(response.body).toEqual({});
@@ -265,16 +352,17 @@ describe("Project API", () => {
     });
 
     it("다른 사용자가 삭제를 시도하면 404를 반환한다", async () => {
-      const { cookie } = await registerAndGetCookie({ email: "delete-owner2@example.com" });
-      const project = await createProject(cookie);
+      const { agent } = await registerUser({ email: "delete-owner2@example.com" });
+      const project = await createProject(agent);
 
-      const { cookie: otherCookie } = await registerAndGetCookie({
+      const { agent: otherAgent } = await registerUser({
         email: "delete-other@example.com"
       });
 
-      const response = await request(app)
+      const csrfToken = await getCsrfToken(otherAgent);
+      const response = await otherAgent
         .delete(`/api/projects/${project.id}`)
-        .set("Cookie", otherCookie);
+        .set("x-csrf-token", csrfToken);
 
       expect(response.statusCode).toBe(404);
       expect(response.body).toMatchObject({
@@ -283,16 +371,78 @@ describe("Project API", () => {
     });
 
     it("잘못된 ID는 400을 반환한다", async () => {
-      const { cookie } = await registerAndGetCookie({ email: "delete-invalid@example.com" });
+      const { agent } = await registerUser({ email: "delete-invalid@example.com" });
 
-      const response = await request(app)
+      const csrfToken = await getCsrfToken(agent);
+      const response = await agent
         .delete("/api/projects/bad-id")
-        .set("Cookie", cookie);
+        .set("x-csrf-token", csrfToken);
 
       expect(response.statusCode).toBe(400);
       expect(response.body).toMatchObject({
         message: "잘못된 프로젝트 ID입니다."
       });
+    });
+  });
+
+  describe("POST /api/projects/:id/share", () => {
+    it("프로젝트 공유 토큰을 발급하고 조회할 수 있다", async () => {
+      const { agent } = await registerUser({ email: "share-owner@example.com" });
+      const project = await createProject(agent);
+
+      const csrfToken = await getCsrfToken(agent);
+      const shareResponse = await agent
+        .post(`/api/share/projects/${project.id}`)
+        .set("x-csrf-token", csrfToken)
+        .send();
+
+      expect(shareResponse.statusCode).toBe(201);
+      expect(shareResponse.body).toHaveProperty("shareToken");
+
+      const shareToken = shareResponse.body.shareToken;
+      const publicResponse = await request(app).get(`/api/share/${shareToken}`);
+
+      expect(publicResponse.statusCode).toBe(200);
+      expect(publicResponse.body.project).toMatchObject({
+        id: project.id,
+        name: project.name,
+        sceneData: expect.objectContaining({
+          schemaVersion: 2
+        })
+      });
+    });
+
+    it("공유 토큰 삭제 후에는 접근할 수 없다", async () => {
+      const { agent } = await registerUser({ email: "share-revoke@example.com" });
+      const project = await createProject(agent);
+
+      const createToken = async () => {
+        const csrfToken = await getCsrfToken(agent);
+        return agent
+          .post(`/api/share/projects/${project.id}`)
+          .set("x-csrf-token", csrfToken)
+          .send();
+      };
+
+      const shareResponse = await createToken();
+      const shareToken = shareResponse.body.shareToken;
+
+      const csrfToken = await getCsrfToken(agent);
+      const revokeResponse = await agent
+        .delete(`/api/share/projects/${project.id}`)
+        .set("x-csrf-token", csrfToken);
+
+      expect(revokeResponse.statusCode).toBe(204);
+
+      const publicResponse = await request(app).get(`/api/share/${shareToken}`);
+
+      expect(publicResponse.statusCode).toBe(410);
+      expect(publicResponse.body).toMatchObject({
+        message: "공유 토큰이 사용 중지되었습니다."
+      });
+
+      const storedTokens = await ShareToken.find({ project: project.id });
+      expect(storedTokens.every((token) => token.isRevoked)).toBe(true);
     });
   });
 });

@@ -41,6 +41,7 @@ const NewProjectDialog = ({ open, onOpenChange }) => {
           target: [0, 2, 0],
           focalLength: 50,
         },
+        aspectRatio: "16:9",
       },
     });
 
