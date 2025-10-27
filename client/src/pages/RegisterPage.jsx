@@ -86,6 +86,7 @@ export default function RegisterPage() {
                 name="username"
                 type="text"
                 placeholder="홍길동"
+                autoComplete="username"
                 value={formData.username}
                 onChange={handleChange}
                 disabled={isLoading}
@@ -100,6 +101,7 @@ export default function RegisterPage() {
                 name="email"
                 type="email"
                 placeholder="example@email.com"
+                autoComplete="email"
                 value={formData.email}
                 onChange={handleChange}
                 disabled={isLoading}
@@ -114,6 +116,7 @@ export default function RegisterPage() {
                 name="password"
                 type="password"
                 placeholder="••••••••"
+                autoComplete="new-password"
                 value={formData.password}
                 onChange={handleChange}
                 disabled={isLoading}
@@ -131,6 +134,7 @@ export default function RegisterPage() {
                 name="confirmPassword"
                 type="password"
                 placeholder="••••••••"
+                autoComplete="new-password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 disabled={isLoading}
@@ -167,7 +171,7 @@ export default function RegisterPage() {
           </div>
 
           {/* 소셜 로그인 버튼 */}
-          <div className="space-y-2">
+          <div className="space-y-2 pt-2">
             <Button
               variant="outline"
               className="w-full"

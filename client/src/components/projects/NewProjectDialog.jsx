@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import useProjectStore from "../../store/projectStore";
 
 const NewProjectDialog = ({ open, onOpenChange }) => {
@@ -69,7 +70,7 @@ const NewProjectDialog = ({ open, onOpenChange }) => {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
-        <DialogHeader>
+        <DialogHeader className="space-y-1">
           <DialogTitle>새 프로젝트 만들기</DialogTitle>
           <DialogDescription>
             새로운 조명 시뮬레이션 프로젝트를 시작하세요.
@@ -93,13 +94,13 @@ const NewProjectDialog = ({ open, onOpenChange }) => {
 
           <div className="space-y-2">
             <Label htmlFor="description">설명</Label>
-            <textarea
+            <Textarea
               id="description"
               placeholder="조명 설정에 대한 설명을 입력하세요..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={isLoading}
-              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+              className="resize-none"
             />
           </div>
 
@@ -111,7 +112,7 @@ const NewProjectDialog = ({ open, onOpenChange }) => {
           )}
         </div>
 
-        <div className="flex justify-end gap-3 p-6 pt-0">
+        <div className="flex justify-end gap-2 p-6 pt-0">
           <Button
             variant="outline"
             onClick={() => handleOpenChange(false)}

@@ -135,7 +135,7 @@ function EditorPage() {
 
         <div className="flex items-center gap-2">
           {saveSuccess && (
-            <span className="text-green-400 text-sm flex items-center gap-1">
+            <span className="text-green-400 text-sm flex items-center gap-1" role="status" aria-live="polite">
               <Check className="w-4 h-4" />
               저장됨
             </span>
@@ -145,6 +145,7 @@ function EditorPage() {
             disabled={isSaving}
             className="gap-2"
             size="sm"
+            aria-label="프로젝트 저장"
           >
             <Save className="w-4 h-4" />
             {isSaving ? '저장 중...' : '저장'}

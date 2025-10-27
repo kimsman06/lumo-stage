@@ -72,6 +72,7 @@ export default function LoginPage() {
                 name="email"
                 type="email"
                 placeholder="example@email.com"
+                autoComplete="email"
                 value={formData.email}
                 onChange={handleChange}
                 disabled={isLoading}
@@ -86,6 +87,7 @@ export default function LoginPage() {
                 name="password"
                 type="password"
                 placeholder="••••••••"
+                autoComplete="current-password"
                 value={formData.password}
                 onChange={handleChange}
                 disabled={isLoading}
@@ -122,7 +124,7 @@ export default function LoginPage() {
           </div>
 
           {/* 소셜 로그인 버튼 */}
-          <div className="space-y-2">
+          <div className="space-y-2 pt-2">
             <Button
               variant="outline"
               className="w-full"

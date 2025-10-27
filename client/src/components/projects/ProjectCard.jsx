@@ -31,7 +31,7 @@ const ProjectCard = ({ project, onOpen, onEdit, onDelete, viewMode }) => {
   if (viewMode === "list") {
     return (
       <Card className="group hover:border-primary/50 transition-all cursor-pointer">
-        <div className="p-4 flex items-center gap-4">
+        <div className="p-4 flex items-center gap-3">
           {/* Thumbnail */}
           <div className="w-24 h-16 rounded-md bg-gradient-to-br from-primary/20 via-yellow-500/10 to-orange-500/10 flex items-center justify-center flex-shrink-0">
             <Camera className="w-8 h-8 text-muted-foreground/50" />
@@ -45,7 +45,7 @@ const ProjectCard = ({ project, onOpen, onEdit, onDelete, viewMode }) => {
             <p className="text-sm text-muted-foreground line-clamp-1 mb-2">
               {project.description}
             </p>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Lightbulb className="w-3 h-3" />
                 <span>{project.lightsCount} lights</span>
@@ -60,7 +60,7 @@ const ProjectCard = ({ project, onOpen, onEdit, onDelete, viewMode }) => {
           {/* Actions */}
           <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="flex-shrink-0">
+              <Button variant="ghost" size="icon" className="flex-shrink-0" aria-label="프로젝트 메뉴 열기">
                 <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -125,7 +125,7 @@ const ProjectCard = ({ project, onOpen, onEdit, onDelete, viewMode }) => {
       </div>
 
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <CardTitle className="text-base truncate">{project.name}</CardTitle>
             <CardDescription className="line-clamp-2 mt-1">
@@ -139,6 +139,7 @@ const ProjectCard = ({ project, onOpen, onEdit, onDelete, viewMode }) => {
                 variant="ghost"
                 size="icon"
                 className="flex-shrink-0 -mt-1"
+                aria-label="프로젝트 메뉴 열기"
               >
                 <MoreVertical className="w-4 h-4" />
               </Button>

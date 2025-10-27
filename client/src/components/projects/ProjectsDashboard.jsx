@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 
 import ProjectCard from "./ProjectCard";
 import NewProjectDialog from "./NewProjectDialog";
+import EditProjectDialog from "./EditProjectDialog";
 import EmptyState from "./EmptyState";
 import useProjectStore from "../../store/projectStore";
 import AuthNavbar from "../layout/AuthNavbar";
@@ -21,6 +22,8 @@ export default function ProjectsDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState("grid"); // 'grid' or 'list'
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
 
   // 컴포넌트 마운트 시 프로젝트 목록 로드
   useEffect(() => {
@@ -49,6 +52,11 @@ export default function ProjectsDashboard() {
         alert(`삭제 실패: ${result.error}`);
       }
     }
+  };
+
+  const handleEditProject = (project) => {
+    setSelectedProject(project);
+    setEditDialogOpen(true);
   };
 
   return (
@@ -81,7 +89,7 @@ export default function ProjectsDashboard() {
         {/* Toolbar */}
         <div className="border-b">
           <div className="container mx-auto px-4 py-4">
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
               {/* Search */}
               <div className="relative w-full sm:w-96">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -95,11 +103,12 @@ export default function ProjectsDashboard() {
               </div>
 
               {/* View Toggle */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <Button
                   variant={viewMode === "grid" ? "secondary" : "ghost"}
                   size="icon"
                   onClick={() => setViewMode("grid")}
+                  aria-label="그리드 뷰로 전환"
                 >
                   <Grid3x3 className="w-4 h-4" />
                 </Button>
@@ -107,6 +116,7 @@ export default function ProjectsDashboard() {
                   variant={viewMode === "list" ? "secondary" : "ghost"}
                   size="icon"
                   onClick={() => setViewMode("list")}
+                  aria-label="리스트 뷰로 전환"
                 >
                   <List className="w-4 h-4" />
                 </Button>
@@ -167,6 +177,7 @@ export default function ProjectsDashboard() {
                   project={project}
                   viewMode={viewMode}
                   onOpen={handleOpenProject}
+                  onEdit={() => handleEditProject(project)}
                   onDelete={handleDeleteProject}
                 />
               ))}
@@ -178,6 +189,12 @@ export default function ProjectsDashboard() {
         <NewProjectDialog
           open={dialogOpen}
           onOpenChange={setDialogOpen}
+        />
+
+        <EditProjectDialog
+          open={editDialogOpen}
+          project={selectedProject}
+          onOpenChange={setEditDialogOpen}
         />
       </div>
     </>
