@@ -118,9 +118,9 @@ function EditorPage() {
   }
 
   return (
-    <div className="w-screen h-screen bg-black flex flex-col">
-      {/* Header */}
-      <div className="h-14 bg-black/50 backdrop-blur-sm border-b border-white/10 flex items-center justify-between px-4">
+    <div className="w-screen h-screen bg-black flex flex-col overflow-hidden">
+      {/* Header - 고정 높이, shrink 방지 */}
+      <div className="h-14 flex-shrink-0 bg-black/50 backdrop-blur-sm border-b border-white/10 flex items-center justify-between px-4">
         <div className="flex items-center gap-4">
           <Link to="/projects">
             <Button variant="ghost" size="sm" className="text-white gap-2">
@@ -153,13 +153,13 @@ function EditorPage() {
         </div>
       </div>
 
-      {/* Editor Content */}
-      <div className="flex-1 grid grid-flow-col grid-cols-[1fr_auto]">
-        {/* Scene takes up the first column (all remaining space) */}
-        <div className="h-full overflow-hidden">
+      {/* Editor Content - 남은 공간 모두 차지, overflow 방지 */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Scene - 남은 공간 모두 차지 */}
+        <div className="flex-1 overflow-hidden">
           <Scene />
         </div>
-        {/* EditorPanel takes up the second column (its own width) */}
+        {/* EditorPanel - 고정 너비 */}
         <EditorPanel />
       </div>
     </div>
