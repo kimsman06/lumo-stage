@@ -3,12 +3,17 @@ const passport = require("passport");
 
 const authController = require("../controllers/auth.controller");
 const requireAuth = require("../middleware/auth.middleware");
+const { issueCsrfToken } = require("../middleware/csrf.middleware");
+const validate = require("../validators/validate");
+const { registerSchema, loginSchema } = require("../validators/auth.schemas");
 
 const router = express.Router();
 
-router.post("/register", authController.register);
-router.post("/login", authController.login);
+router.get("/csrf-token", issueCsrfToken);
+router.post("/register", validate(registerSchema), authController.register);
+router.post("/login", validate(loginSchema), authController.login);
 router.get("/me", requireAuth, authController.me);
+router.post("/refresh", authController.refresh);
 router.post("/logout", requireAuth, authController.logout);
 router.get(
   "/google",

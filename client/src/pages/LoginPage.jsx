@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { GOOGLE_OAUTH_URL, NAVER_OAUTH_URL } from "../lib/config";
+import { validateEmail } from "../lib/validators";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -12,9 +14,10 @@ export default function LoginPage() {
 
   const [formData, setFormData] = useState({
     email: "",
-    password: "",
+    password: ""
   });
   const [localError, setLocalError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
   // 이미 로그인되어 있으면 대시보드로 리디렉션
   useEffect(() => {
@@ -28,24 +31,36 @@ export default function LoginPage() {
     return () => clearError();
   }, [clearError]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  const handleChange = (event) => {
+    const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setLocalError("");
+    setFieldErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLocalError("");
 
-    // 유효성 검사
-    if (!formData.email || !formData.password) {
-      setLocalError("이메일과 비밀번호를 입력해주세요.");
+    const nextErrors = {
+      email: validateEmail(formData.email.trim()),
+      password: formData.password ? null : "비밀번호를 입력해주세요."
+    };
+
+    setFieldErrors(nextErrors);
+
+    const hasError = Object.values(nextErrors).some(Boolean);
+
+    if (hasError) {
+      setLocalError("입력값을 다시 확인해주세요.");
       return;
     }
 
     // 로그인 시도
-    const result = await login(formData);
+    const result = await login({
+      email: formData.email.trim(),
+      password: formData.password
+    });
     if (result.success) {
       navigate("/projects");
     } else {
@@ -78,6 +93,9 @@ export default function LoginPage() {
                 disabled={isLoading}
                 required
               />
+              {fieldErrors.email && (
+                <p className="text-xs text-red-600">{fieldErrors.email}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -93,6 +111,9 @@ export default function LoginPage() {
                 disabled={isLoading}
                 required
               />
+              {fieldErrors.password && (
+                <p className="text-xs text-red-600">{fieldErrors.password}</p>
+              )}
             </div>
 
             {/* 에러 메시지 */}
@@ -130,7 +151,7 @@ export default function LoginPage() {
               className="w-full"
               asChild
             >
-              <a href="http://localhost:4000/api/auth/google">
+              <a href={GOOGLE_OAUTH_URL}>
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                   <path
                     fill="currentColor"
@@ -158,7 +179,7 @@ export default function LoginPage() {
               className="w-full"
               asChild
             >
-              <a href="http://localhost:4000/api/auth/naver">
+              <a href={NAVER_OAUTH_URL}>
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M16.273 12.845L7.376 0H0v24h7.726V11.156L16.624 24H24V0h-7.727v12.845z" />
                 </svg>

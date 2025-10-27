@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import api from "../lib/api";
+import api, { resetCsrfToken } from "../lib/api";
 
 const useAuthStore = create((set) => ({
   // 인증 상태
@@ -42,6 +42,7 @@ const useAuthStore = create((set) => ({
         isAuthenticated: true,
         isLoading: false,
       });
+      resetCsrfToken();
       return { success: true, user: response.data.user };
     } catch (error) {
       const errorMessage =
@@ -64,6 +65,7 @@ const useAuthStore = create((set) => ({
         isAuthenticated: true,
         isLoading: false,
       });
+      resetCsrfToken();
       return { success: true, user: response.data.user };
     } catch (error) {
       const errorMessage =
@@ -86,6 +88,7 @@ const useAuthStore = create((set) => ({
         isAuthenticated: false,
         isLoading: false,
       });
+      resetCsrfToken();
       return { success: true };
     } catch (error) {
       const errorMessage =

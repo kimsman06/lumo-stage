@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const User = require("../models/User");
+const sessionService = require("./session.service");
 
 const getJwtSecret = () => {
   const secret = process.env.JWT_SECRET;
@@ -35,12 +36,17 @@ const signToken = (userDoc) => {
   });
 };
 
-const issueTokenForUser = (userDoc) => {
-  const token = signToken(userDoc);
+const issueTokensForUser = async (userDoc, metadata = {}) => {
+  const accessToken = signToken(userDoc);
+  const { token: refreshToken } = await sessionService.createSessionToken(
+    userDoc._id,
+    metadata
+  );
 
   return {
     user: sanitizeUser(userDoc),
-    token
+    accessToken,
+    refreshToken
   };
 };
 
@@ -79,7 +85,7 @@ const resolveUsername = (profile, emailFallback) => {
   return `user-${Date.now()}`;
 };
 
-const registerUser = async ({ username, email, password }) => {
+const registerUser = async ({ username, email, password }, metadata = {}) => {
   if (!username || !email || !password) {
     const error = new Error("필수 값이 누락되었습니다.");
     error.status = 400;
@@ -103,10 +109,10 @@ const registerUser = async ({ username, email, password }) => {
     password: hashedPassword
   });
 
-  return issueTokenForUser(user);
+  return issueTokensForUser(user, metadata);
 };
 
-const loginUser = async ({ email, password }) => {
+const loginUser = async ({ email, password }, metadata = {}) => {
   if (!email || !password) {
     const error = new Error("이메일과 비밀번호를 모두 입력해주세요.");
     error.status = 400;
@@ -129,7 +135,7 @@ const loginUser = async ({ email, password }) => {
     throw error;
   }
 
-  return issueTokenForUser(user);
+  return issueTokensForUser(user, metadata);
 };
 
 const findOrCreateOAuthUser = async (provider, profile) => {
@@ -176,15 +182,40 @@ const findOrCreateOAuthUser = async (provider, profile) => {
   return user;
 };
 
-const loginWithProvider = async (provider, profile) => {
+const loginWithProvider = async (provider, profile, metadata = {}) => {
   const user = await findOrCreateOAuthUser(provider, profile);
 
-  return issueTokenForUser(user);
+  return issueTokensForUser(user, metadata);
 };
+
+const refreshAuthSession = async (refreshToken, metadata = {}) => {
+  const { user, refreshToken: rotatedRefreshToken } = await sessionService.consumeRefreshToken(
+    refreshToken,
+    metadata
+  );
+
+  const accessToken = signToken(user);
+
+  return {
+    user: sanitizeUser(user),
+    accessToken,
+    refreshToken: rotatedRefreshToken
+  };
+};
+
+const revokeRefreshToken = (refreshToken, metadata = {}) =>
+  sessionService.revokeRefreshToken(refreshToken, metadata);
+
+const revokeSessionsForUser = (userId, reason, metadata = {}) =>
+  sessionService.revokeUserSessions(userId, reason, metadata);
 
 module.exports = {
   registerUser,
   loginUser,
   loginWithProvider,
-  sanitizeUser
+  sanitizeUser,
+  refreshAuthSession,
+  revokeRefreshToken,
+  revokeSessionsForUser,
+  getRefreshTokenTtlMs: sessionService.getRefreshTokenTtlMs
 };
