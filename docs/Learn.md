@@ -10,8 +10,8 @@ flowchart TD
     B --> C[EditorPage]
     C --> D[EditorPanel.jsx]
     C --> E[Scene.jsx]
-    D --> F[Controls (Lights/Diffuser/Camera/Mannequin)]
-    E --> G[R3F Objects (Lights, Diffusers, Mannequins)]
+    D --> F[Controls Lights/Diffuser/Camera/Mannequin]
+    E --> G[R3F Objects - Lights, Diffusers, Mannequins]
     subgraph Stores
         H[editorStore]
         I[projectStore]
@@ -58,6 +58,64 @@ flowchart TD
 - **projects**: `server/routes/project.routes.js` → `controllers/project.controller.js` → `services/project.service.js` 순으로 요청을 처리합니다.
   - `scene.service.normalizeSceneData()`가 `diffusers`, `lights`, `mannequins`를 정규화하며 프로젝트 간 상태 오염을 방지합니다.
 - **share**: `/api/share/projects/:id`에서 공유 토큰을 발급하고, `/api/share/:token`으로 조회합니다.
+
+### 4.1 서버 API 레이어 다이어그램
+
+```mermaid
+flowchart TD
+    subgraph Client
+        A[client/lib/api]
+    end
+
+    subgraph Express Router
+        B[/routes/index.js/]
+        C[/routes/auth.routes.js/]
+        D[/routes/project.routes.js/]
+        E[/routes/share.routes.js/]
+    end
+
+    subgraph Controllers
+        F[auth.controller]
+        G[project.controller]
+        H[share.controller]
+    end
+
+    subgraph Services
+        I[auth.service]
+        J[project.service]
+        K[share.service]
+        L[session.service]
+        M[scene.service]
+    end
+
+    subgraph DB Layer
+        N[(User)]
+        O[(Project)]
+        P[(SessionToken)]
+        Q[(ShareToken)]
+    end
+
+    A --> B
+    B --> C
+    B --> D
+    B --> E
+
+    C --> F
+    D --> G
+    E --> H
+
+    F --> I
+    F --> L
+    G --> J
+    G --> M
+    H --> K
+
+    I --> N
+    J --> O
+    K --> Q
+    L --> P
+    M --> O
+```
 
 ## 5. 이벤트 전파 예시
 

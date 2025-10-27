@@ -65,7 +65,7 @@ flowchart TD
     I --> J[`editorStore.loadSceneData`로 장면 복원]
     H -- 신규 생성 --> K[프로젝트 생성 모달\nPOST /api/projects]
     K --> L[새 프로젝트 초기 Scene 로드]
-    J --> M[Scene 편집 (조명/디퓨저/카메라 조정)]
+    J --> M["Scene 편집 (조명/디퓨저/카메라 조정)"]
     L --> M
     M --> N[저장 클릭\nPATCH /api/projects/:id]
     N --> O[정규화된 sceneData 저장]
@@ -169,16 +169,16 @@ App.jsx
 ```mermaid
 flowchart TD
     A[사용자 브라우저] -->|UI 상호작용| B[React 컴포넌트]
-    B -->|상태 조회/업데이트| C[editorStore (Zustand)]
-    B -->|프로젝트 데이터 요청| D[projectStore (Zustand)]
+    B -->|상태 조회/업데이트| C["editorStore (Zustand)"]
+    B -->|프로젝트 데이터 요청| D["projectStore (Zustand)"]
     C -->|장면 데이터 전달| E[Scene.jsx / R3F]
     E -->|Three.js 렌더링| F[WebGL 캔버스]
     D -->|HTTP 요청| G[client/lib/api]
     G -->|REST 호출| H[Express Routes]
     H --> I[Controllers]
-    I --> J[Services (auth/project/session/scene)]
+    I --> J["Services (auth/project/session/scene)"]
     J --> K[Mongoose Models]
-    K --> L[(MongoDB)]
+    K --> L[MongoDB]
     J -->|정규화된 sceneData| I
     I -->|JSON 응답| G
     G -->|데이터 반영| D
