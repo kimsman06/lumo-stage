@@ -22,6 +22,13 @@ import { standPose, sitPose } from "../../presets";
 
 const BoneSlider = ({ boneName, axis, value, mannequinId }) => {
   const { setBoneRotation } = useStore();
+
+  // [Architecture 시나리오 1: UI 슬라이더로 뼈 회전]
+  // 1. User → EditorPanel (슬라이더 조작)
+  // 2. handleValueChange → setBoneRotation 액션 호출
+  // 3. Zustand Store → mannequins.pose 상태 변경
+  // 4. Mannequin.jsx → pose 변경 감지하여 3D 모델 업데이트
+  // 참고: docs/LumoStage-Architecture.md 시나리오 1
   const handleValueChange = (v) => {
     setBoneRotation(mannequinId, boneName, axis, v);
   };

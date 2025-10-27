@@ -12,7 +12,8 @@ const LightsControl = () => {
 
   useEffect(() => {
     if (selectedLight) {
-      const cardRef = lightCardRefs.current.get(selectedLight);
+      const baseLightId = selectedLight.replace(/-target$/, "");
+      const cardRef = lightCardRefs.current.get(baseLightId);
       if (cardRef) {
         cardRef.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
@@ -47,7 +48,10 @@ const LightsControl = () => {
             key={light.id} 
             light={light} 
             ref={el => lightCardRefs.current.set(light.id, el)}
-            isSelected={light.id === selectedLight}
+            isSelected={
+              light.id === selectedLight ||
+              `${light.id}-target` === selectedLight
+            }
           />
         ))}
       </div>

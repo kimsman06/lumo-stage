@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
@@ -6,8 +7,15 @@ import EditorPage from "./pages/EditorPage";
 import ProjectsDashboardPage from "./pages/ProjectsDashboardPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import PrivateRoute from "./components/auth/PrivateRoute";
+import useAuthStore from "./store/authStore";
 
 function App() {
+  const checkAuth = useAuthStore((state) => state.checkAuth);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />

@@ -3,10 +3,19 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import useStore from "../../store/editorStore";
+import { ASPECT_RATIO_OPTIONS } from "../../lib/aspectRatio";
 
 const CameraControl = () => {
-  const { cameraState, updateCameraState, viewMode, setViewMode } = useStore();
+  const { cameraState, updateCameraState, viewMode, setViewMode, aspectRatio, setAspectRatio } =
+    useStore();
 
   const handlePositionChange = (axisIndex, value) => {
     const newPosition = [...cameraState.position];
@@ -39,6 +48,28 @@ const CameraControl = () => {
             카메라 시점
           </Button>
         </div>
+      </div>
+
+      <Separator />
+
+      {/* Aspect Ratio */}
+      <div className="space-y-2">
+        <h3 className="text-lg font-medium">화면 비율</h3>
+        <Select value={aspectRatio} onValueChange={setAspectRatio}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="화면 비율 선택" />
+          </SelectTrigger>
+          <SelectContent>
+            {ASPECT_RATIO_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          미리보기와 렌더링 기준 화면 비율을 선택합니다.
+        </p>
       </div>
 
       <Separator />

@@ -12,6 +12,7 @@ import { useGLTF } from '@react-three/drei';
 import { useFrame, useGraph } from '@react-three/fiber';
 import { SkeletonUtils } from 'three-stdlib';
 import useStore from '../store/editorStore';
+import { useSceneSelection } from './editor/useSceneSelection';
 
 export const Mannequin = forwardRef(({ id, pose, ...props }, ref) => {
   const { scene, materials } = useGLTF('/wooden_mannequine/scene.gltf');
@@ -19,7 +20,8 @@ export const Mannequin = forwardRef(({ id, pose, ...props }, ref) => {
   const clone = useMemo(() => SkeletonUtils.clone(scene), [scene]);
   const { nodes } = useGraph(clone);
 
-  const { initializePose, selectMannequin, setHighlightedBone } = useStore();
+  const initializePose = useStore((state) => state.initializePose);
+  const { focusMannequin } = useSceneSelection();
   const hasInitialized = useRef(false);
 
   const skinnedMesh = nodes.Object_9; // Find the skinned mesh from the cloned graph
@@ -39,6 +41,9 @@ export const Mannequin = forwardRef(({ id, pose, ...props }, ref) => {
     }
   }, [skinnedMesh, id, pose, initializePose, nodes]);
 
+  // [Architecture 시나리오 1: 뼈 회전 최종 단계]
+  // Zustand Store의 pose 상태 변경을 감지하고 실제 3D 모델의 뼈 회전 값을 업데이트
+  // 참고: docs/LumoStage-Architecture.md 시나리오 1
   useFrame(() => {
     // Apply pose from props to the unique cloned bones
     if (!skinnedMesh || !hasInitialized.current) return;
@@ -53,22 +58,32 @@ export const Mannequin = forwardRef(({ id, pose, ...props }, ref) => {
 
   const handleJointClick = (event) => {
     event.stopPropagation();
-    selectMannequin(id);
-    if (!skinnedMesh) return;
+    const button =
+      event.button !== undefined ? event.button : event.nativeEvent?.button;
+    if (button !== undefined && button !== 0) {
+      return;
+    }
+    if (!skinnedMesh) {
+      focusMannequin(id);
+      return;
+    }
 
     const geometry = skinnedMesh.geometry;
     const skeleton = skinnedMesh.skeleton;
     const bones = skeleton.bones;
     const boneNames = Object.keys(pose);
 
+    let boneName = null;
     if (event.face) {
       const vertexIndex = event.face.a;
       const skinIndex = geometry.attributes.skinIndex.getX(vertexIndex);
       const bone = bones[skinIndex];
       if (bone && boneNames.includes(bone.name)) {
-        setHighlightedBone(bone.name);
+        boneName = bone.name;
       }
     }
+
+    focusMannequin(id, boneName);
   };
 
   return (
@@ -83,7 +98,7 @@ export const Mannequin = forwardRef(({ id, pose, ...props }, ref) => {
               geometry={skinnedMesh.geometry}
               material={materials.lay_figure_material}
               skeleton={skinnedMesh.skeleton}
-              onClick={handleJointClick}
+              onPointerDown={handleJointClick}
             />
           </group>
         </group>
