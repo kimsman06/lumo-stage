@@ -8,6 +8,9 @@ import {
   Lightbulb,
   Camera,
 } from "lucide-react";
+import ShareButton from "@/components/share/ShareButton";
+import ShareDialog from "@/components/share/ShareDialog";
+import ShareStatusBadge from "@/components/share/ShareStatusBadge";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +30,7 @@ import {
 
 const ProjectCard = ({ project, onOpen, onEdit, onDelete, viewMode }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   if (viewMode === "list") {
     return (
@@ -65,6 +69,14 @@ const ProjectCard = ({ project, onOpen, onEdit, onDelete, viewMode }) => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
+              <ShareButton
+                projectId={project.id}
+                variant="dropdown"
+                onOpenDialog={() => {
+                  setShareDialogOpen(true);
+                  setMenuOpen(false);
+                }}
+              />
               <DropdownMenuItem
                 onClick={() => {
                   onOpen(project.id);
@@ -117,11 +129,18 @@ const ProjectCard = ({ project, onOpen, onEdit, onDelete, viewMode }) => {
           </Button>
         </div>
 
-        {/* Lights Badge */}
-        <Badge className="absolute top-2 right-2 gap-1">
-          <Lightbulb className="w-3 h-3" />
-          {project.lightsCount}
-        </Badge>
+        {/* Badges */}
+        <div className="absolute top-2 right-2 flex gap-2">
+          <Badge className="gap-1">
+            <Lightbulb className="w-3 h-3" />
+            {project.lightsCount}
+          </Badge>
+          <ShareStatusBadge
+            isShared={project.isShared || false}
+            isActive={project.shareActive || false}
+            permission={project.sharePermission || 'view'}
+          />
+        </div>
       </div>
 
       <CardHeader className="pb-3">
@@ -145,6 +164,14 @@ const ProjectCard = ({ project, onOpen, onEdit, onDelete, viewMode }) => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
+              <ShareButton
+                projectId={project.id}
+                variant="dropdown"
+                onOpenDialog={() => {
+                  setShareDialogOpen(true);
+                  setMenuOpen(false);
+                }}
+              />
               <DropdownMenuItem
                 onClick={() => {
                   onOpen(project.id);
@@ -184,6 +211,13 @@ const ProjectCard = ({ project, onOpen, onEdit, onDelete, viewMode }) => {
           <span>Edited {project.lastEdited}</span>
         </div>
       </CardContent>
+
+      {/* ShareDialog */}
+      <ShareDialog
+        projectId={project.id}
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+      />
     </Card>
   );
 };

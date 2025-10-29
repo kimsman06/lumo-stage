@@ -3,8 +3,12 @@ const mongoose = require("mongoose");
 const ShareTokenSchema = new mongoose.Schema(
   {
     project: { type: mongoose.Schema.Types.ObjectId, ref: "Project", required: true, index: true },
+    token: { type: String, required: true, unique: true },
     tokenHash: { type: String, required: true, unique: true },
-    expiresAt: { type: Date, required: true, index: true },
+    permission: { type: String, enum: ["view", "edit"], default: "view", index: true },
+    expiresAt: { type: Date, default: null, index: true },
+    isActive: { type: Boolean, default: true, index: true },
+    deactivatedAt: { type: Date },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     createdByIp: { type: String },
     userAgent: { type: String },

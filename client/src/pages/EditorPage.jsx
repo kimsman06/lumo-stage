@@ -6,6 +6,9 @@ import EditorPanel from '../components/EditorPanel';
 import useStore from '../store/editorStore';
 import useProjectStore from '../store/projectStore';
 import { Button } from '../components/ui/button';
+import toast from '../lib/toast';
+import ShareButton from '@/components/share/ShareButton';
+import ShareDialog from '@/components/share/ShareDialog';
 
 function EditorPage() {
   const { id } = useParams();
@@ -15,6 +18,7 @@ function EditorPage() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   // 프로젝트 로드
   useEffect(() => {
@@ -29,7 +33,7 @@ function EditorPage() {
         // Scene 데이터를 에디터 스토어에 로드
         loadSceneData(result.project.sceneData);
       } else {
-        alert('프로젝트를 불러올 수 없습니다.');
+        toast.error('프로젝트를 불러올 수 없습니다.');
         navigate('/projects');
       }
     };
@@ -79,16 +83,20 @@ function EditorPage() {
     setSaveSuccess(false);
 
     const sceneData = getSceneData();
-    const result = await updateProject(id, { sceneData });
+
+    // Promise 기반 Toast로 저장 진행 상황 표시
+    const savePromise = updateProject(id, { sceneData });
+    toast.project.save(savePromise);
+
+    const result = await savePromise;
 
     setIsSaving(false);
 
     if (result.success) {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
-    } else {
-      alert(`저장 실패: ${result.error}`);
     }
+    // 에러는 Toast에서 자동으로 표시됨
   };
 
   // 로딩 중
@@ -140,6 +148,11 @@ function EditorPage() {
               저장됨
             </span>
           )}
+          <ShareButton
+            projectId={id}
+            variant="button"
+            onOpenDialog={() => setShareDialogOpen(true)}
+          />
           <Button
             onClick={handleSave}
             disabled={isSaving}
@@ -152,6 +165,13 @@ function EditorPage() {
           </Button>
         </div>
       </div>
+
+      {/* ShareDialog */}
+      <ShareDialog
+        projectId={id}
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+      />
 
       {/* Editor Content - 남은 공간 모두 차지, overflow 방지 */}
       <div className="flex-1 flex overflow-hidden">

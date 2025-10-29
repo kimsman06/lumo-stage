@@ -1,26 +1,70 @@
 const shareService = require("../services/share.service");
 
-const createShareToken = async (req, res, next) => {
+const getOwnerId = (req) => req.user.id || req.user._id.toString();
+
+const createShareLink = async (req, res, next) => {
   const { id: projectId } = req.params;
 
   try {
-    const ownerId = req.user.id || req.user._id.toString();
-    const result = await shareService.createShareToken(projectId, ownerId, {
+    const ownerId = getOwnerId(req);
+    const share = await shareService.createShareToken(projectId, ownerId, req.body, {
       ip: req.ip,
       userAgent: req.headers["user-agent"]
     });
 
-    res.status(201).json(result);
+    res.status(201).json({ share });
   } catch (error) {
     next(error);
   }
 };
 
-const revokeShareTokens = async (req, res, next) => {
+const getShareConfig = async (req, res, next) => {
   const { id: projectId } = req.params;
 
   try {
-    const ownerId = req.user.id || req.user._id.toString();
+    const ownerId = getOwnerId(req);
+    const share = await shareService.getShareConfig(projectId, ownerId);
+
+    res.status(200).json({ share });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateShareConfig = async (req, res, next) => {
+  const { id: projectId } = req.params;
+
+  try {
+    const ownerId = getOwnerId(req);
+    const share = await shareService.updateShareConfig(projectId, ownerId, req.body);
+
+    res.status(200).json({ share });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const regenerateShareLink = async (req, res, next) => {
+  const { id: projectId } = req.params;
+
+  try {
+    const ownerId = getOwnerId(req);
+    const share = await shareService.regenerateShareToken(projectId, ownerId, {
+      ip: req.ip,
+      userAgent: req.headers["user-agent"]
+    });
+
+    res.status(200).json({ share });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const revokeShareLinks = async (req, res, next) => {
+  const { id: projectId } = req.params;
+
+  try {
+    const ownerId = getOwnerId(req);
     await shareService.revokeShareTokens(projectId, ownerId, {
       ip: req.ip,
       userAgent: req.headers["user-agent"]
@@ -48,7 +92,10 @@ const resolveShareToken = async (req, res, next) => {
 };
 
 module.exports = {
-  createShareToken,
-  revokeShareTokens,
+  createShareLink,
+  getShareConfig,
+  updateShareConfig,
+  regenerateShareLink,
+  revokeShareLinks,
   resolveShareToken
 };
