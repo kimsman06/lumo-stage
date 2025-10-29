@@ -9,7 +9,7 @@ const buildCookieOptions = () => {
 
   return {
     httpOnly: true,
-    sameSite: "strict",
+    sameSite: isProduction ? "none" : "lax",
     secure: isProduction,
     maxAge: getTtlMs(),
     path: "/"
