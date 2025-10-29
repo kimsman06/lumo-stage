@@ -116,6 +116,19 @@ LumoStage의 데이터 흐름은 **단방향 데이터 흐름** 원칙을 따르
     ```
     - API 서버가 `http://localhost:3001`에서 실행됩니다.
 
+## 📚 문서 (Documentation)
+
+프로젝트 문서는 `/docs` 폴더에 카테고리별로 정리되어 있습니다:
+
+- **아키텍처**: `/docs/architecture` - 시스템 구조 및 데이터 흐름
+- **API**: `/docs/api` - REST API 명세서
+- **디자인**: `/docs/design` - 디자인 시스템 및 UI 가이드
+- **계획**: `/docs/planning` - 개발 계획 및 로드맵
+- **개발**: `/docs/development` - 개발 진행 문서 및 리팩토링 계획
+- **레거시**: `/docs/legacy` - 과거 작업 일지 및 참고 문서
+
+자세한 내용은 `CLAUDE.md`의 "문서 구조" 섹션을 참고하세요.
+
 ## 📄 라이선스 (License)
 
 본 프로젝트는 MIT 라이선스를 따릅니다.

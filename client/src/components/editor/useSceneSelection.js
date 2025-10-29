@@ -9,17 +9,27 @@ import useStore from "../../store/editorStore";
  * 참고: docs/LumoStage-Architecture.md
  */
 export const useSceneSelection = () => {
-  const setSelectedLight = useStore((state) => state.setSelectedLight);
-  const selectMannequin = useStore((state) => state.selectMannequin);
-  const setHighlightedBone = useStore((state) => state.setHighlightedBone);
-  const setSelectedDiffuser = useStore((state) => state.setSelectedDiffuser);
+  const applySelection = useCallback((computeNext) => {
+    useStore.setState((state) => {
+      const next = computeNext(state);
+      const unchanged =
+        state.selectedLight === next.selectedLight &&
+        state.selectedMannequinId === next.selectedMannequinId &&
+        state.highlightedBone === next.highlightedBone &&
+        state.selectedDiffuser === next.selectedDiffuser;
+
+      return unchanged ? state : next;
+    });
+  }, []);
 
   const clearSelection = useCallback(() => {
-    selectMannequin(null);
-    setSelectedLight(null);
-    setHighlightedBone(null);
-    setSelectedDiffuser(null);
-  }, [selectMannequin, setHighlightedBone, setSelectedLight, setSelectedDiffuser]);
+    applySelection(() => ({
+      selectedLight: null,
+      selectedMannequinId: null,
+      highlightedBone: null,
+      selectedDiffuser: null,
+    }));
+  }, [applySelection]);
 
   // [Architecture 시나리오 2-1: 조명 선택]
   // Scene에서 조명 헬퍼를 클릭하면 이 함수가 호출되어 setSelectedLight 액션 실행
@@ -29,32 +39,38 @@ export const useSceneSelection = () => {
         clearSelection();
         return;
       }
-      setSelectedLight(handleId);
-      selectMannequin(null);
-      setHighlightedBone(null);
-      setSelectedDiffuser(null);
+      applySelection(() => ({
+        selectedLight: handleId,
+        selectedMannequinId: null,
+        highlightedBone: null,
+        selectedDiffuser: null,
+      }));
     },
-    [clearSelection, selectMannequin, setHighlightedBone, setSelectedLight, setSelectedDiffuser]
+    [applySelection, clearSelection]
   );
 
   const focusMannequin = useCallback(
     (mannequinId, boneName = null) => {
-      setSelectedLight(null);
-      selectMannequin(mannequinId);
-      setHighlightedBone(boneName);
-      setSelectedDiffuser(null);
+      applySelection(() => ({
+        selectedLight: null,
+        selectedMannequinId: mannequinId,
+        highlightedBone: boneName,
+        selectedDiffuser: null,
+      }));
     },
-    [selectMannequin, setHighlightedBone, setSelectedLight, setSelectedDiffuser]
+    [applySelection]
   );
 
   const focusDiffuser = useCallback(
     (diffuserId) => {
-      setSelectedLight(null);
-      selectMannequin(null);
-      setHighlightedBone(null);
-      setSelectedDiffuser(diffuserId);
+      applySelection(() => ({
+        selectedLight: null,
+        selectedMannequinId: null,
+        highlightedBone: null,
+        selectedDiffuser: diffuserId,
+      }));
     },
-    [selectMannequin, setHighlightedBone, setSelectedLight, setSelectedDiffuser]
+    [applySelection]
   );
 
   const isLeftClick = (event) => {

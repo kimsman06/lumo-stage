@@ -1,4 +1,5 @@
 const Project = require("../models/Project");
+const ShareToken = require("../models/ShareToken");
 const { normalizeSceneData, applySceneDefaults } = require("./scene.service");
 
 const toPlainProject = (projectDoc) => {
@@ -13,6 +14,29 @@ const toPlainProject = (projectDoc) => {
   return project;
 };
 
+const buildShareStatus = async (projectId) => {
+  const token = await ShareToken.findOne({ project: projectId, isRevoked: false }).sort({
+    createdAt: -1,
+  });
+
+  if (!token) {
+    return {
+      isShared: false,
+      shareActive: false,
+      sharePermission: "view",
+    };
+  }
+
+  const now = new Date();
+  const isExpired = token.expiresAt ? token.expiresAt <= now : false;
+
+  return {
+    isShared: true,
+    shareActive: token.isActive && !isExpired,
+    sharePermission: token.permission,
+  };
+};
+
 const formatProject = async (projectDoc) => {
   applySceneDefaults(projectDoc);
 
@@ -20,7 +44,13 @@ const formatProject = async (projectDoc) => {
     await projectDoc.save();
   }
 
-  return toPlainProject(projectDoc);
+  const project = toPlainProject(projectDoc);
+  const shareStatus = await buildShareStatus(projectDoc._id);
+
+  return {
+    ...project,
+    ...shareStatus,
+  };
 };
 
 const createProject = async (data, ownerId) => {

@@ -96,7 +96,7 @@ server/
 - `/api/projects` (GET: 목록, POST: 생성)
 - `/api/projects/:id` (GET: 조회, PATCH: 업데이트/저장, DELETE: 삭제)
 
-자세한 API 스펙은 `docs/PROJECT_DASHBOARD_API.md` 참고.
+자세한 API 스펙은 `docs/api/PROJECT_DASHBOARD_API.md` 참고.
 
 ## 주요 개발 패턴 및 규칙
 
@@ -184,18 +184,218 @@ fix(server): Correct JWT expiration handling
 - 새로운 shadcn 컴포넌트 설치는 **사용자가 직접** 수행합니다. 설치가 필요한 경우 사용자에게 명령어를 알려주고 대기합니다.
 - shadcn mcp를 적극 사용 합니다.
 
-### Phase별 체크리스트 관리
-
-- `PROJECT_DASHBOARD_PLAN.md`의 각 Phase별 체크박스(`[ ]`, `[x]`)를 작업 완료 시 업데이트합니다.
-- 새로운 기능 구현 시 해당 Phase의 todo 항목을 참고합니다.
-
 ### 언어
 
 - **모든 응답은 한국어로** 작성합니다.
 
-## 참고 문서
+## AI Agent 활용 가이드
+
+이 프로젝트는 전문 AI Agent들을 활용하여 효율적으로 작업할 수 있습니다. **복잡한 작업이나 전문 영역의 작업은 반드시 해당 Agent를 사용하세요.**
+
+### 사용 가능한 Agent 목록
+
+#### 1. **frontend-developer** - 프론트엔드 개발 전문가
+
+**언제 사용하나요?**
+
+- React 컴포넌트 개발 또는 수정
+- Zustand 상태 관리 로직 구현
+- React-Three-Fiber 3D Scene 작업
+- 클라이언트 측 성능 최적화
+- 프론트엔드 버그 수정
+
+**사용 예시:**
+
+```
+Task 도구 사용:
+- subagent_type: frontend-developer
+- prompt: "ProjectCard 컴포넌트에 hover 애니메이션을 추가하고 Tailwind를 사용해 반응형으로 만들어주세요."
+```
+
+#### 2. **ui-ux-designer** - UI/UX 디자인 전문가
+
+**언제 사용하나요?**
+
+- 디자인 시스템 구축 또는 개선
+- 사용자 경험(UX) 개선
+- 접근성(Accessibility) 구현
+- 컴포넌트 레이아웃 및 스타일링
+- 디자인 일관성 검토
+
+**사용 예시:**
+
+```
+Task 도구 사용:
+- subagent_type: ui-ux-designer
+- prompt: "에디터 페이지의 레이아웃을 검토하고 사용자 경험을 개선할 수 있는 방안을 제시하고 구현해주세요."
+```
+
+#### 3. **backend-architect** - 백엔드 아키텍처 전문가
+
+**언제 사용하나요?**
+
+- API 엔드포인트 설계
+- 데이터베이스 스키마 설계
+- 서버 로직 리팩토링
+- 백엔드 성능 최적화
+- MVCS 패턴 적용
+- API 설계만 진행합니다. 구현은 절대 하지 않습니다.
+
+**사용 예시:**
+
+```
+Task 도구 사용:
+- subagent_type: backend-architect
+- prompt: "프로젝트 공유 기능을 위한 ShareToken API를 설계하고 구현해주세요."
+```
+
+#### 4. **security-engineer** - 보안 전문가
+
+**언제 사용하나요?**
+
+- 보안 취약점 검토 및 수정
+- 인증/인가 로직 구현
+- CSRF, XSS 등 보안 이슈 대응
+- 입력 검증 및 sanitization
+- 보안 모범 사례 적용
+
+**사용 예시:**
+
+```
+Task 도구 사용:
+- subagent_type: security-engineer
+- prompt: "현재 인증 시스템의 보안 취약점을 검토하고 개선 방안을 제시해주세요."
+```
+
+#### 5. **documentation-expert** - 문서화 전문가
+
+**언제 사용하나요?**
+
+- 기술 문서 작성 또는 개선
+- API 명세서 작성
+- 코드 주석 개선
+- README, 가이드 문서 작성
+- 개발 계획 문서 정리
+- 문서 작성시 예제 코드 제외 (토큰 소요)
+
+**사용 예시:**
+
+```
+Task 도구 사용:
+- subagent_type: documentation-expert
+- prompt: "새로 추가된 공유 기능에 대한 API 문서를 작성해주세요."
+```
+
+### Agent 사용 원칙
+
+1. **자동 사용**: 복잡한 작업이나 전문 영역 작업은 **자동으로** 해당 Agent를 호출하세요.
+
+   - 예: React 컴포넌트 여러 개 수정 → frontend-developer
+   - 예: 디자인 시스템 정리 → ui-ux-designer
+   - 예: API 설계 → backend-architect
+
+2. **병렬 실행**: 독립적인 작업은 여러 Agent를 **병렬로** 실행하여 효율성을 높입니다.
+
+   ```
+   프론트엔드 개발자가 UI 구현하는 동안
+   백엔드 아키텍트가 API 구현
+   → 두 Agent를 동시에 실행
+   ```
+
+3. **명확한 지시**: Agent에게 구체적이고 명확한 작업 지시를 제공합니다.
+
+   - ❌ "프로젝트를 개선해주세요"
+   - ✅ "ProjectsDashboard의 검색 기능에 디바운스를 적용하고 성능을 최적화해주세요"
+
+4. **컨텍스트 제공**: 관련 파일 경로, 기존 구현, 요구사항을 명확히 전달합니다.
+
+5. **결과 확인**: Agent 작업 완료 후 결과를 검토하고 필요시 추가 작업을 요청합니다.
+
+### 작업별 Agent 매칭 가이드
+
+| 작업 유형                | 사용할 Agent         | 우선순위 |
+| ------------------------ | -------------------- | -------- |
+| React 컴포넌트 개발      | frontend-developer   | 필수     |
+| 3D Scene 작업 (Three.js) | frontend-developer   | 필수     |
+| UI/UX 개선               | ui-ux-designer       | 권장     |
+| 디자인 시스템 구축       | ui-ux-designer       | 필수     |
+| API 엔드포인트 구현      | backend-architect    | 필수     |
+| 데이터베이스 스키마 설계 | backend-architect    | 필수     |
+| 보안 검토 및 구현        | security-engineer    | 필수     |
+| 인증/인가 시스템         | security-engineer    | 필수     |
+| 기술 문서 작성           | documentation-expert | 권장     |
+| 간단한 버그 수정         | (직접 처리 가능)     | -        |
+| 설정 파일 수정           | (직접 처리 가능)     | -        |
+
+### 예시 시나리오
+
+**시나리오 1: 새로운 기능 추가 (토스트 알림 시스템)**
+
+```
+1. ui-ux-designer: 토스트 알림 디자인 및 UX 플로우 설계
+2. frontend-developer: 토스트 컴포넌트 구현 및 통합
+3. documentation-expert: 토스트 사용 가이드 문서화
+```
+
+**시나리오 2: 보안 강화**
+
+```
+1. security-engineer: 보안 취약점 검토 및 개선안 제시
+2. backend-architect: 보안 미들웨어 구현
+3. frontend-developer: 클라이언트 측 보안 대응
+4. documentation-expert: 보안 가이드라인 문서화
+```
+
+**시나리오 3: 디자인 시스템 구축**
+
+```
+1. ui-ux-designer: 디자인 토큰, 색상 시스템 정의
+2. frontend-developer: Tailwind 설정 및 공통 컴포넌트 구현
+3. documentation-expert: 디자인 시스템 문서 작성
+```
+
+## 문서 구조
+
+프로젝트의 모든 문서는 `/docs` 폴더 내에 카테고리별로 정리되어 있습니다:
+
+### 핵심 문서
 
 - `README.md`: 프로젝트 전체 개요 및 설치 가이드
-- `PROJECT_DASHBOARD_PLAN.md`: 프로젝트 대시보드 및 인증 기능 구현 계획, 데이터 모델링, Phase별 To-Do 리스트
-- `docs/PROJECT_DASHBOARD_API.md`: REST API 상세 명세 (인증, 프로젝트 CRUD)
-- `AGENTS.md`: AI 에이전트 사용 가이드라인 (Repository Guidelines와 중복)
+- `docs/PRD.md`: 제품 요구사항 정의서 (Product Requirements Document)
+- `CLAUDE.md`: Claude Code 작업 가이드라인
+- `AGENTS.md`: AI 에이전트 사용 가이드라인
+
+### 카테고리별 문서
+
+#### `/docs/architecture` - 아키텍처 문서
+
+- `LumoStage-Architecture.md`: 상태 관리 및 이벤트 흐름 설명
+
+#### `/docs/api` - API 명세
+
+- `PROJECT_DASHBOARD_API.md`: REST API 상세 명세 (인증, 프로젝트 CRUD)
+
+#### `/docs/design` - 디자인 시스템
+
+- `design-strategy.md`: 디자인 철학, 색상 시스템, 타이포그래피, UI 컴포넌트 명세
+- `ui-spacing-system.md`: UI 간격 시스템 가이드
+
+#### `/docs/planning` - 개발 계획
+
+- `PROJECT_DASHBOARD_PLAN.md`: 프로젝트 대시보드 및 인증 기능 구현 계획
+- `implementation-phases.md`: 단계별 구현 계획 (Phase 1~7 통합)
+- `EDITOR_REFINEMENT_PLAN.md`: 에디터 패널 UI 개선 계획
+- `HERO_PAGE_*.md`: Hero 페이지 관련 계획 문서들
+
+#### `/docs/development` - 개발 진행 문서
+
+- `Frontend-Implementation-Plan-20251026.md`: 프론트엔드 구현 상세 계획
+- `frontend-refactor-plan-2025-10-26.md`: 프론트엔드 리팩토링 계획
+- `server-action-plan-2025-10-26.md`: 서버 대응 계획
+- `security-review-2025-10-26.md`: 보안 점검 메모
+- `ui-refactor-summary-2025-10-27.md`: UI 리팩토링 요약
+
+#### `/docs/legacy` - 레거시 문서
+
+- 과거 작업 일지 및 버그 리포트
+- 더 이상 사용하지 않는 체크리스트 및 임시 문서

@@ -193,7 +193,123 @@ Google 흐름과 동일한 구조이며, 초기 경로만 `naver`로 변경됩�
 - **응답 (204)**: 본문 없음
 - **에러**: 위와 동일
 
-## 4. 테스트 전략 메모
+### 3.6 공유 설정 조회 `GET /api/projects/:id/share`
+
+- **설명**: 프로젝트 소유자가 현재 공유 링크 설정을 조회합니다.
+- **응답 (200)**
+
+```json
+{
+  "share": {
+    "id": "671f0…",
+    "token": "p6Ndr1…",
+    "permission": "view",
+    "isActive": true,
+    "expiresAt": null,
+    "createdAt": "2025-10-28T04:20:15.000Z",
+    "updatedAt": "2025-10-28T04:20:15.000Z"
+  }
+}
+```
+
+- **에러**
+  - 공유 링크 없음: 404 `공유 링크가 아직 생성되지 않았습니다.`
+
+### 3.7 공유 링크 생성 `POST /api/projects/:id/share`
+
+- **설명**: 프로젝트 공유 링크를 최초 생성합니다. 아직 공유 링크가 있는 상태에서 호출하면 409를 반환합니다.
+- **요청 본문**
+
+```json
+{
+  "permission": "view",      // optional, 기본값 view
+  "expiresAt": null,         // optional, ISO 문자열 | timestamp | null
+  "isActive": true           // optional, 기본값 true
+}
+```
+
+- **응답 (201)**
+
+```json
+{
+  "share": {
+    "id": "671f0…",
+    "token": "p6Ndr1…",
+    "permission": "view",
+    "isActive": true,
+    "expiresAt": null,
+    "createdAt": "2025-10-28T04:20:15.000Z",
+    "updatedAt": "2025-10-28T04:20:15.000Z"
+  }
+}
+```
+
+- **에러**
+  - 이미 공유 중: 409 `이미 공유 링크가 존재합니다.`
+  - 잘못된 permission: 400 `권한 값이 올바르지 않습니다.`
+  - 만료 시간이 과거인 경우: 400 `만료 시간은 현재 이후여야 합니다.`
+
+### 3.8 공유 설정 수정 `PATCH /api/projects/:id/share`
+
+- **설명**: 권한, 만료 시간, 활성 상태를 업데이트합니다.
+- **요청 본문**
+
+```json
+{
+  "permission": "edit",
+  "expiresAt": "2025-11-05T00:00:00.000Z",
+  "isActive": false
+}
+```
+
+- **응답 (200)**: `POST`와 동일 구조
+- **에러**
+  - 공유 링크 없음: 404 `공유 링크가 아직 생성되지 않았습니다.`
+  - 잘못된 permission/만료 시간: 400
+
+### 3.9 공유 링크 재생성 `POST /api/projects/:id/share/regenerate`
+
+- **설명**: 기존 공유 링크를 폐기하고 새 토큰을 발급합니다.
+- **응답 (200)**: 새 토큰을 포함한 `share` 객체 반환
+- **에러**
+  - 공유 링크 없음: 404 `공유 링크가 아직 생성되지 않았습니다.`
+
+### 3.10 공유 링크 해제 `DELETE /api/projects/:id/share`
+
+- **설명**: 활성화된 공유 링크를 모두 비활성화/폐기합니다.
+- **응답 (204)**: 본문 없음
+
+## 4. 공유 링크 공개 API
+
+### 4.1 공유 프로젝트 조회 `GET /api/share/:token`
+
+- **설명**: 공유 링크를 통해 프로젝트를 조회합니다. 토큰은 URL 세그먼트에 그대로 포함합니다.
+- **응답 (200)**
+
+```json
+{
+  "project": {
+    "id": "65f0…",
+    "name": "포트폴리오 씬",
+    "description": "촬영 세트",
+    "sceneData": { "...": "정규화된 씬 데이터" },
+    "thumbnail": "",
+    "createdAt": "2025-10-20T04:10:00.000Z",
+    "updatedAt": "2025-10-27T13:22:00.000Z"
+  },
+  "permission": "view",
+  "isActive": true,
+  "expiresAt": null
+}
+```
+
+- **에러**
+  - 토큰 없음/오타: 404 `공유 토큰을 찾을 수 없습니다.`
+  - 비활성화: 403 `이 공유 링크는 비활성화되었습니다.`
+  - 만료: 410 `공유 링크가 만료되었습니다.`
+  - 프로젝트 삭제: 410 `프로젝트가 더 이상 존재하지 않습니다.`
+
+## 5. 테스트 전략 메모
 
 - `jest` + `supertest` 기반 e2e 시나리오 작성
 - MongoDB는 `mongodb-memory-server`를 통해 격리된 환경에서 실행

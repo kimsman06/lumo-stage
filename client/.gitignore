@@ -26,3 +26,8 @@ dist-ssr
 # Local development files
 *.backup.jsx
 .mcp.json
+
+.env
+.env.local
+.env.emxample
+.env.*

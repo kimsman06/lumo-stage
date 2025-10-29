@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom';
-import { Lightbulb } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Link } from "react-router-dom";
+import { Lightbulb } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Navbar = () => {
   return (

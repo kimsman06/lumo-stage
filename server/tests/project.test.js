@@ -115,6 +115,9 @@ describe("Project API", () => {
       expect(response.body.project).toMatchObject({
         name: "나의 첫 프로젝트",
         description: "씬 데이터 저장 테스트",
+        isShared: false,
+        shareActive: false,
+        sharePermission: "view",
         sceneData: expect.objectContaining({
           schemaVersion: 2,
           aspectRatio: "16:9",
@@ -159,6 +162,13 @@ describe("Project API", () => {
       expect(response.statusCode).toBe(200);
       expect(response.body.projects).toHaveLength(2);
       expect(response.body.projects.every((project) => project.owner === user.id)).toBe(true);
+      response.body.projects.forEach((project) => {
+        expect(project).toMatchObject({
+          isShared: false,
+          shareActive: false,
+          sharePermission: "view"
+        });
+      });
     });
 
     it("인증되지 않은 요청은 401을 반환한다", async () => {
@@ -183,7 +193,10 @@ describe("Project API", () => {
         project: {
           id: project.id,
           owner: user.id,
-          name: "디테일 프로젝트"
+          name: "디테일 프로젝트",
+          isShared: false,
+          shareActive: false,
+          sharePermission: "view"
         }
       });
     });
@@ -385,64 +398,164 @@ describe("Project API", () => {
     });
   });
 
-  describe("POST /api/projects/:id/share", () => {
-    it("프로젝트 공유 토큰을 발급하고 조회할 수 있다", async () => {
+  describe("프로젝트 공유 API", () => {
+    it("공유 링크를 생성하고 조회 및 공개 접근이 가능하다", async () => {
       const { agent } = await registerUser({ email: "share-owner@example.com" });
       const project = await createProject(agent);
 
       const csrfToken = await getCsrfToken(agent);
-      const shareResponse = await agent
-        .post(`/api/share/projects/${project.id}`)
+      const createResponse = await agent
+        .post(`/api/projects/${project.id}/share`)
         .set("x-csrf-token", csrfToken)
-        .send();
+        .send({ permission: "view" });
 
-      expect(shareResponse.statusCode).toBe(201);
-      expect(shareResponse.body).toHaveProperty("shareToken");
+      expect(createResponse.statusCode).toBe(201);
+      expect(createResponse.body).toHaveProperty("share");
 
-      const shareToken = shareResponse.body.shareToken;
-      const publicResponse = await request(app).get(`/api/share/${shareToken}`);
+      const { share } = createResponse.body;
+      expect(share).toMatchObject({
+        permission: "view",
+        isActive: true,
+        expiresAt: null
+      });
+      expect(typeof share.token).toBe("string");
 
+      const getResponse = await agent.get(`/api/projects/${project.id}/share`);
+      expect(getResponse.statusCode).toBe(200);
+      expect(getResponse.body.share).toMatchObject({
+        token: share.token,
+        permission: "view",
+        isActive: true
+      });
+
+      const publicResponse = await request(app).get(`/api/share/${share.token}`);
       expect(publicResponse.statusCode).toBe(200);
-      expect(publicResponse.body.project).toMatchObject({
-        id: project.id,
-        name: project.name,
-        sceneData: expect.objectContaining({
-          schemaVersion: 2
+      expect(publicResponse.body).toMatchObject({
+        permission: "view",
+        isActive: true,
+        expiresAt: null,
+        project: expect.objectContaining({
+          id: project.id,
+          name: project.name
         })
+      });
+
+      const listResponse = await agent.get("/api/projects");
+      const sharedProject = listResponse.body.projects.find((item) => item.id === project.id);
+      expect(sharedProject).toMatchObject({
+        isShared: true,
+        shareActive: true,
+        sharePermission: "view"
       });
     });
 
-    it("공유 토큰 삭제 후에는 접근할 수 없다", async () => {
-      const { agent } = await registerUser({ email: "share-revoke@example.com" });
+    it("공유 설정 업데이트로 권한과 활성 상태를 제어할 수 있다", async () => {
+      const { agent } = await registerUser({ email: "share-update@example.com" });
       const project = await createProject(agent);
 
-      const createToken = async () => {
-        const csrfToken = await getCsrfToken(agent);
-        return agent
-          .post(`/api/share/projects/${project.id}`)
-          .set("x-csrf-token", csrfToken)
-          .send();
-      };
-
-      const shareResponse = await createToken();
-      const shareToken = shareResponse.body.shareToken;
-
       const csrfToken = await getCsrfToken(agent);
-      const revokeResponse = await agent
-        .delete(`/api/share/projects/${project.id}`)
-        .set("x-csrf-token", csrfToken);
+      const createResponse = await agent
+        .post(`/api/projects/${project.id}/share`)
+        .set("x-csrf-token", csrfToken)
+        .send();
 
-      expect(revokeResponse.statusCode).toBe(204);
+      const { share } = createResponse.body;
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-      const publicResponse = await request(app).get(`/api/share/${shareToken}`);
+      const updateCsrfToken = await getCsrfToken(agent);
+      const updateResponse = await agent
+        .patch(`/api/projects/${project.id}/share`)
+        .set("x-csrf-token", updateCsrfToken)
+        .send({
+          permission: "edit",
+          expiresAt,
+          isActive: false
+        });
 
-      expect(publicResponse.statusCode).toBe(410);
-      expect(publicResponse.body).toMatchObject({
-        message: "공유 토큰이 사용 중지되었습니다."
+      expect(updateResponse.statusCode).toBe(200);
+      expect(updateResponse.body.share).toMatchObject({
+        token: share.token,
+        permission: "edit",
+        isActive: false,
+        expiresAt
       });
 
-      const storedTokens = await ShareToken.find({ project: project.id });
-      expect(storedTokens.every((token) => token.isRevoked)).toBe(true);
+      const inactiveResponse = await request(app).get(`/api/share/${share.token}`);
+      expect(inactiveResponse.statusCode).toBe(403);
+      expect(inactiveResponse.body).toMatchObject({
+        message: "이 공유 링크는 비활성화되었습니다."
+      });
+
+      const afterDeactivateList = await agent.get("/api/projects");
+      const deactivatedProject = afterDeactivateList.body.projects.find((item) => item.id === project.id);
+      expect(deactivatedProject).toMatchObject({
+        isShared: true,
+        shareActive: false,
+        sharePermission: "edit"
+      });
+
+      const reactivateCsrfToken = await getCsrfToken(agent);
+      const reactivateResponse = await agent
+        .patch(`/api/projects/${project.id}/share`)
+        .set("x-csrf-token", reactivateCsrfToken)
+        .send({ isActive: true });
+
+      expect(reactivateResponse.statusCode).toBe(200);
+      expect(reactivateResponse.body.share).toMatchObject({
+        permission: "edit",
+        isActive: true,
+        expiresAt
+      });
+
+      const publicResponse = await request(app).get(`/api/share/${share.token}`);
+      expect(publicResponse.statusCode).toBe(200);
+      expect(publicResponse.body.permission).toBe("edit");
+
+      const afterReactivateList = await agent.get("/api/projects");
+      const updatedProject = afterReactivateList.body.projects.find((item) => item.id === project.id);
+      expect(updatedProject).toMatchObject({
+        isShared: true,
+        shareActive: true,
+        sharePermission: "edit"
+      });
+    });
+
+    it("링크를 재생성하면 이전 토큰이 만료된다", async () => {
+      const { agent } = await registerUser({ email: "share-regenerate@example.com" });
+      const project = await createProject(agent);
+
+      const csrfToken = await getCsrfToken(agent);
+      const createResponse = await agent
+        .post(`/api/projects/${project.id}/share`)
+        .set("x-csrf-token", csrfToken)
+        .send();
+
+      const originalToken = createResponse.body.share.token;
+
+      const regenerateCsrfToken = await getCsrfToken(agent);
+      const regenerateResponse = await agent
+        .post(`/api/projects/${project.id}/share/regenerate`)
+        .set("x-csrf-token", regenerateCsrfToken)
+        .send();
+
+      expect(regenerateResponse.statusCode).toBe(200);
+      expect(regenerateResponse.body.share.token).not.toBe(originalToken);
+
+      const oldTokenResponse = await request(app).get(`/api/share/${originalToken}`);
+      expect(oldTokenResponse.statusCode).toBe(404);
+      expect(oldTokenResponse.body).toMatchObject({
+        message: "공유 토큰을 찾을 수 없습니다."
+      });
+
+      const remainingTokens = await ShareToken.find({ project: project.id });
+      expect(remainingTokens).toHaveLength(1);
+      expect(remainingTokens[0].token).toBe(regenerateResponse.body.share.token);
+
+      const newTokenResponse = await request(app).get(
+        `/api/share/${regenerateResponse.body.share.token}`
+      );
+      expect(newTokenResponse.statusCode).toBe(200);
+      expect(newTokenResponse.body.permission).toBe("view");
     });
   });
 });

@@ -1,10 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import useProjectStore from "../../store/projectStore";
+import { CenteredDialogContent } from "../ui/centered-dialog";
 
 const EditProjectDialog = ({ open, project, onOpenChange }) => {
   const { updateProject, isLoading } = useProjectStore();
@@ -37,7 +44,7 @@ const EditProjectDialog = ({ open, project, onOpenChange }) => {
     const projectId = project.id || project._id;
     const result = await updateProject(projectId, {
       name: name.trim(),
-      description: description.trim()
+      description: description.trim(),
     });
 
     if (result.success) {
@@ -56,13 +63,15 @@ const EditProjectDialog = ({ open, project, onOpenChange }) => {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
+      <CenteredDialogContent>
         <DialogHeader className="space-y-1">
           <DialogTitle>프로젝트 정보 수정</DialogTitle>
-          <DialogDescription>프로젝트 이름과 설명을 편집합니다.</DialogDescription>
+          <DialogDescription>
+            프로젝트 이름과 설명을 편집합니다.
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 p-6">
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="edit-name">프로젝트 이름 *</Label>
             <Input
@@ -94,15 +103,19 @@ const EditProjectDialog = ({ open, project, onOpenChange }) => {
           )}
         </div>
 
-        <div className="flex justify-end gap-2 p-6 pt-0">
-          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isLoading}>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button
+            variant="outline"
+            onClick={() => handleOpenChange(false)}
+            disabled={isLoading}
+          >
             취소
           </Button>
           <Button onClick={handleUpdate} disabled={!name.trim() || isLoading}>
             {isLoading ? "저장 중..." : "저장"}
           </Button>
         </div>
-      </DialogContent>
+      </CenteredDialogContent>
     </Dialog>
   );
 };

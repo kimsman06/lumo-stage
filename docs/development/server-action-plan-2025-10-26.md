@@ -1,12 +1,14 @@
-# Server 대응 계획 및 Client 보안 점검 메모 (2025-02-14)
+# Server 대응 계획 및 Client 보안 점검 메모 (2025-10-26)
 
 ## 1. 작성 배경
+
 - 참조 문서: `docs/frontend-refactor-plan-2025-10-26.md`
 - 목적: 프런트 리팩터링 계획 중 서버(`server/`)에서 선행하거나 병행할 수 있는 항목을 정리하고, 동일 문서에서 언급된 클라이언트 보안 이슈를 다시 짚어 후속 조치 범위를 명확히 함.
 
 ## 2. `server/`에서 처리할 우선 항목
 
 ### 2.1 CSRF 토큰 발급·검증 파이프라인
+
 - 근거: `docs/frontend-refactor-plan-2025-10-26.md:37`
 - 목표
   - Express 전역 미들웨어로 CSRF 토큰 쿠키 발급 및 요청 검증 체계 마련.
@@ -18,6 +20,7 @@
   4. 단위 테스트(`server/tests/middleware/csrf.test.js`)로 토큰 발급·검증 플로우 검증.
 
 ### 2.2 공유 토큰 발급 API (프로젝트 공유 다이얼로그 백엔드)
+
 - 근거: `docs/frontend-refactor-plan-2025-10-26.md:54`
 - 목표
   - Share 버튼에서 사용할 임시 접근 토큰 발급·폐기 API 제공.
@@ -29,6 +32,7 @@
   5. 통합 테스트로 토큰 발급→검증→폐기 플로우 확인.
 
 ### 2.3 Scene 데이터 스키마 확장 및 마이그레이션
+
 - 근거: `docs/frontend-refactor-plan-2025-10-26.md:102`
 - 목표
   - `sceneData` 저장 구조에 `aspectRatio`, `diffusers`, `lights[*].type === "rect"` 등 새로운 속성을 반영하고 역호환 보장.
@@ -40,6 +44,7 @@
   5. 회귀 테스트로 Rect Light, Diffuser가 포함된 페이로드 저장·조회 검증.
 
 ### 2.4 인증 토큰 갱신 및 실패 처리 개선
+
 - 근거: `docs/frontend-refactor-plan-2025-10-26.md:68`
 - 목표
   - 프런트 `PrivateRoute` 개선과 연동해 Refresh 토큰 갱신 실패 시 안정적인 로그아웃 플로우를 제공.
@@ -50,9 +55,9 @@
   4. 통합 테스트: 만료/위조/재사용 토큰 각각에 대해 기대값 확인.
 
 ## 3. Client 보안 이슈 재점검
+
 - 하드코딩된 OAuth/API URL (`docs/frontend-refactor-plan-2025-10-26.md:20-22,35`): `import.meta.env` 기반 구성으로 교체하고 HTTPS 전용 엔드포인트 사용 필요.
 - CSRF 대응 미비 (`docs/frontend-refactor-plan-2025-10-26.md:37`): 서버 토큰 파이프라인과 연계한 axios 인터셉터 구현이 필요.
 - 인증 라우팅 시 토큰 갱신 실패 처리 부재 (`docs/frontend-refactor-plan-2025-10-26.md:68`): Refresh 실패 시 강제 로그아웃 및 에러 토스트 노출 설계.
 - 로그인/회원가입 입력 검증 미흡 (`docs/frontend-refactor-plan-2025-10-26.md:69`): 길이/패턴 검증, 오류 메시지, 가이드 텍스트 명시.
 - HTTP 기반 소셜 로그인 링크 유지 (`docs/frontend-refactor-plan-2025-10-26.md:22`): HTTPS 리디렉션 강제, 미등록 도메인 차단 및 실패 시 보안 알림 처리.
-

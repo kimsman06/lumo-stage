@@ -4,26 +4,40 @@ import { Plus, Search, Grid3x3, List } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import ProjectCard from "./ProjectCard";
-import NewProjectDialog from "./NewProjectDialog";
+import CreateProjectDialog from "./CreateProjectDialog";
 import EditProjectDialog from "./EditProjectDialog";
 import EmptyState from "./EmptyState";
 import useProjectStore from "../../store/projectStore";
 import AuthNavbar from "../layout/AuthNavbar";
+import toast from "../../lib/toast";
 
 // ============================================
 // Main Projects Dashboard (API Connected)
 // ============================================
 export default function ProjectsDashboard() {
   const navigate = useNavigate();
-  const { projects, isLoading, error, fetchProjects, deleteProject } = useProjectStore();
+  const { projects, isLoading, error, fetchProjects, deleteProject } =
+    useProjectStore();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState("grid"); // 'grid' or 'list'
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState(null);
 
   // 컴포넌트 마운트 시 프로젝트 목록 로드
   useEffect(() => {
@@ -42,16 +56,23 @@ export default function ProjectsDashboard() {
     navigate(`/editor/${id}`);
   };
 
-  // 프로젝트 삭제
-  const handleDeleteProject = async (id) => {
-    if (window.confirm("정말로 이 프로젝트를 삭제하시겠습니까?")) {
-      const result = await deleteProject(id);
-      if (result.success) {
-        console.log("프로젝트가 삭제되었습니다.");
-      } else {
-        alert(`삭제 실패: ${result.error}`);
-      }
-    }
+  // 프로젝트 삭제 - AlertDialog 표시
+  const handleDeleteProject = (id) => {
+    setProjectToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  // 프로젝트 삭제 확인
+  const confirmDelete = async () => {
+    if (!projectToDelete) return;
+
+    const deletePromise = deleteProject(projectToDelete);
+
+    // Toast로 삭제 진행 상황 표시
+    toast.project.delete(deletePromise);
+
+    setDeleteDialogOpen(false);
+    setProjectToDelete(null);
   };
 
   const handleEditProject = (project) => {
@@ -78,8 +99,7 @@ export default function ProjectsDashboard() {
                 className="gap-2"
                 disabled={isLoading}
               >
-                <Plus className="w-4 h-4" />
-                새 프로젝트
+                <Plus className="w-4 h-4" />새 프로젝트
               </Button>
             </div>
           </div>
@@ -184,17 +204,36 @@ export default function ProjectsDashboard() {
           )}
         </div>
 
-        {/* New Project Dialog */}
-        <NewProjectDialog
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-        />
+        {/* Create Project Dialog */}
+        <CreateProjectDialog open={dialogOpen} onOpenChange={setDialogOpen} />
 
         <EditProjectDialog
           open={editDialogOpen}
           project={selectedProject}
           onOpenChange={setEditDialogOpen}
         />
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>프로젝트 삭제</AlertDialogTitle>
+              <AlertDialogDescription>
+                정말로 이 프로젝트를 삭제하시겠습니까? 이 작업은 되돌릴 수
+                없습니다.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>취소</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                삭제
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </>
   );
