@@ -1,4 +1,4 @@
-const { app, connectDatabase } = require('../server/server');
+const { app, connectDatabase } = require("../server");
 
 let isConnected = false;
 
@@ -9,10 +9,10 @@ module.exports = async (req, res) => {
       await connectDatabase();
       isConnected = true;
     } catch (error) {
-      console.error('Database connection failed:', error);
+      console.error("Database connection failed:", error);
       return res.status(500).json({
-        error: 'Database connection failed',
-        message: error.message
+        error: "Database connection failed",
+        message: error.message,
       });
     }
   }
