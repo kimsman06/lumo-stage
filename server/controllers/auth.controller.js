@@ -49,7 +49,8 @@ const setAccessCookie = (res, token) => {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
-    maxAge: parseExpiresToMs(process.env.JWT_EXPIRES_IN)
+    maxAge: parseExpiresToMs(process.env.JWT_EXPIRES_IN),
+    path: "/"
   });
 };
 
