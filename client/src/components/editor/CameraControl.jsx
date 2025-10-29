@@ -13,9 +13,17 @@ import {
 import useStore from "../../store/editorStore";
 import { ASPECT_RATIO_OPTIONS } from "../../lib/aspectRatio";
 
-const CameraControl = () => {
-  const { cameraState, updateCameraState, viewMode, setViewMode, aspectRatio, setAspectRatio } =
-    useStore();
+const CameraControl = ({ readOnly = false }) => {
+  const {
+    cameraState,
+    updateCameraState,
+    viewMode,
+    setViewMode,
+    aspectRatio,
+    setAspectRatio,
+  } = useStore();
+
+  const isDisabled = readOnly;
 
   const handlePositionChange = (axisIndex, value) => {
     const newPosition = [...cameraState.position];
@@ -38,12 +46,14 @@ const CameraControl = () => {
           <Button
             onClick={() => setViewMode("free")}
             variant={viewMode === "free" ? "default" : "outline"}
+            disabled={isDisabled}
           >
             자유 시점
           </Button>
           <Button
             onClick={() => setViewMode("camera")}
             variant={viewMode === "camera" ? "default" : "outline"}
+            disabled={isDisabled}
           >
             카메라 시점
           </Button>
@@ -55,7 +65,11 @@ const CameraControl = () => {
       {/* Aspect Ratio */}
       <div className="space-y-2">
         <h3 className="text-lg font-medium">화면 비율</h3>
-        <Select value={aspectRatio} onValueChange={setAspectRatio}>
+        <Select
+          value={aspectRatio}
+          onValueChange={setAspectRatio}
+          disabled={isDisabled}
+        >
           <SelectTrigger className="w-full">
             <SelectValue placeholder="화면 비율 선택" />
           </SelectTrigger>
@@ -90,12 +104,14 @@ const CameraControl = () => {
               step={0.1}
               onValueChange={(v) => handlePositionChange(0, v[0])}
               className="flex-1"
+              disabled={isDisabled}
             />
             <Input
               type="number"
               value={cameraState.position[0]}
               onChange={(e) => handlePositionChange(0, e.target.value)}
               className="w-20 h-8"
+              disabled={isDisabled}
             />
           </div>
           <div className="flex items-center gap-2">
@@ -110,12 +126,14 @@ const CameraControl = () => {
               step={0.1}
               onValueChange={(v) => handlePositionChange(1, v[0])}
               className="flex-1"
+              disabled={isDisabled}
             />
             <Input
               type="number"
               value={cameraState.position[1]}
               onChange={(e) => handlePositionChange(1, e.target.value)}
               className="w-20 h-8"
+              disabled={isDisabled}
             />
           </div>
           <div className="flex items-center gap-2">
@@ -130,12 +148,14 @@ const CameraControl = () => {
               step={0.1}
               onValueChange={(v) => handlePositionChange(2, v[0])}
               className="flex-1"
+              disabled={isDisabled}
             />
             <Input
               type="number"
               value={cameraState.position[2]}
               onChange={(e) => handlePositionChange(2, e.target.value)}
               className="w-20 h-8"
+              disabled={isDisabled}
             />
           </div>
         </div>
@@ -159,12 +179,14 @@ const CameraControl = () => {
               step={0.1}
               onValueChange={(v) => handleTargetChange(0, v[0])}
               className="flex-1"
+              disabled={isDisabled}
             />
             <Input
               type="number"
               value={cameraState.target[0]}
               onChange={(e) => handleTargetChange(0, e.target.value)}
               className="w-20 h-8"
+              disabled={isDisabled}
             />
           </div>
           <div className="flex items-center gap-2">
@@ -179,12 +201,14 @@ const CameraControl = () => {
               step={0.1}
               onValueChange={(v) => handleTargetChange(1, v[0])}
               className="flex-1"
+              disabled={isDisabled}
             />
             <Input
               type="number"
               value={cameraState.target[1]}
               onChange={(e) => handleTargetChange(1, e.target.value)}
               className="w-20 h-8"
+              disabled={isDisabled}
             />
           </div>
           <div className="flex items-center gap-2">
@@ -199,12 +223,14 @@ const CameraControl = () => {
               step={0.1}
               onValueChange={(v) => handleTargetChange(2, v[0])}
               className="flex-1"
+              disabled={isDisabled}
             />
             <Input
               type="number"
               value={cameraState.target[2]}
               onChange={(e) => handleTargetChange(2, e.target.value)}
               className="w-20 h-8"
+              disabled={isDisabled}
             />
           </div>
         </div>
@@ -224,6 +250,7 @@ const CameraControl = () => {
             step={1}
             onValueChange={(v) => updateCameraState("focalLength", v[0])}
             className="flex-1"
+            disabled={isDisabled}
           />
           <Input
             type="number"
@@ -232,6 +259,7 @@ const CameraControl = () => {
               updateCameraState("focalLength", parseFloat(e.target.value))
             }
             className="w-20 h-8"
+            disabled={isDisabled}
           />
         </div>
       </div>
