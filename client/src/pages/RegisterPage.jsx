@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GOOGLE_OAUTH_URL, NAVER_OAUTH_URL } from "../lib/config";
 import { validateEmail, validatePassword, validateUsername } from "../lib/validators";
+import toast from "../lib/toast";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -69,9 +70,13 @@ export default function RegisterPage() {
     });
 
     if (result.success) {
+      // 회원가입 성공 Toast 표시
+      toast.auth.registerSuccess();
       navigate("/projects");
     } else {
       setLocalError(result.error);
+      // 에러는 인라인으로 표시하지만 Toast도 추가
+      toast.auth.registerError(new Error(result.error));
     }
   };
 

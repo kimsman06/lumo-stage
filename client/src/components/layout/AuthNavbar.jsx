@@ -36,8 +36,7 @@ const AuthNavbar = () => {
           <>
             <Link to="/projects">
               <Button variant="ghost" className="gap-2">
-                <FolderOpen className="h-4 w-4" />
-                내 프로젝트
+                <FolderOpen className="h-4 w-4" />내 프로젝트
               </Button>
             </Link>
 
