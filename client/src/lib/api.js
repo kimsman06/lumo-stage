@@ -1,9 +1,6 @@
 import axios from "axios";
 
-// 프로덕션에서는 same-origin이므로 상대 경로 사용
-// 개발 환경에서는 절대 경로 사용
-const API_BASE_URL = import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV ? "http://localhost:4000/api" : "/api");
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 const SAFE_METHODS = new Set(["get", "head", "options"]);
 const AUTH_EXEMPT_PATHS = new Set([
   "/auth/login",
