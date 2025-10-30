@@ -22,6 +22,10 @@ const {
 } = require("./config/session");
 
 const app = express();
+
+// 프록시 신뢰 설정 (Vercel, Heroku 등 리버스 프록시 환경에서 필수)
+app.set("trust proxy", 1);
+
 const PORT = process.env.PORT || 4000;
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN?.split(",").map((origin) => origin.trim());
 
@@ -29,7 +33,8 @@ const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN?.split(",").map((origin) => orig
 console.log("[Server] Environment:", {
   NODE_ENV: process.env.NODE_ENV,
   CLIENT_ORIGIN: CLIENT_ORIGIN || "not set (allowing all)",
-  PORT
+  PORT,
+  trustProxy: app.get("trust proxy")
 });
 
 const corsOptions = {
@@ -53,7 +58,8 @@ const corsOptions = {
     console.warn("[CORS] Blocking origin:", origin);
     callback(new Error("Not allowed by CORS"));
   },
-  credentials: true
+  credentials: true,
+  exposedHeaders: ["set-cookie"]
 };
 
 app.use(cors(corsOptions));

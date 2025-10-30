@@ -49,12 +49,17 @@ const getMongoUri = () => process.env.MONGO_URI || DEFAULT_MONGO_URI;
 
 const isProduction = () => process.env.NODE_ENV === "production";
 
-const getBaseCookieOptions = () => ({
-  httpOnly: true,
-  secure: isProduction(),
-  sameSite: isProduction() ? "none" : "lax",
-  path: "/"
-});
+const getBaseCookieOptions = () => {
+  const isProd = isProduction();
+
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+    path: "/",
+    // domain을 설정하지 않음 (자동으로 현재 도메인 사용)
+  };
+};
 
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || DEFAULT_SESSION_COOKIE_NAME;
 const SESSION_COLLECTION_NAME =
