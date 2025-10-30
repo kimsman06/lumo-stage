@@ -81,6 +81,23 @@ app.use(
   })
 );
 
+// 세션 디버깅 미들웨어 (세션 미들웨어 이후에 실행)
+app.use((req, res, next) => {
+  const originalSend = res.send;
+  res.send = function(data) {
+    if (req.path.includes('/login') || req.path.includes('/callback')) {
+      console.log('[Session Debug] Response:', {
+        path: req.path,
+        sessionId: req.session?.id,
+        userId: req.session?.userId,
+        setCookieHeader: res.getHeader('set-cookie')
+      });
+    }
+    return originalSend.apply(res, arguments);
+  };
+  next();
+});
+
 configurePassport(passport);
 app.use(passport.initialize());
 
