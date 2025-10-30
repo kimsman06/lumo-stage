@@ -1,20 +1,6 @@
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 
 const User = require("../models/User");
-const sessionService = require("./session.service");
-
-const getJwtSecret = () => {
-  const secret = process.env.JWT_SECRET;
-
-  if (!secret) {
-    throw new Error("JWT_SECRET 환경 변수가 설정되지 않았습니다.");
-  }
-
-  return secret;
-};
-
-const getJwtExpiresIn = () => process.env.JWT_EXPIRES_IN || "1d";
 
 const sanitizeUser = (userDoc) => {
   const user = userDoc.toObject({ versionKey: false });
@@ -24,30 +10,6 @@ const sanitizeUser = (userDoc) => {
   delete user.password;
 
   return user;
-};
-
-const signToken = (userDoc) => {
-  const payload = {
-    sub: userDoc.id || userDoc._id.toString()
-  };
-
-  return jwt.sign(payload, getJwtSecret(), {
-    expiresIn: getJwtExpiresIn()
-  });
-};
-
-const issueTokensForUser = async (userDoc, metadata = {}) => {
-  const accessToken = signToken(userDoc);
-  const { token: refreshToken } = await sessionService.createSessionToken(
-    userDoc._id,
-    metadata
-  );
-
-  return {
-    user: sanitizeUser(userDoc),
-    accessToken,
-    refreshToken
-  };
 };
 
 const normalizeEmail = (value) => (value ? value.trim().toLowerCase() : null);
@@ -74,6 +36,10 @@ const resolveUsername = (profile, emailFallback) => {
     return profile.displayName.trim();
   }
 
+  if (profile.raw?.name) {
+    return profile.raw.name.trim();
+  }
+
   if (profile.raw?.nickname) {
     return profile.raw.nickname.trim();
   }
@@ -85,7 +51,21 @@ const resolveUsername = (profile, emailFallback) => {
   return `user-${Date.now()}`;
 };
 
-const registerUser = async ({ username, email, password }, metadata = {}) => {
+const extractProfileImage = (provider, profile) => {
+  const raw = profile.raw || {};
+
+  if (provider === "naver") {
+    return raw.profile_image || null;
+  }
+
+  if (provider === "google") {
+    return raw.picture || profile.photos?.[0]?.value || null;
+  }
+
+  return null;
+};
+
+const registerUser = async ({ username, email, password }) => {
   if (!username || !email || !password) {
     const error = new Error("필수 값이 누락되었습니다.");
     error.status = 400;
@@ -109,10 +89,10 @@ const registerUser = async ({ username, email, password }, metadata = {}) => {
     password: hashedPassword
   });
 
-  return issueTokensForUser(user, metadata);
+  return sanitizeUser(user);
 };
 
-const loginUser = async ({ email, password }, metadata = {}) => {
+const loginUser = async ({ email, password }) => {
   if (!email || !password) {
     const error = new Error("이메일과 비밀번호를 모두 입력해주세요.");
     error.status = 400;
@@ -135,7 +115,7 @@ const loginUser = async ({ email, password }, metadata = {}) => {
     throw error;
   }
 
-  return issueTokensForUser(user, metadata);
+  return sanitizeUser(user);
 };
 
 const findOrCreateOAuthUser = async (provider, profile) => {
@@ -152,12 +132,23 @@ const findOrCreateOAuthUser = async (provider, profile) => {
     profile.emails?.[0]?.value || profile.email || profile.raw?.email
   );
 
+  const profileImage = extractProfileImage(provider, profile);
+
   if (emailFromProfile) {
     const existingByEmail = await User.findOne({ email: emailFromProfile });
 
     if (existingByEmail) {
       if (!existingByEmail[providerField]) {
         existingByEmail[providerField] = providerId;
+
+        // 프로필 정보 업데이트
+        if (profileImage && !existingByEmail.profileImage) {
+          existingByEmail.profileImage = profileImage;
+        }
+        if (!existingByEmail.oauthProvider || existingByEmail.oauthProvider === "local") {
+          existingByEmail.oauthProvider = provider;
+        }
+
         await existingByEmail.save();
       }
 
@@ -167,6 +158,18 @@ const findOrCreateOAuthUser = async (provider, profile) => {
 
   const existingByProvider = await User.findOne({ [providerField]: providerId });
   if (existingByProvider) {
+    // 기존 사용자의 프로필 이미지 업데이트 (없는 경우에만)
+    let updated = false;
+
+    if (profileImage && !existingByProvider.profileImage) {
+      existingByProvider.profileImage = profileImage;
+      updated = true;
+    }
+
+    if (updated) {
+      await existingByProvider.save();
+    }
+
     return existingByProvider;
   }
 
@@ -176,46 +179,73 @@ const findOrCreateOAuthUser = async (provider, profile) => {
   const user = await User.create({
     username,
     email: finalEmail,
-    [providerField]: providerId
+    [providerField]: providerId,
+    profileImage,
+    oauthProvider: provider
   });
 
   return user;
 };
 
-const loginWithProvider = async (provider, profile, metadata = {}) => {
+const loginWithProvider = async (provider, profile) => {
   const user = await findOrCreateOAuthUser(provider, profile);
 
-  return issueTokensForUser(user, metadata);
+  return sanitizeUser(user);
 };
 
-const refreshAuthSession = async (refreshToken, metadata = {}) => {
-  const { user, refreshToken: rotatedRefreshToken } = await sessionService.consumeRefreshToken(
-    refreshToken,
-    metadata
-  );
+const updateUserProfile = async (userId, { username, bio, profileImage }) => {
+  const user = await User.findById(userId);
 
-  const accessToken = signToken(user);
+  if (!user) {
+    const error = new Error("사용자를 찾을 수 없습니다.");
+    error.status = 404;
+    throw error;
+  }
 
-  return {
-    user: sanitizeUser(user),
-    accessToken,
-    refreshToken: rotatedRefreshToken
-  };
+  // username 업데이트 (제공된 경우)
+  if (username !== undefined && username !== null) {
+    const trimmedUsername = username.trim();
+    if (trimmedUsername.length === 0) {
+      const error = new Error("사용자 이름은 비어있을 수 없습니다.");
+      error.status = 400;
+      throw error;
+    }
+    user.username = trimmedUsername;
+  }
+
+  // bio 업데이트 (제공된 경우)
+  if (bio !== undefined) {
+    if (bio === null || bio === "") {
+      user.bio = null;
+    } else {
+      const trimmedBio = bio.trim();
+      if (trimmedBio.length > 500) {
+        const error = new Error("자기소개는 500자를 초과할 수 없습니다.");
+        error.status = 400;
+        throw error;
+      }
+      user.bio = trimmedBio;
+    }
+  }
+
+  // profileImage 업데이트 (제공된 경우)
+  if (profileImage !== undefined) {
+    if (profileImage === null || profileImage === "") {
+      user.profileImage = null;
+    } else {
+      user.profileImage = profileImage.trim();
+    }
+  }
+
+  await user.save();
+
+  return sanitizeUser(user);
 };
-
-const revokeRefreshToken = (refreshToken, metadata = {}) =>
-  sessionService.revokeRefreshToken(refreshToken, metadata);
-
-const revokeSessionsForUser = (userId, reason, metadata = {}) =>
-  sessionService.revokeUserSessions(userId, reason, metadata);
 
 module.exports = {
   registerUser,
   loginUser,
   loginWithProvider,
   sanitizeUser,
-  refreshAuthSession,
-  revokeRefreshToken,
-  revokeSessionsForUser,
-  getRefreshTokenTtlMs: sessionService.getRefreshTokenTtlMs
+  updateUserProfile
 };

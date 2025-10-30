@@ -1,35 +1,27 @@
-const jwt = require("jsonwebtoken");
-
 const User = require("../models/User");
-
-const getTokenFromRequest = (req) => {
-  if (req.cookies?.token) {
-    return req.cookies.token;
-  }
-
-  const header = req.headers.authorization;
-
-  if (header && header.startsWith("Bearer ")) {
-    return header.slice(7).trim();
-  }
-
-  return null;
-};
 
 const requireAuth = async (req, _res, next) => {
   try {
-    const token = getTokenFromRequest(req);
+    if (req.user) {
+      next();
+      return;
+    }
 
-    if (!token) {
+    const userId = req.session?.userId;
+
+    if (!userId) {
       const error = new Error("인증이 필요합니다.");
       error.status = 401;
       throw error;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.sub);
+    const user = await User.findById(userId);
 
     if (!user) {
+      if (req.session) {
+        req.session.destroy(() => {});
+      }
+
       const error = new Error("인증이 필요합니다.");
       error.status = 401;
       throw error;

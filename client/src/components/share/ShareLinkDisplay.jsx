@@ -38,7 +38,6 @@ export default function ShareLinkDisplay({ shareUrl, createdAt, expiresAt, onCop
         setCopied(false);
       }, 2000);
     } catch (error) {
-      console.error('클립보드 복사 실패:', error);
       toast.error(SHARE_MESSAGES.linkCopyError);
       // 대체 UI: 링크를 선택하여 수동 복사하도록 안내
       inputRef.current?.select();

@@ -1,93 +1,57 @@
 const passport = require("passport");
 
+const { registerUser, loginUser, loginWithProvider, sanitizeUser, updateUserProfile } = require("../services/auth.service");
 const {
-  registerUser,
-  loginUser,
-  loginWithProvider,
-  sanitizeUser,
-  refreshAuthSession,
-  revokeRefreshToken,
-  getRefreshTokenTtlMs
-} = require("../services/auth.service");
+  SESSION_COOKIE_NAME,
+  getSessionCookieClearOptions
+} = require("../config/session");
 
-const parseExpiresToMs = (value) => {
-  if (!value) {
-    return 24 * 60 * 60 * 1000;
-  }
+const regenerateSession = (req) =>
+  new Promise((resolve, reject) => {
+    req.session.regenerate((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
 
-  if (/^\d+$/.test(value)) {
-    return Number(value) * 1000;
-  }
-
-  const matches = /^(\d+)([smhd])$/.exec(value);
-
-  if (!matches) {
-    return 24 * 60 * 60 * 1000;
-  }
-
-  const [, amount, unit] = matches;
-  const quantity = Number(amount);
-
-  switch (unit) {
-    case "s":
-      return quantity * 1000;
-    case "m":
-      return quantity * 60 * 1000;
-    case "h":
-      return quantity * 60 * 60 * 1000;
-    case "d":
-      return quantity * 24 * 60 * 60 * 1000;
-    default:
-      return 24 * 60 * 60 * 1000;
-  }
-};
-
-const setAccessCookie = (res, token) => {
-  const isProduction = process.env.NODE_ENV === "production";
-
-  res.cookie("token", token, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? "none" : "lax",
-    maxAge: parseExpiresToMs(process.env.JWT_EXPIRES_IN),
-    path: "/"
-  });
-};
-
-const setRefreshCookie = (res, token) => {
-  const isProduction = process.env.NODE_ENV === "production";
-
-  res.cookie("refreshToken", token, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? "none" : "lax",
-    maxAge: getRefreshTokenTtlMs(),
-    path: "/"
-  });
-};
-
-const clearSessionCookies = (res) => {
-  const isProduction = process.env.NODE_ENV === "production";
-
-  res.clearCookie("token", {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? "none" : "lax",
-    path: "/"
+      resolve();
+    });
   });
 
-  res.clearCookie("refreshToken", {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? "none" : "lax",
-    path: "/"
+const saveSession = (req) =>
+  new Promise((resolve, reject) => {
+    req.session.save((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve();
+    });
   });
+
+const establishSession = async (req, user) => {
+  await regenerateSession(req);
+  req.session.userId = user.id;
+  await saveSession(req);
 };
 
-const setSessionCookies = (res, { accessToken, refreshToken }) => {
-  setAccessCookie(res, accessToken);
-  setRefreshCookie(res, refreshToken);
-};
+const destroySession = (req) =>
+  new Promise((resolve, reject) => {
+    if (!req.session) {
+      resolve();
+      return;
+    }
+
+    req.session.destroy((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve();
+    });
+  });
 
 const getClientOrigins = () => {
   if (!process.env.CLIENT_ORIGIN) {
@@ -131,16 +95,10 @@ const getOAuthSuccessRedirect = () =>
 const getOAuthFailureRedirect = () =>
   process.env.OAUTH_FAILURE_REDIRECT || `${getPrimaryClientOrigin()}/login?error=oauth`;
 
-const buildSessionMetadata = (req) => ({
-  ip: req.ip,
-  userAgent: req.headers["user-agent"]
-});
-
 const register = async (req, res, next) => {
   try {
-    const { user, accessToken, refreshToken } = await registerUser(req.body, buildSessionMetadata(req));
-
-    setSessionCookies(res, { accessToken, refreshToken });
+    const user = await registerUser(req.body);
+    await establishSession(req, user);
 
     res.status(201).json({
       message: "회원가입이 완료되었습니다.",
@@ -153,9 +111,8 @@ const register = async (req, res, next) => {
 
 const login = async (req, res, next) => {
   try {
-    const { user, accessToken, refreshToken } = await loginUser(req.body, buildSessionMetadata(req));
-
-    setSessionCookies(res, { accessToken, refreshToken });
+    const user = await loginUser(req.body);
+    await establishSession(req, user);
 
     res.status(200).json({
       message: "로그인에 성공했습니다.",
@@ -183,13 +140,8 @@ const oauthCallback = (provider) => (req, res, next) => {
     }
 
     try {
-      const { user, accessToken, refreshToken } = await loginWithProvider(
-        provider,
-        profile,
-        buildSessionMetadata(req)
-      );
-
-      setSessionCookies(res, { accessToken, refreshToken });
+      const user = await loginWithProvider(provider, profile);
+      await establishSession(req, user);
 
       if (shouldRespondJson(req)) {
         res.status(200).json({
@@ -228,46 +180,26 @@ const me = (req, res, next) => {
 
 const logout = async (req, res, next) => {
   try {
-    const refreshToken = req.cookies?.refreshToken;
-
-    if (refreshToken) {
-      await revokeRefreshToken(refreshToken, buildSessionMetadata(req));
-    }
-
-    clearSessionCookies(res);
+    await destroySession(req);
+    res.clearCookie(SESSION_COOKIE_NAME, getSessionCookieClearOptions());
     res.status(200).json({ message: "로그아웃이 완료되었습니다." });
   } catch (error) {
     next(error);
   }
 };
 
-const refresh = async (req, res, next) => {
-  const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
-
-  if (!refreshToken) {
-    res.status(401).json({ message: "Refresh 토큰이 필요합니다." });
-    return;
-  }
-
+const updateProfile = async (req, res, next) => {
   try {
-    const result = await refreshAuthSession(refreshToken, buildSessionMetadata(req));
+    const userId = req.user._id || req.user.id;
+    const { username, bio, profileImage } = req.body;
 
-    setSessionCookies(res, {
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken
-    });
+    const user = await updateUserProfile(userId, { username, bio, profileImage });
 
     res.status(200).json({
-      message: "토큰이 갱신되었습니다.",
-      user: result.user
+      message: "프로필이 업데이트되었습니다.",
+      user
     });
   } catch (error) {
-    clearSessionCookies(res);
-
-    if (!error.status) {
-      error.status = 401;
-    }
-
     next(error);
   }
 };
@@ -278,5 +210,5 @@ module.exports = {
   oauthCallback,
   me,
   logout,
-  refresh
+  updateProfile
 };

@@ -39,10 +39,10 @@ const parseDurationToMs = (value, fallback = DEFAULT_TTL_MS) => {
 };
 
 const getSecret = () => {
-  const secret = process.env.CSRF_SECRET || process.env.JWT_SECRET;
+  const secret = process.env.CSRF_SECRET || process.env.SESSION_SECRET;
 
   if (!secret) {
-    throw new Error("CSRF_SECRET 또는 JWT_SECRET 환경 변수가 필요합니다.");
+    throw new Error("CSRF_SECRET 또는 SESSION_SECRET 환경 변수가 필요합니다.");
   }
 
   return secret;

@@ -13,7 +13,7 @@ router.get("/csrf-token", issueCsrfToken);
 router.post("/register", validate(registerSchema), authController.register);
 router.post("/login", validate(loginSchema), authController.login);
 router.get("/me", requireAuth, authController.me);
-router.post("/refresh", authController.refresh);
+router.patch("/profile", requireAuth, authController.updateProfile);
 router.post("/logout", requireAuth, authController.logout);
 router.get(
   "/google",
@@ -27,7 +27,6 @@ router.get("/google/callback", authController.oauthCallback("google"));
 router.get(
   "/naver",
   passport.authenticate("naver", {
-    scope: ["profile", "email"],
     session: false
   })
 );

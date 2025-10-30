@@ -6,7 +6,12 @@ const UserSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true, trim: true },
     password: { type: String },
     googleId: { type: String, unique: true, sparse: true },
-    naverId: { type: String, unique: true, sparse: true }
+    naverId: { type: String, unique: true, sparse: true },
+    // 프로필 정보
+    profileImage: { type: String, default: null },
+    bio: { type: String, default: null, maxlength: 500 },
+    // OAuth 제공자별 추가 정보
+    oauthProvider: { type: String, enum: ["local", "google", "naver"], default: "local" }
   },
   { timestamps: true }
 );

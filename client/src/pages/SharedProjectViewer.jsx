@@ -34,8 +34,6 @@ export default function SharedProjectViewer() {
         loadSceneData(data.project.sceneData);
       }
     } catch (err) {
-      console.error('공유 프로젝트 로드 실패:', err);
-
       // 에러 타입에 따라 다른 처리
       if (err.message.includes('만료')) {
         // 만료된 경우 - ExpiredMessage에서 처리

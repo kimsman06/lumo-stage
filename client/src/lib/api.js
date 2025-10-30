@@ -5,13 +5,11 @@ const SAFE_METHODS = new Set(["get", "head", "options"]);
 const AUTH_EXEMPT_PATHS = new Set([
   "/auth/login",
   "/auth/register",
-  "/auth/refresh",
   "/auth/csrf-token"
 ]);
 
 let csrfToken = null;
 let csrfPromise = null;
-let refreshPromise = null;
 
 const plainClient = axios.create({
   baseURL: API_BASE_URL,
@@ -41,22 +39,6 @@ const ensureCsrfToken = () => {
   return csrfPromise;
 };
 
-const refreshSession = async () => {
-  if (!refreshPromise) {
-    refreshPromise = (async () => {
-      await ensureCsrfToken();
-      const response = await plainClient.post("/auth/refresh");
-      csrfToken = null;
-      await ensureCsrfToken();
-      return response;
-    })().finally(() => {
-      refreshPromise = null;
-    });
-  }
-
-  return refreshPromise;
-};
-
 const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
@@ -77,36 +59,23 @@ api.interceptors.request.use(async (config) => {
     }
   }
 
-  if (import.meta.env.DEV) {
-    console.log(`[API Request] ${method.toUpperCase()} ${url}`, config.data);
-  }
-
   return config;
 });
 
 api.interceptors.response.use(
   (response) => {
-    if (import.meta.env.DEV) {
-      console.log(
-        `[API Response] ${response.config.method?.toUpperCase()} ${response.config.url}`,
-        response.data
-      );
-    }
-
     return response;
   },
   async (error) => {
     const { response, config } = error;
 
     if (!response) {
-      console.error("[API Error] 서버 응답 없음:", error.message);
       return Promise.reject(error);
     }
 
     const status = response.status;
     const originalRequest = config;
     const url = originalRequest?.url || "";
-    const method = originalRequest?.method?.toLowerCase() || "get";
 
     if (status === 419 && !originalRequest._csrfRetried) {
       originalRequest._csrfRetried = true;
@@ -120,31 +89,8 @@ api.interceptors.response.use(
       }
     }
 
-    if (
-      status === 401 &&
-      !originalRequest._retry &&
-      !AUTH_EXEMPT_PATHS.has(url)
-    ) {
-      originalRequest._retry = true;
-
-      try {
-        await refreshSession();
-        return api(originalRequest);
-      } catch (refreshError) {
-        return Promise.reject(refreshError);
-      }
-    }
-
     if (status === 401 && !AUTH_EXEMPT_PATHS.has(url)) {
-      console.warn("[API] Unauthorized - 로그인이 필요합니다.");
-    } else if (status === 403) {
-      console.warn("[API] Forbidden - 접근 권한이 없습니다.");
-    } else if (status === 404) {
-      console.warn("[API] Not Found - 요청한 리소스를 찾을 수 없습니다.");
-    } else {
-      console.error(
-        `[API Error] ${status}: ${response.data?.message || error.message}`
-      );
+      resetCsrfToken();
     }
 
     return Promise.reject(error);
@@ -153,10 +99,6 @@ api.interceptors.response.use(
 
 export const resetCsrfToken = () => {
   csrfToken = null;
-};
-
-export const forceRefreshSession = async () => {
-  await refreshSession();
 };
 
 export default api;

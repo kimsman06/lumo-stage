@@ -48,6 +48,7 @@
 - 근거: `docs/frontend-refactor-plan-2025-10-26.md:68`
 - 목표
   - 프런트 `PrivateRoute` 개선과 연동해 Refresh 토큰 갱신 실패 시 안정적인 로그아웃 플로우를 제공.
+- 업데이트(2025-10-30): 백엔드 인증이 JWT + Refresh 토큰 구조에서 Express 세션 기반으로 전환되었습니다. `/auth/refresh` 엔드포인트와 관련 세션 토큰 모델이 제거되었으며, 프런트엔드 axios 인터셉터도 더 이상 토큰 재발급을 시도하지 않습니다. 아래 처리 계획은 참조용으로 보존하며, 향후 세션 무효화/연장 전략이 필요할 때 재정의가 필요합니다.
 - 처리 계획
   1. `server/controllers/authController.js`에 `POST /auth/refresh` 응답 포맷 재검토(만료 원인 코드 포함).
   2. Refresh 토큰 재발급 시 재사용 감지, IP/UA 로그 기록, 실패 시 서버 측 세션 즉시 폐기.

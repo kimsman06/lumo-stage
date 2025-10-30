@@ -10,7 +10,7 @@ LumoStage는 웹 기반 실시간 3D 조명 시뮬레이션 애플리케이션�
 
 - Frontend: React + Vite, Zustand (상태관리), React-Three-Fiber (3D), Tailwind CSS + shadcn/ui
 - Backend: Node.js + Express, MongoDB + Mongoose
-- 인증: JWT (HttpOnly 쿠키) + Passport.js (Google/Naver OAuth)
+- 인증: Session (express-session + MongoDB) + Passport.js (Google/Naver OAuth) + CSRF 보호
 
 ## 개발 환경 설정 및 실행
 
@@ -35,7 +35,7 @@ npm start                   # 프로덕션 서버 실행
 npm test                    # Jest 테스트 실행 (TDD 사용)
 ```
 
-**환경변수:** `server/.env` 파일에 MongoDB URI, JWT Secret, OAuth 클라이언트 ID/Secret 등을 설정해야 합니다. `server/.env.example` 참고.
+**환경변수:** `server/.env` 파일에 MongoDB URI, SESSION_SECRET, OAuth 클라이언트 ID/Secret 등을 설정해야 합니다. `server/.env.example` 참고.
 
 ## 아키텍처 및 데이터 흐름
 
@@ -72,8 +72,8 @@ server/
 ├── services/        # 비즈니스 로직, DB 상호작용 (Model 사용)
 ├── models/          # Mongoose 스키마 (User, Project)
 ├── routes/          # 엔드포인트 정의 및 Controller 연결
-├── middleware/      # 인증 미들웨어 (JWT 검증)
-├── config/          # Passport 전략 설정
+├── middleware/      # 인증 미들웨어 (세션 검증), CSRF 보호
+├── config/          # Passport 전략 설정, 세션 설정
 └── tests/           # Jest + Supertest 테스트 (TDD)
 ```
 
@@ -85,9 +85,11 @@ server/
 
 **인증 흐름:**
 
-1. 로그인/소셜 로그인 → JWT 발급 → HttpOnly 쿠키(`token`)로 전송
-2. 이후 모든 `/api/projects/*` 요청은 `requireAuth` 미들웨어에서 JWT 검증
-3. `req.user`에 사용자 정보 저장 → Controller/Service에서 사용
+1. 로그인/소셜 로그인 → 세션 생성 → HttpOnly 쿠키(`lumostage.sid`)로 세션 ID 전송
+2. 세션 데이터는 MongoDB에 저장 (express-session + connect-mongo)
+3. 이후 모든 `/api/projects/*` 요청은 `requireAuth` 미들웨어에서 세션 검증
+4. `req.session.userId`로 사용자 식별 → DB에서 사용자 정보 조회 → `req.user`에 저장
+5. CSRF 토큰으로 POST/PATCH/DELETE 요청 보호 (csurf 미들웨어)
 
 **API 엔드포인트:**
 

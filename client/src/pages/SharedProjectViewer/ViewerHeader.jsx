@@ -43,7 +43,6 @@ export default function ViewerHeader({
         // navigate(`/editor/${newProject._id}`);
         toast.info(SHARE_MESSAGES.comingSoon || '곧 출시됩니다');
       } catch (error) {
-        console.error('프로젝트 복제 실패:', error);
         toast.error(SHARE_MESSAGES.projectCloneError);
       }
     }

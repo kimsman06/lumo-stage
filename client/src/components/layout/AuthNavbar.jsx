@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import useAuthStore from "../../store/authStore";
 
 const AuthNavbar = () => {
@@ -44,6 +44,9 @@ const AuthNavbar = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="gap-2">
                   <Avatar className="h-8 w-8">
+                    {user?.profileImage && (
+                      <AvatarImage src={user.profileImage} alt={user?.username || "프로필"} />
+                    )}
                     <AvatarFallback>
                       {user?.username?.charAt(0).toUpperCase() || "U"}
                     </AvatarFallback>

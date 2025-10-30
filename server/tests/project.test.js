@@ -1,8 +1,12 @@
 const request = require("supertest");
 
+process.env.SESSION_SECRET = process.env.SESSION_SECRET || "test-session-secret";
+process.env.SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || "lumostage.sid";
+
 const { app, connectDatabase } = require("../server");
 const Project = require("../models/Project");
 const ShareToken = require("../models/ShareToken");
+const { SESSION_COOKIE_NAME } = require("../config/session");
 
 const getCsrfToken = async (agent) => {
   const response = await agent.get("/api/auth/csrf-token");
@@ -10,14 +14,9 @@ const getCsrfToken = async (agent) => {
   return response.body.csrfToken;
 };
 
-const expectSessionCookies = (response) => {
+const expectSessionCookie = (response) => {
   const cookies = response.headers["set-cookie"] || [];
-  expect(cookies).toEqual(
-    expect.arrayContaining([
-      expect.stringContaining("token="),
-      expect.stringContaining("refreshToken=")
-    ])
-  );
+  expect(cookies.some((cookie) => cookie.startsWith(`${SESSION_COOKIE_NAME}=`))).toBe(true);
 };
 
 const registerUser = async (overrides = {}) => {
@@ -31,7 +30,7 @@ const registerUser = async (overrides = {}) => {
 
   const response = await agent.post("/api/auth/register").set("x-csrf-token", csrfToken).send(payload);
   expect(response.statusCode).toBe(201);
-  expectSessionCookies(response);
+  expectSessionCookie(response);
 
   return {
     agent,

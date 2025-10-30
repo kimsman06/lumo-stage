@@ -90,7 +90,7 @@ export default function ShareDialog({ projectId, open, onOpenChange }) {
     try {
       await getShareConfig(projectId);
     } catch (error) {
-      console.error("공유 설정 조회 실패:", error);
+      // 오류 무시 (토스트에서 처리)
     }
   };
 
@@ -130,7 +130,6 @@ export default function ShareDialog({ projectId, open, onOpenChange }) {
         toast.success(SHARE_MESSAGES.linkCopied);
       }
     } catch (error) {
-      console.error("공유 링크 생성 실패:", error);
       toast.error(error.message || SHARE_MESSAGES.createLinkError);
     }
   };
@@ -146,7 +145,6 @@ export default function ShareDialog({ projectId, open, onOpenChange }) {
       toast.success(SHARE_MESSAGES.updateSettingsSuccess);
       setHasChanges(false);
     } catch (error) {
-      console.error("공유 설정 업데이트 실패:", error);
       toast.error(error.message || SHARE_MESSAGES.updateSettingsError);
     }
   };
@@ -165,7 +163,6 @@ export default function ShareDialog({ projectId, open, onOpenChange }) {
 
       setShowRegenerateDialog(false);
     } catch (error) {
-      console.error("토큰 재생성 실패:", error);
       toast.error(error.message || SHARE_MESSAGES.regenerateLinkError);
     }
   };

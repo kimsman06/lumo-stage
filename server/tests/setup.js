@@ -10,8 +10,8 @@ beforeAll(async () => {
   const uri = mongoServer.getUri();
 
   process.env.MONGO_URI = uri;
-  process.env.JWT_SECRET = "test-secret";
-  process.env.JWT_EXPIRES_IN = "1h";
+  process.env.SESSION_SECRET = "test-session-secret";
+  process.env.SESSION_COOKIE_NAME = "lumostage.sid";
 
   await mongoose.connect(uri);
 });

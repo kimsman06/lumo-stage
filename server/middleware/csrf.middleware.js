@@ -1,4 +1,5 @@
 const { createToken, verifyToken, getTtlMs } = require("../utils/csrfToken");
+const { SESSION_COOKIE_NAME } = require("../config/session");
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 const CSRF_COOKIE_NAME = "csrf_token";
@@ -45,9 +46,7 @@ const requireCsrfProtection = (req, res, next) => {
   }
 
   const hasSession =
-    Boolean(req.cookies?.token) ||
-    Boolean(req.cookies?.refreshToken) ||
-    (req.headers.authorization && req.headers.authorization.startsWith("Bearer "));
+    Boolean(req.session?.userId) || Boolean(req.cookies?.[SESSION_COOKIE_NAME]);
 
   try {
     if (!hasSession) {

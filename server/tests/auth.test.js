@@ -2,8 +2,12 @@ const request = require("supertest");
 const bcrypt = require("bcryptjs");
 const passport = require("passport");
 
+process.env.SESSION_SECRET = process.env.SESSION_SECRET || "test-session-secret";
+process.env.SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || "lumostage.sid";
+
 const { app, connectDatabase } = require("../server");
 const User = require("../models/User");
+const { SESSION_COOKIE_NAME } = require("../config/session");
 
 const getCsrfToken = async (agent) => {
   const response = await agent.get("/api/auth/csrf-token");
@@ -12,15 +16,12 @@ const getCsrfToken = async (agent) => {
   return response.body.csrfToken;
 };
 
-const expectSessionCookies = (response) => {
+const expectSessionCookie = (response) => {
   const cookies = response.headers["set-cookie"] || [];
 
-  expect(cookies).toEqual(
-    expect.arrayContaining([
-      expect.stringContaining("token="),
-      expect.stringContaining("refreshToken=")
-    ])
-  );
+  expect(
+    cookies.some((cookie) => cookie.startsWith(`${SESSION_COOKIE_NAME}=`))
+  ).toBe(true);
 };
 
 const registerThroughAgent = async (agent, overrides = {}) => {
@@ -76,7 +77,7 @@ describe("Auth API", () => {
         }
       });
       expect(response.body.user).toHaveProperty("id");
-      expectSessionCookies(response);
+      expectSessionCookie(response);
 
       const savedUser = await User.findOne({ email: payload.email }).lean();
       expect(savedUser).toBeTruthy();
@@ -154,7 +155,6 @@ describe("Auth API", () => {
         },
         provider: "google"
       });
-      expectSessionCookies(response);
 
       const savedUser = await User.findOne({ googleId: "google-123" }).lean();
       expect(savedUser).toBeTruthy();
@@ -207,7 +207,7 @@ describe("Auth API", () => {
           email
         }
       });
-      expectSessionCookies(response);
+      expectSessionCookie(response);
     });
 
     it("잘못된 비밀번호로 로그인하면 401을 반환한다", async () => {
@@ -239,36 +239,30 @@ describe("Auth API", () => {
     });
   });
 
-  describe("POST /api/auth/refresh", () => {
-    it("유효한 Refresh 토큰으로 세션을 갱신한다", async () => {
+  describe("GET /api/auth/me", () => {
+    it("세션이 있으면 사용자 정보를 반환한다", async () => {
       const agent = request.agent(app);
-      const { response: registerResponse } = await registerThroughAgent(agent, {
-        email: "refresh-user@example.com"
+      const { response } = await registerThroughAgent(agent, {
+        email: "me-user@example.com"
       });
-      expect(registerResponse.statusCode).toBe(201);
+      expect(response.statusCode).toBe(201);
 
-      const csrfToken = await getCsrfToken(agent);
-      const refreshResponse = await agent.post("/api/auth/refresh").set("x-csrf-token", csrfToken).send();
+      const meResponse = await agent.get("/api/auth/me");
 
-      expect(refreshResponse.statusCode).toBe(200);
-      expect(refreshResponse.body).toMatchObject({
-        message: "토큰이 갱신되었습니다.",
+      expect(meResponse.statusCode).toBe(200);
+      expect(meResponse.body).toMatchObject({
         user: {
-          email: "refresh-user@example.com"
+          email: "me-user@example.com"
         }
       });
-      expectSessionCookies(refreshResponse);
     });
 
-    it("Refresh 토큰이 없으면 401을 반환한다", async () => {
-      const agent = request.agent(app);
-      const csrfToken = await getCsrfToken(agent);
-
-      const response = await agent.post("/api/auth/refresh").set("x-csrf-token", csrfToken).send();
+    it("세션이 없으면 401을 반환한다", async () => {
+      const response = await request(app).get("/api/auth/me");
 
       expect(response.statusCode).toBe(401);
       expect(response.body).toMatchObject({
-        message: "Refresh 토큰이 필요합니다."
+        message: "인증이 필요합니다."
       });
     });
   });
@@ -289,8 +283,129 @@ describe("Auth API", () => {
         message: "로그아웃이 완료되었습니다."
       });
       const clearedCookies = response.headers["set-cookie"] || [];
-      expect(clearedCookies.some((cookie) => cookie.includes("token=;"))).toBe(true);
-      expect(clearedCookies.some((cookie) => cookie.includes("refreshToken=;"))).toBe(true);
+      expect(
+        clearedCookies.some(
+          (cookie) =>
+            cookie.startsWith(`${SESSION_COOKIE_NAME}=`) &&
+            (cookie.includes("Max-Age=0") || /Expires=Thu, 01 Jan 1970/.test(cookie))
+        )
+      ).toBe(true);
+    });
+  });
+
+  describe("PATCH /api/auth/profile", () => {
+    it("프로필을 업데이트할 수 있다", async () => {
+      const agent = request.agent(app);
+      const { response: registerResponse } = await registerThroughAgent(agent, {
+        email: "profile-update@example.com"
+      });
+      expect(registerResponse.statusCode).toBe(201);
+
+      const csrfToken = await getCsrfToken(agent);
+      const updateData = {
+        username: "업데이트된이름",
+        bio: "안녕하세요! 저는 개발자입니다.",
+        profileImage: "https://example.com/profile.jpg"
+      };
+
+      const response = await agent
+        .patch("/api/auth/profile")
+        .set("x-csrf-token", csrfToken)
+        .send(updateData);
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toMatchObject({
+        message: "프로필이 업데이트되었습니다.",
+        user: {
+          username: updateData.username,
+          bio: updateData.bio,
+          profileImage: updateData.profileImage
+        }
+      });
+
+      const savedUser = await User.findOne({ email: "profile-update@example.com" }).lean();
+      expect(savedUser.username).toBe(updateData.username);
+      expect(savedUser.bio).toBe(updateData.bio);
+      expect(savedUser.profileImage).toBe(updateData.profileImage);
+    });
+
+    it("일부 필드만 업데이트할 수 있다", async () => {
+      const agent = request.agent(app);
+      const { response: registerResponse } = await registerThroughAgent(agent, {
+        email: "partial-update@example.com",
+        username: "원래이름"
+      });
+      expect(registerResponse.statusCode).toBe(201);
+
+      const csrfToken = await getCsrfToken(agent);
+      const updateData = {
+        bio: "새로운 자기소개"
+      };
+
+      const response = await agent
+        .patch("/api/auth/profile")
+        .set("x-csrf-token", csrfToken)
+        .send(updateData);
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.user.username).toBe("원래이름");
+      expect(response.body.user.bio).toBe(updateData.bio);
+    });
+
+    it("bio를 null로 설정하여 삭제할 수 있다", async () => {
+      const agent = request.agent(app);
+      await registerThroughAgent(agent, {
+        email: "bio-delete@example.com"
+      });
+
+      const csrfToken = await getCsrfToken(agent);
+      await agent
+        .patch("/api/auth/profile")
+        .set("x-csrf-token", csrfToken)
+        .send({ bio: "임시 자기소개" });
+
+      const deleteResponse = await agent
+        .patch("/api/auth/profile")
+        .set("x-csrf-token", csrfToken)
+        .send({ bio: null });
+
+      expect(deleteResponse.statusCode).toBe(200);
+      expect(deleteResponse.body.user.bio).toBeNull();
+    });
+
+    it("bio가 500자를 초과하면 400을 반환한다", async () => {
+      const agent = request.agent(app);
+      await registerThroughAgent(agent, {
+        email: "bio-long@example.com"
+      });
+
+      const csrfToken = await getCsrfToken(agent);
+      const longBio = "a".repeat(501);
+
+      const response = await agent
+        .patch("/api/auth/profile")
+        .set("x-csrf-token", csrfToken)
+        .send({ bio: longBio });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.body).toMatchObject({
+        message: "자기소개는 500자를 초과할 수 없습니다."
+      });
+    });
+
+    it("인증되지 않은 사용자는 프로필을 업데이트할 수 없다", async () => {
+      const agent = request.agent(app);
+      const csrfToken = await getCsrfToken(agent);
+
+      const response = await agent
+        .patch("/api/auth/profile")
+        .set("x-csrf-token", csrfToken)
+        .send({ username: "해커" });
+
+      expect(response.statusCode).toBe(401);
+      expect(response.body).toMatchObject({
+        message: "인증이 필요합니다."
+      });
     });
   });
 });

@@ -1,14 +1,25 @@
+const dotenv = require("dotenv");
+
+dotenv.config();
+
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const mongoose = require("mongoose");
 const passport = require("passport");
-const dotenv = require("dotenv");
+const session = require("express-session");
+const MongoStore = require("connect-mongo");
 
 const apiRouter = require("./routes");
 const configurePassport = require("./config/passport");
-
-dotenv.config();
+const {
+  SESSION_COOKIE_NAME,
+  SESSION_COLLECTION_NAME,
+  SESSION_MAX_AGE_MS,
+  getSessionSecret,
+  getMongoUri,
+  getSessionCookieOptions
+} = require("./config/session");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -23,6 +34,20 @@ app.use(
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(
+  session({
+    name: SESSION_COOKIE_NAME,
+    secret: getSessionSecret(),
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: getMongoUri(),
+      collectionName: SESSION_COLLECTION_NAME,
+      ttl: Math.ceil(SESSION_MAX_AGE_MS / 1000)
+    }),
+    cookie: getSessionCookieOptions()
+  })
+);
 
 configurePassport(passport);
 app.use(passport.initialize());
