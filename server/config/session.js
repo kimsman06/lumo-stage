@@ -64,10 +64,16 @@ const SESSION_MAX_AGE_MS = parseDurationToMs(
   DEFAULT_SESSION_MAX_AGE_MS
 );
 
-const getSessionCookieOptions = () => ({
-  ...getBaseCookieOptions(),
-  maxAge: SESSION_MAX_AGE_MS
-});
+const getSessionCookieOptions = () => {
+  const options = {
+    ...getBaseCookieOptions(),
+    maxAge: SESSION_MAX_AGE_MS
+  };
+
+  console.log("[Session] Cookie options:", options);
+
+  return options;
+};
 
 const getSessionCookieClearOptions = () => getBaseCookieOptions();
 

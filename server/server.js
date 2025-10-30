@@ -25,12 +25,38 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN?.split(",").map((origin) => origin.trim());
 
-app.use(
-  cors({
-    origin: CLIENT_ORIGIN || true,
-    credentials: true
-  })
-);
+// 배포 환경 디버깅
+console.log("[Server] Environment:", {
+  NODE_ENV: process.env.NODE_ENV,
+  CLIENT_ORIGIN: CLIENT_ORIGIN || "not set (allowing all)",
+  PORT
+});
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Origin이 없는 경우 (같은 도메인) 또는 허용된 origin인 경우
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (!CLIENT_ORIGIN) {
+      // CLIENT_ORIGIN이 설정되지 않은 경우 모든 origin 허용 (개발 환경)
+      console.log("[CORS] Allowing origin (no CLIENT_ORIGIN set):", origin);
+      return callback(null, true);
+    }
+
+    if (CLIENT_ORIGIN.includes(origin)) {
+      console.log("[CORS] Allowing origin:", origin);
+      return callback(null, true);
+    }
+
+    console.warn("[CORS] Blocking origin:", origin);
+    callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

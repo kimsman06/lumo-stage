@@ -114,11 +114,18 @@ const login = async (req, res, next) => {
     const user = await loginUser(req.body);
     await establishSession(req, user);
 
+    console.log("[Login] Session established:", {
+      sessionId: req.session.id,
+      userId: req.session.userId,
+      user: user.id
+    });
+
     res.status(200).json({
       message: "로그인에 성공했습니다.",
       user
     });
   } catch (error) {
+    console.error("[Login] Error:", error.message);
     next(error);
   }
 };
