@@ -51,11 +51,14 @@ const isProduction = () => process.env.NODE_ENV === "production";
 
 const getBaseCookieOptions = () => {
   const isProd = isProduction();
+  // Vercel rewrites 사용 시 same-origin이므로 sameSite: "lax"로 충분
+  // PROXY_MODE=true 환경변수로 프록시 모드 활성화
+  const useProxy = process.env.PROXY_MODE === "true";
 
   return {
     httpOnly: true,
     secure: isProd,
-    sameSite: isProd ? "none" : "lax",
+    sameSite: (isProd && !useProxy) ? "none" : "lax",
     path: "/",
     // domain을 설정하지 않음 (자동으로 현재 도메인 사용)
   };

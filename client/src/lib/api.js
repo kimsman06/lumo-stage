@@ -1,6 +1,9 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+// 프로덕션에서는 same-origin이므로 상대 경로 사용
+// 개발 환경에서는 절대 경로 사용
+const API_BASE_URL = import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? "http://localhost:4000/api" : "/api");
 const SAFE_METHODS = new Set(["get", "head", "options"]);
 const AUTH_EXEMPT_PATHS = new Set([
   "/auth/login",
@@ -20,16 +23,9 @@ const plainClient = axios.create({
 });
 
 const fetchCsrfToken = async () => {
-  console.log('[CSRF] Fetching CSRF token...');
-  try {
-    const response = await plainClient.get("/auth/csrf-token");
-    csrfToken = response.data?.csrfToken || null;
-    console.log('[CSRF] Token fetched successfully:', csrfToken ? 'YES' : 'NO');
-    return csrfToken;
-  } catch (error) {
-    console.error('[CSRF] Failed to fetch token:', error.response?.status, error.response?.data);
-    throw error;
-  }
+  const response = await plainClient.get("/auth/csrf-token");
+  csrfToken = response.data?.csrfToken || null;
+  return csrfToken;
 };
 
 const ensureCsrfToken = () => {
@@ -59,14 +55,10 @@ api.interceptors.request.use(async (config) => {
   const url = config.url || "";
 
   if (!SAFE_METHODS.has(method) && !AUTH_EXEMPT_PATHS.has(url)) {
-    console.log('[CSRF] Non-safe method detected:', method.toUpperCase(), url);
     const token = await ensureCsrfToken();
 
     if (token) {
       config.headers["x-csrf-token"] = token;
-      console.log('[CSRF] Token attached to request');
-    } else {
-      console.warn('[CSRF] No token available for request');
     }
   }
 
@@ -89,16 +81,13 @@ api.interceptors.response.use(
     const url = originalRequest?.url || "";
 
     if (status === 419 && !originalRequest._csrfRetried) {
-      console.warn('[CSRF] Token expired (419), retrying with new token...');
       originalRequest._csrfRetried = true;
 
       try {
         csrfToken = null;
         await ensureCsrfToken();
-        console.log('[CSRF] Retrying request with new token');
         return api(originalRequest);
       } catch (csrfError) {
-        console.error('[CSRF] Retry failed:', csrfError);
         return Promise.reject(csrfError);
       }
     }
