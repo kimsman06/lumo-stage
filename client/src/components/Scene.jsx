@@ -189,23 +189,28 @@ function Experience() {
   }, [camera, updateOrbitControlState]);
 
   // 프로젝트 로드 시 OrbitControls 위치 복원
-  // 의존성을 제거하고 프로젝트 ID 기반으로 한 번만 실행
-  const loadedProjectIdRef = useRef(null);
+  // 이전 orbitControlState를 저장하여 실제 변경 시에만 복원 실행
+  const prevOrbitStateRef = useRef(null);
 
   useEffect(() => {
     const orbit = orbitControlsRef.current;
 
-    // 프로젝트 ID가 변경되었을 때만 복원 (무한 루프 방지)
-    const currentProjectId = window.location.pathname.split("/").pop();
-    if (loadedProjectIdRef.current === currentProjectId) {
+    if (!orbit || !orbitControlState) {
       return;
     }
 
-    if (!orbit || !orbitControlState) {
-      console.warn("⚠️ OrbitControls 복원 실패:", {
-        orbit: orbit ? "exists" : "null",
-        orbitControlState: orbitControlState ? "exists" : "null",
-      });
+    // 이전 상태와 비교하여 실제로 변경되었는지 확인
+    const prev = prevOrbitStateRef.current;
+    const isSamePosition = prev &&
+      prev.cameraPosition[0] === orbitControlState.cameraPosition[0] &&
+      prev.cameraPosition[1] === orbitControlState.cameraPosition[1] &&
+      prev.cameraPosition[2] === orbitControlState.cameraPosition[2] &&
+      prev.target[0] === orbitControlState.target[0] &&
+      prev.target[1] === orbitControlState.target[1] &&
+      prev.target[2] === orbitControlState.target[2] &&
+      (prev.zoom || 1) === (orbitControlState.zoom || 1);
+
+    if (isSamePosition) {
       return;
     }
 
@@ -219,10 +224,16 @@ function Experience() {
     camera.updateProjectionMatrix();
     orbit.update();
 
+    // 현재 상태를 이전 상태로 저장
+    prevOrbitStateRef.current = {
+      cameraPosition: [...orbitControlState.cameraPosition],
+      target: [...orbitControlState.target],
+      zoom: orbitControlState.zoom || 1,
+    };
+
     // 복원 완료 후 플래그 해제 (다음 프레임에서)
     requestAnimationFrame(() => {
       isRestoringOrbitRef.current = false;
-      loadedProjectIdRef.current = currentProjectId;
     });
   }, [orbitControlState, camera]);
 

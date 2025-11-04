@@ -15,7 +15,6 @@ import useAuthStore from "../../store/authStore";
 const AuthNavbar = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuthStore();
-
   const handleLogout = async () => {
     const result = await logout();
     if (result.success) {
@@ -45,7 +44,10 @@ const AuthNavbar = () => {
                 <Button variant="ghost" className="gap-2">
                   <Avatar className="h-8 w-8">
                     {user?.profileImage && (
-                      <AvatarImage src={user.profileImage} alt={user?.username || "프로필"} />
+                      <AvatarImage
+                        src={user.profileImage}
+                        alt={user?.username || "프로필"}
+                      />
                     )}
                     <AvatarFallback>
                       {user?.username?.charAt(0).toUpperCase() || "U"}
