@@ -78,7 +78,7 @@ const useProjectStore = create((set, get) => ({
 
   // 프로젝트 업데이트 (저장)
   updateProject: async (id, updateData) => {
-    set({ isLoading: true, error: null });
+    set({ error: null });
     try {
       const response = await api.patch(`/projects/${id}`, updateData);
       const updatedProject = response.data.project;
@@ -89,17 +89,13 @@ const useProjectStore = create((set, get) => ({
         currentProject:
           state.currentProject?.id === id || state.currentProject?._id === id
             ? updatedProject
-            : state.currentProject,
-        isLoading: false,
+            : state.currentProject
       }));
       return { success: true, project: updatedProject };
     } catch (error) {
       const errorMessage =
         error.response?.data?.message || "프로젝트 저장에 실패했습니다.";
-      set({
-        error: errorMessage,
-        isLoading: false,
-      });
+      set({ error: errorMessage });
       return { success: false, error: errorMessage };
     }
   },

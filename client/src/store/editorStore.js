@@ -75,6 +75,12 @@ const useStore = create((set, get) => {
     target: [0, 2, 0],
     focalLength: 50,
   },
+  // OrbitControls 상태 저장 (프로젝트 로드 시 카메라 위치 복원용)
+  orbitControlState: {
+    cameraPosition: [0, 2, 8],
+    target: [0, 2, 0],
+    zoom: 1,
+  },
   aspectRatio: "16:9",
 
   // UI State
@@ -164,6 +170,27 @@ const useStore = create((set, get) => {
   updateCameraState: (property, value) =>
     set((state) => ({
       cameraState: { ...state.cameraState, [property]: value },
+    })),
+  // OrbitControls 상태 업데이트 (카메라 위치 저장)
+  updateOrbitControlState: (orbitState) =>
+    set({ orbitControlState: orbitState }),
+  // OrbitControls 위치를 Camera View로 설정 (Cinema 4D 스타일)
+  setOrbitToCameraView: () =>
+    set((state) => ({
+      orbitControlState: {
+        cameraPosition: state.cameraState.position,
+        target: state.cameraState.target,
+        zoom: 1,
+      },
+    })),
+  // Camera View 위치를 OrbitControls 위치로 설정
+  setCameraViewToOrbit: () =>
+    set((state) => ({
+      cameraState: {
+        ...state.cameraState,
+        position: state.orbitControlState.cameraPosition,
+        target: state.orbitControlState.target,
+      },
     })),
   setAspectRatio: (ratio) => set({ aspectRatio: ratio }),
   setTransformMode: (mode) => set({ transformMode: mode }),
@@ -343,6 +370,9 @@ const useStore = create((set, get) => {
       if (sceneData.cameraState) {
         updates.cameraState = sceneData.cameraState;
       }
+      if (sceneData.orbitControlState) {
+        updates.orbitControlState = sceneData.orbitControlState;
+      }
       if (sceneData.aspectRatio) {
         updates.aspectRatio = sceneData.aspectRatio;
       }
@@ -359,6 +389,7 @@ const useStore = create((set, get) => {
       lights: state.lights,
       diffusers: state.diffusers,
       cameraState: state.cameraState,
+      orbitControlState: state.orbitControlState,
       aspectRatio: state.aspectRatio,
     };
   },

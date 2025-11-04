@@ -1,5 +1,10 @@
 const DEFAULT_SCHEMA_VERSION = 2;
 const DEFAULT_ASPECT_RATIO = "16:9";
+const DEFAULT_ORBIT_CONTROL_STATE = {
+  cameraPosition: [0, 2, 8],
+  target: [0, 2, 0],
+  zoom: 1
+};
 
 const ensureVector3 = (value, fallback, dirtyRef) => {
   if (
@@ -47,6 +52,32 @@ const normalizeLight = (light, dirtyRef) => {
       normalized.height = 2;
       dirtyRef.dirty = true;
     }
+  }
+
+  return normalized;
+};
+
+const normalizeOrbitControlState = (orbitControlState, dirtyRef) => {
+  const createFallback = () => ({
+    cameraPosition: [...DEFAULT_ORBIT_CONTROL_STATE.cameraPosition],
+    target: [...DEFAULT_ORBIT_CONTROL_STATE.target],
+    zoom: DEFAULT_ORBIT_CONTROL_STATE.zoom
+  });
+
+  if (!orbitControlState || typeof orbitControlState !== "object") {
+    dirtyRef.dirty = true;
+    return createFallback();
+  }
+
+  const normalized = { ...orbitControlState };
+  const fallback = createFallback();
+
+  normalized.cameraPosition = ensureVector3(normalized.cameraPosition, fallback.cameraPosition, dirtyRef);
+  normalized.target = ensureVector3(normalized.target, fallback.target, dirtyRef);
+
+  if (typeof normalized.zoom !== "number" || Number.isNaN(normalized.zoom) || normalized.zoom <= 0) {
+    normalized.zoom = fallback.zoom;
+    dirtyRef.dirty = true;
   }
 
   return normalized;
@@ -145,6 +176,8 @@ const normalizeSceneData = (sceneData = {}) => {
     dirtyRef.dirty = true;
   }
 
+  normalized.orbitControlState = normalizeOrbitControlState(normalized.orbitControlState, dirtyRef);
+
   if (!Array.isArray(normalized.diffusers)) {
     normalized.diffusers = [];
     dirtyRef.dirty = true;
@@ -178,5 +211,6 @@ module.exports = {
   normalizeSceneData,
   applySceneDefaults,
   DEFAULT_SCHEMA_VERSION,
-  DEFAULT_ASPECT_RATIO
+  DEFAULT_ASPECT_RATIO,
+  DEFAULT_ORBIT_CONTROL_STATE
 };

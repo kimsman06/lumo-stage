@@ -2,13 +2,17 @@ const Project = require("../models/Project");
 const ShareToken = require("../models/ShareToken");
 const { normalizeSceneData, applySceneDefaults } = require("./scene.service");
 
-const toPlainProject = (projectDoc) => {
+const toPlainProject = (projectDoc, skipNormalize = false) => {
   const project = projectDoc.toObject({ versionKey: false });
 
   project.id = project._id.toString();
   project.owner = project.owner.toString();
-  const { data: normalizedScene } = normalizeSceneData(project.sceneData);
-  project.sceneData = normalizedScene;
+
+  if (!skipNormalize) {
+    const { data: normalizedScene } = normalizeSceneData(project.sceneData);
+    project.sceneData = normalizedScene;
+  }
+
   delete project._id;
 
   return project;
@@ -37,14 +41,18 @@ const buildShareStatus = async (projectId) => {
   };
 };
 
-const formatProject = async (projectDoc) => {
-  applySceneDefaults(projectDoc);
+const formatProject = async (projectDoc, skipDefaults = false) => {
+  // 저장 시 이미 정규화된 경우 다시 정규화하지 않음
+  if (!skipDefaults) {
+    applySceneDefaults(projectDoc);
 
-  if (projectDoc.isModified("sceneData")) {
-    await projectDoc.save();
+    if (projectDoc.isModified("sceneData")) {
+      await projectDoc.save();
+    }
   }
 
-  const project = toPlainProject(projectDoc);
+  // skipDefaults가 true면 toPlainProject에서도 정규화를 건너뜀
+  const project = toPlainProject(projectDoc, skipDefaults);
   const shareStatus = await buildShareStatus(projectDoc._id);
 
   return {
@@ -68,7 +76,8 @@ const createProject = async (data, ownerId) => {
     owner: ownerId
   });
 
-  return formatProject(project);
+  // create 시 이미 정규화했으므로, formatProject에서 다시 정규화하지 않음
+  return formatProject(project, true);
 };
 
 const findProjectForOwner = async (projectId, ownerId) => {
@@ -86,13 +95,15 @@ const findProjectForOwner = async (projectId, ownerId) => {
 const getProjectsByOwner = async (ownerId) => {
   const projects = await Project.find({ owner: ownerId }).sort({ createdAt: -1 });
 
-  return Promise.all(projects.map((project) => formatProject(project)));
+  // 저장 시 이미 정규화되었으므로, 조회 시에는 정규화를 건너뜀
+  return Promise.all(projects.map((project) => formatProject(project, true)));
 };
 
 const getProjectById = async (projectId, ownerId) => {
   const project = await findProjectForOwner(projectId, ownerId);
 
-  return formatProject(project);
+  // 저장 시 이미 정규화되었으므로, 조회 시에는 정규화를 건너뜀
+  return formatProject(project, true);
 };
 
 const updateProject = async (projectId, ownerId, updates) => {
@@ -116,12 +127,25 @@ const updateProject = async (projectId, ownerId, updates) => {
     payload.sceneData = normalizedScene;
   }
 
-  const project = await findProjectForOwner(projectId, ownerId);
+  const project = await Project.findOneAndUpdate(
+    { _id: projectId, owner: ownerId },
+    { $set: payload },
+    {
+      new: true,
+      runValidators: true,
+      overwrite: false,
+      setDefaultsOnInsert: false
+    }
+  );
 
-  Object.assign(project, payload);
-  await project.save();
+  if (!project) {
+    const error = new Error("프로젝트를 찾을 수 없습니다.");
+    error.status = 404;
+    throw error;
+  }
 
-  return formatProject(project);
+  // updateProject에서는 이미 정규화했으므로 formatProject에서 다시 정규화하지 않음
+  return formatProject(project, true);
 };
 
 const deleteProject = async (projectId, ownerId) => {

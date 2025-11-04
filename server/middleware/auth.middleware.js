@@ -2,18 +2,6 @@ const User = require("../models/User");
 
 const requireAuth = async (req, _res, next) => {
   try {
-    // 배포 환경 디버깅
-    console.log("[Auth] Request:", {
-      method: req.method,
-      url: req.url,
-      hasSession: !!req.session,
-      sessionId: req.session?.id,
-      userId: req.session?.userId,
-      hasCookie: !!req.cookies,
-      cookies: Object.keys(req.cookies || {}),
-      origin: req.get("origin")
-    });
-
     if (req.user) {
       next();
       return;
@@ -40,8 +28,6 @@ const requireAuth = async (req, _res, next) => {
       error.status = 401;
       throw error;
     }
-
-    console.log("[Auth] User authenticated:", user._id);
     req.user = user;
     next();
   } catch (error) {

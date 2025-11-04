@@ -29,14 +29,6 @@ app.set("trust proxy", 1);
 const PORT = process.env.PORT || 4000;
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN?.split(",").map((origin) => origin.trim());
 
-// 배포 환경 디버깅
-console.log("[Server] Environment:", {
-  NODE_ENV: process.env.NODE_ENV,
-  CLIENT_ORIGIN: CLIENT_ORIGIN || "not set (allowing all)",
-  PORT,
-  trustProxy: app.get("trust proxy")
-});
-
 const corsOptions = {
   origin: (origin, callback) => {
     // Origin이 없는 경우 (같은 도메인) 또는 허용된 origin인 경우
@@ -46,12 +38,10 @@ const corsOptions = {
 
     if (!CLIENT_ORIGIN) {
       // CLIENT_ORIGIN이 설정되지 않은 경우 모든 origin 허용 (개발 환경)
-      console.log("[CORS] Allowing origin (no CLIENT_ORIGIN set):", origin);
       return callback(null, true);
     }
 
     if (CLIENT_ORIGIN.includes(origin)) {
-      console.log("[CORS] Allowing origin:", origin);
       return callback(null, true);
     }
 
@@ -109,9 +99,7 @@ const connectDatabase = async () => {
 if (require.main === module) {
   connectDatabase()
     .then(() => {
-      app.listen(PORT, () => {
-        console.log(`Server listening on port ${PORT}`);
-      });
+      app.listen(PORT);
     })
     .catch((error) => {
       console.error("Failed to start server", error);

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import useStore from "../../store/editorStore";
 import { ASPECT_RATIO_OPTIONS } from "../../lib/aspectRatio";
+import CameraOrbitSync from "./CameraOrbitSync";
 
 const CameraControl = ({ readOnly = false }) => {
   const {
@@ -263,6 +264,11 @@ const CameraControl = ({ readOnly = false }) => {
           />
         </div>
       </div>
+
+      <Separator />
+
+      {/* Camera-Orbit Sync (Cinema 4D 스타일) */}
+      {!isDisabled && <CameraOrbitSync />}
     </div>
   );
 };

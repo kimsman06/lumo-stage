@@ -75,8 +75,6 @@ const getSessionCookieOptions = () => {
     maxAge: SESSION_MAX_AGE_MS
   };
 
-  console.log("[Session] Cookie options:", options);
-
   return options;
 };
 

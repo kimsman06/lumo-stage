@@ -3,6 +3,15 @@ const { z } = require("zod");
 const PROJECT_NAME_MAX = 120;
 const PROJECT_DESCRIPTION_MAX = 1000;
 
+// OrbitControlState 스키마
+const orbitControlStateSchema = z
+  .object({
+    cameraPosition: z.array(z.number()).length(3).optional(),
+    target: z.array(z.number()).length(3).optional(),
+    zoom: z.number().positive().optional()
+  })
+  .optional();
+
 const baseSceneDataSchema = z
   .object({
     schemaVersion: z.number().int().nonnegative().optional(),
@@ -10,7 +19,8 @@ const baseSceneDataSchema = z
     mannequins: z.array(z.any()).optional(),
     lights: z.array(z.any()).optional(),
     diffusers: z.array(z.any()).optional(),
-    cameraState: z.record(z.string(), z.any()).optional()
+    cameraState: z.record(z.string(), z.any()).optional(),
+    orbitControlState: orbitControlStateSchema
   })
   .catchall(z.any());
 

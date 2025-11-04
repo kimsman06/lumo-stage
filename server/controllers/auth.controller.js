@@ -100,13 +100,6 @@ const register = async (req, res, next) => {
     const user = await registerUser(req.body);
     await establishSession(req, user);
 
-    console.log("[Register] Session established:", {
-      sessionId: req.session.id,
-      userId: req.session.userId,
-      user: user.id,
-      cookie: req.session.cookie
-    });
-
     res.status(201).json({
       message: "회원가입이 완료되었습니다.",
       user
@@ -120,20 +113,6 @@ const login = async (req, res, next) => {
   try {
     const user = await loginUser(req.body);
     await establishSession(req, user);
-
-    console.log("[Login] Session established:", {
-      sessionId: req.session.id,
-      userId: req.session.userId,
-      user: user.id,
-      cookie: req.session.cookie
-    });
-
-    // 응답 헤더 확인용 로그
-    res.on('finish', () => {
-      console.log("[Login] Response headers:", {
-        setCookie: res.getHeader('set-cookie')
-      });
-    });
 
     res.status(200).json({
       message: "로그인에 성공했습니다.",

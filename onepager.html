@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LumoStage — Real-Time Lighting Studio Overview</title>
+
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Pretendard", "ui-sans-serif", "system-ui"],
+            },
+            colors: {
+              brand: {
+                primary: "#111827",
+                deep: "#0F172A",
+                soft: "#FACC15",
+                warm: "#FB923C",
+              },
+              neutral: {
+                base: "#4B5563",
+                light: "#F9FAFB",
+                line: "#E5E7EB",
+                ink: "#111827",
+              },
+            },
+            boxShadow: {
+              card: "0 24px 60px rgba(15, 23, 42, 0.12)",
+              soft: "0 30px 80px rgba(250, 204, 21, 0.25)",
+            },
+            borderRadius: {
+              card: "20px",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      body {
+        font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        background: radial-gradient(
+          120% 140% at 10% 10%,
+          rgba(250, 204, 21, 0.18) 0%,
+          rgba(249, 250, 251, 1) 55%,
+          rgba(249, 250, 251, 1) 100%
+        );
+        color: #1a1a1a;
+      }
+      .card {
+        border-radius: 20px;
+      }
+      .badge-letter {
+        letter-spacing: 0.12em;
+      }
+      pre {
+        white-space: pre-wrap;
+      }
+      .mermaid-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        padding: 1rem 0;
+      }
+      .mermaid {
+        width: 100%;
+        max-width: 780px;
+        margin: 0 auto;
+        font-size: 1.05rem;
+        line-height: 1.7;
+      }
+      .mermaid svg {
+        width: 100% !important;
+        height: auto !important;
+      }
+    </style>
+  </head>
+  <body>
+    <main
+      class="mx-auto flex min-h-screen container flex-col gap-16 px-8 py-16 lg:px-12"
+    >
+      <!-- Hero -->
+      <section
+        class="relative overflow-hidden rounded-[28px] bg-white/80 p-12 shadow-soft backdrop-blur"
+      >
+        <div
+          class="absolute -right-24 -top-24 h-56 w-56 rounded-full bg-brand-soft/30 blur-3xl"
+        ></div>
+        <div
+          class="absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-brand-soft/20 blur-3xl"
+        ></div>
+        <header class="relative z-10 flex flex-col gap-6">
+          <span
+            class="w-fit rounded-full border border-brand-soft/40 bg-brand-soft/15 px-5 py-2 text-sm font-semibold text-brand-deep"
+          >
+            ✨ Virtual Lighting Studio
+          </span>
+          <h1 class="text-4xl font-bold text-neutral-ink md:text-5xl">
+            촬영 전 완성도를 끌어올리는 실시간 라이팅, LumoStage
+          </h1>
+          <p class="max-w-3xl text-lg leading-snug text-neutral-base">
+            브라우저 한 탭에서 카메라와 조명을 즉시 시뮬레이션하고 팀과 함께
+            검토하는 프리비주얼라이제이션 허브로 촬영 전 의사결정을 쉽고 빠르게
+            만들어 줍니다.
+          </p>
+          <div class="flex flex-wrap gap-3 text-sm text-neutral-base">
+            <span
+              class="rounded-full border border-brand-soft/30 bg-brand-soft/15 px-4 py-2 font-semibold text-brand-deep"
+              >🧱 MERN · React 18 · Vite</span
+            >
+            <span
+              class="rounded-full border border-brand-soft/30 bg-brand-soft/15 px-4 py-2 font-semibold text-brand-deep"
+              >🎨 React Three Fiber · Drei</span
+            >
+            <span
+              class="rounded-full border border-brand-soft/30 bg-brand-soft/15 px-4 py-2 font-semibold text-brand-deep"
+              >🧩 Tailwind · shadcn/ui · Pretendard</span
+            >
+            <span
+              class="rounded-full border border-brand-soft/30 bg-brand-soft/15 px-4 py-2 font-semibold text-brand-deep"
+              >🌀 Zustand · Immer Undo/Redo</span
+            >
+          </div>
+        </header>
+      </section>
+
+      <!-- Market Research -->
+      <section class="card bg-white p-10 shadow-card">
+        <h2 class="text-3xl font-bold text-brand-primary">
+          📊 LumoStage가 필요한 시장 근거
+        </h2>
+        <div class="mt-6 grid gap-6 md:grid-cols-2">
+          <article
+            class="rounded-card border border-neutral-line bg-neutral-light p-6"
+          >
+            <p class="text-base font-semibold uppercase text-brand-deep">
+              시장 성장률
+            </p>
+            <div
+              class="mt-5 space-y-5 text-base leading-relaxed text-neutral-base"
+            >
+              <div
+                class="rounded-card border border-neutral-line/70 bg-white px-5 py-4"
+              >
+                <div class="flex items-baseline justify-between">
+                  <span class="text-base font-semibold text-brand-deep"
+                    >🌎 글로벌 3D 시뮬레이션 소프트웨어</span
+                  >
+                  <span class="text-2xl font-bold text-brand-primary"
+                    >약 206~235조 원</span
+                  >
+                </div>
+                <p class="mt-2 text-sm text-neutral-base/70">
+                  2024년 USD 147~168B × 환율 1달러≈1,400원 추정 [Market Research
+                  Future, 2024]
+                </p>
+              </div>
+              <div
+                class="rounded-card border border-neutral-line/70 bg-white px-5 py-4"
+              >
+                <div class="flex items-baseline justify-between">
+                  <span class="text-base font-semibold text-brand-deep"
+                    >📈 연평균 성장률 (2025~2033)</span
+                  >
+                  <span class="text-2xl font-bold text-brand-primary"
+                    >15.4~20.4%</span
+                  >
+                </div>
+                <p class="mt-2 text-sm text-neutral-base/70">
+                  2025~2033년 CAGR 전망 (Straits Research 2024) [Straits
+                  Research, 2024]
+                </p>
+                <div
+                  class="relative mt-3 h-2 w-full rounded-full bg-neutral-line/40"
+                >
+                  <div
+                    class="absolute inset-y-0 left-0 w-[70%] rounded-full bg-brand-soft/70"
+                  ></div>
+                </div>
+              </div>
+              <div
+                class="rounded-card border border-neutral-line/70 bg-white px-5 py-4"
+              >
+                <div class="flex items-baseline justify-between">
+                  <span class="text-base font-semibold text-brand-deep"
+                    >💡 조명 설계 소프트웨어</span
+                  >
+                  <span class="text-2xl font-bold text-brand-primary"
+                    >약 2.1조 → 3.1조 원</span
+                  >
+                </div>
+                <p class="mt-2 text-sm text-neutral-base/70">
+                  2024년 1.5B USD(약 2.1조 원) → 2029년 2.2B USD(약 3.1조 원)
+                  환산 (환율 1달러≈1,400원) [MarketInsights Report, 2024]
+                </p>
+                <div
+                  class="relative mt-3 h-2 w-full rounded-full bg-neutral-line/40"
+                >
+                  <div
+                    class="absolute inset-y-0 left-0 w-[65%] rounded-full bg-brand-soft/60"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </article>
+          <article
+            class="rounded-card border border-neutral-line bg-neutral-light p-6"
+          >
+            <p class="text-base font-semibold uppercase text-brand-deep">
+              핵심 사용자 세그먼트
+            </p>
+            <div
+              class="mt-5 space-y-4 text-base leading-relaxed text-neutral-base"
+            >
+              <div
+                class="rounded-card border border-neutral-line/70 bg-white px-5 py-4"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="text-base font-semibold text-brand-deep"
+                    >🎓 영화·영상 전공 학생</span
+                  >
+                  <span class="text-xl font-bold text-brand-primary"
+                    >약 50만 명</span
+                  >
+                </div>
+                <p class="mt-2 text-sm text-neutral-base/70">
+                  저비용·웹 기반 프리비주얼 환경 요구
+                </p>
+                <div
+                  class="relative mt-2 h-2 w-full rounded-full bg-neutral-line/40"
+                >
+                  <div
+                    class="absolute inset-y-0 left-0 w-[35%] rounded-full bg-brand-soft"
+                  ></div>
+                </div>
+              </div>
+              <div
+                class="rounded-card border border-neutral-line/70 bg-white px-5 py-4"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="text-base font-semibold text-brand-deep"
+                    >🎬 독립 제작자 · 촬영감독</span
+                  >
+                  <span class="text-xl font-bold text-brand-primary"
+                    >약 10만~25만 명</span
+                  >
+                </div>
+                <p class="mt-2 text-sm text-neutral-base/70">
+                  프로젝트당 10만~25만 달러(약 1.3~3.3억 원) 내 효율 최우선
+                </p>
+                <div
+                  class="relative mt-2 h-2 w-full rounded-full bg-neutral-line/40"
+                >
+                  <div
+                    class="absolute inset-y-0 left-0 w-[25%] rounded-full bg-brand-soft/80"
+                  ></div>
+                </div>
+              </div>
+              <div
+                class="rounded-card border border-neutral-line/70 bg-white px-5 py-4"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="text-base font-semibold text-brand-deep"
+                    >📹 전문 유튜브 크리에이터</span
+                  >
+                  <span class="text-xl font-bold text-brand-primary"
+                    >250만 명+</span
+                  >
+                </div>
+                <p class="mt-2 text-sm text-neutral-base/70">
+                  짧은 제작 주기 속 시네마틱 조명 시뮬레이션 수요
+                </p>
+                <div
+                  class="relative mt-2 h-2 w-full rounded-full bg-neutral-line/40"
+                >
+                  <div
+                    class="absolute inset-y-0 left-0 w-[90%] rounded-full bg-brand-soft/70"
+                  ></div>
+                </div>
+              </div>
+              <div
+                class="rounded-card border border-dashed border-brand-soft/40 bg-white px-5 py-4"
+              >
+                <p class="text-sm text-neutral-base/70">
+                  🌐 원격 협업과 웹 기반 CAD 채택률 상승이 브라우저형 조명
+                  솔루션 채택을 가속화하고 있습니다. [Research and Markets,
+                  2024]
+                </p>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+      <!-- Architecture Overview with Mermaid -->
+      <section class="card bg-white p-10 shadow-card">
+        <h2 class="text-3xl font-bold text-brand-primary">
+          🛠️ 시스템 아키텍처 스택
+        </h2>
+        <div class="mt-6 grid gap-6 lg:grid-cols-2">
+          <div
+            class="rounded-card border border-neutral-line bg-neutral-light p-6"
+          >
+            <h3 class="text-xl font-semibold text-neutral-ink">
+              기술 구성 요약
+            </h3>
+            <ul
+              class="mt-4 space-y-3 list-disc pl-5 text-base leading-relaxed text-neutral-base"
+            >
+              <li>
+                React 18 + Vite + R3F 조합으로 WebGL 뷰포트를 구축하고, Drei
+                헬퍼로 OrbitControls·TransformControls를 제공합니다.
+              </li>
+              <li>
+                Zustand + Immer 스토어가 `sceneData`와 UI 상태를 단일 소스로
+                관리하며, Snapshot 미들웨어로 Undo/Redo를 처리합니다.
+              </li>
+              <li>
+                shadcn/ui·Tailwind UI 시스템을 Hero·Dashboard·Editor 전반에
+                적용해 일관된 토큰과 접근성 규칙을 유지합니다.
+              </li>
+              <li>
+                커스텀 Light/Diffuser 컴포넌트와 GLTF 자산 로더가 Three.js
+                장면에 즉시 반영되고, orbit/camera 동기화로 동일한 시점을
+                복원합니다.
+              </li>
+              <li>
+                express-session 기반 인증과 프로젝트·씬 REST API가 동일
+                도메인에서 세션 쿠키를 발급해 보안 컨텍스트를 유지합니다.
+              </li>
+            </ul>
+            <h3 class="mt-8 text-xl font-semibold text-neutral-ink">
+              아키텍처 개괄
+            </h3>
+            <ul
+              class="mt-4 space-y-3 list-disc pl-5 text-base leading-relaxed text-neutral-base"
+            >
+              <li>
+                React UI → Zustand → Three.js 렌더러 흐름으로 사용자의 편집
+                이벤트가 실시간 장면 업데이트로 이어집니다.
+              </li>
+              <li>
+                REST API 클라이언트가 세션 쿠키를 포함해 Express 컨트롤러와
+                통신하며, 서비스 계층이 장면 데이터를 정규화합니다.
+              </li>
+              <li>
+                Express 서비스는 MongoDB·에셋 스토리지 계층을 추상화하고,
+                HDRI·GLTF 자산과 프로젝트 메타데이터를 일관되게 제공합니다.
+              </li>
+              <li>
+                Mermaid 다이어그램은 이러한 경로를 모듈 단위로 표현해 어느
+                계층에서 상태/자원이 이동하는지 한눈에 파악할 수 있게 합니다.
+              </li>
+            </ul>
+          </div>
+          <div class="rounded-card border border-neutral-line bg-white p-6">
+            <div class="mermaid-wrapper">
+              <pre class="mermaid">
+%%{init: {'flowchart': {'useMaxWidth': true, 'nodeSpacing': 120, 'rankSpacing': 90}}}%%
+flowchart TB
+  A[🎛️ React 18 UI Layer]
+  B[🧠 Zustand Scene Store]
+  C[🖥️ Three.js Renderer]
+  D[💡 Realtime Lighting Controls]
+  E[🔌 REST API Client]
+  F[🛡️ Express Service Layer]
+  G[🗄️ MongoDB Atlas]
+  H[🪣 Asset Storage]
+  I[🖼️ HDRI · GLTF Library]
+
+  A --> B
+  B --> C
+  C --> D
+  B --> E
+  E --> F
+  F --> G
+  F --> H
+  H --> I
+              </pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Product Feature Highlights -->
+      <section class="card bg-white p-10 shadow-card">
+        <h2 class="text-3xl font-bold text-brand-primary">
+          🧭 LumoStage 핵심 기능 안내
+        </h2>
+        <p class="mt-3 text-base leading-relaxed text-neutral-base">
+          프로젝트 허브, 실시간 라이팅 에디터, 공유 뷰어를 중심으로
+          LumoStage에서 바로 활용할 수 있는 대표 기능을 소개합니다.
+        </p>
+        <div class="mt-8 grid gap-6 lg:grid-cols-3">
+          <figure
+            class="rounded-card border border-neutral-line bg-neutral-light/60 p-4 shadow-sm"
+          >
+            <div
+              class="overflow-hidden rounded-[16px] border border-neutral-line/60"
+            >
+              <img
+                src="images/projects.png"
+                alt="프로젝트 대시보드에서 여러 씬을 관리하는 화면"
+                class="h-60 w-full object-cover object-top aspect-auto"
+                loading="lazy"
+              />
+            </div>
+            <figcaption class="mt-4 text-base font-semibold text-neutral-ink">
+              프로젝트 대시보드 & 씬 관리
+            </figcaption>
+            <p class="mt-2 text-sm leading-snug text-neutral-base">
+              프로젝트 생성부터 `sceneData` 저장, 공유 토큰 발급까지 한 화면에서
+              처리하고 최근 편집 이력으로 바로 이어갈 씬을 고릅니다.
+            </p>
+          </figure>
+          <figure
+            class="rounded-card border border-neutral-line bg-neutral-light/60 p-4 shadow-sm"
+          >
+            <div
+              class="overflow-hidden rounded-[16px] border border-neutral-line/60"
+            >
+              <img
+                src="images/editor.png"
+                alt="LumoStage 실시간 라이팅 에디터 화면"
+                class="h-60 w-full object-cover object-top aspect-auto"
+                loading="lazy"
+              />
+            </div>
+            <figcaption class="mt-4 text-base font-semibold text-neutral-ink">
+              3D 뷰포트 & 조명 컨트롤
+            </figcaption>
+            <p class="mt-2 text-sm leading-snug text-neutral-base">
+              OrbitControls로 씬을 탐색하면서 라이트·디퓨저·카메라를 조정하면
+              Three.js 캔버스가 즉시 반응해 노출과 그림자 변화를 확인합니다.
+            </p>
+          </figure>
+          <figure
+            class="rounded-card border border-neutral-line bg-neutral-light/60 p-4 shadow-sm"
+          >
+            <div
+              class="overflow-hidden rounded-[16px] border border-neutral-line/60"
+            >
+              <img
+                src="images/shared.png"
+                alt="공유 링크로 접속한 뷰어에서 씬을 미리보는 화면"
+                class="h-60 w-full object-cover object-top aspect-auto"
+                loading="lazy"
+              />
+            </div>
+            <figcaption class="mt-4 text-base font-semibold text-neutral-ink">
+              튜토리얼 & 협업 공유 뷰어
+            </figcaption>
+            <p class="mt-2 text-sm leading-snug text-neutral-base">
+              7단계 온보딩 튜토리얼과 PIN 보호 공유 뷰어로 첫 씬 제작과 팀
+              피드백 수집을 가볍게 만듭니다.
+            </p>
+          </figure>
+        </div>
+        <div
+          class="mt-10 overflow-hidden rounded-card border border-neutral-line bg-white"
+        >
+          <table class="min-w-full text-left text-sm text-neutral-base">
+            <thead
+              class="bg-neutral-light/80 text-xs uppercase text-neutral-base/80"
+            >
+              <tr>
+                <th class="px-5 py-3 font-semibold">우선순위</th>
+                <th class="px-5 py-3 font-semibold">추후 개발 예정 기능</th>
+                <th class="px-5 py-3 font-semibold">주요 내용</th>
+                <th class="px-5 py-3 font-semibold">예정 단계</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-neutral-line/60">
+              <tr>
+                <td class="px-5 py-4 font-semibold text-brand-deep">P0</td>
+                <td class="px-5 py-4 font-semibold text-neutral-ink">
+                  OrbitControl·카메라 동기화
+                </td>
+                <td class="px-5 py-4">
+                  `orbitControlState` 저장과 View↔Camera 전환, 온보딩 QA로 첫
+                  프로젝트 저장까지 10분 이내 경험을 보장합니다.
+                </td>
+                <td class="px-5 py-4 text-brand-deep">
+                  Phase 4 · 핵심 UX 개선
+                </td>
+              </tr>
+              <tr>
+                <td class="px-5 py-4 font-semibold text-brand-deep">P1</td>
+                <td class="px-5 py-4 font-semibold text-neutral-ink">
+                  HDRI & 오브젝트 확장
+                </td>
+                <td class="px-5 py-4">
+                  `BackgroundControl`·`ObjectsControl`로 HDRI 업로드, Ground
+                  Plane, GLTF 배치를 제공해 촬영 환경을 재현합니다.
+                </td>
+                <td class="px-5 py-4 text-brand-deep">
+                  Phase 5 · 씬 구성 확장
+                </td>
+              </tr>
+              <tr>
+                <td class="px-5 py-4 font-semibold text-brand-deep">P2</td>
+                <td class="px-5 py-4 font-semibold text-neutral-ink">
+                  전문가 UI & 스케일 도구
+                </td>
+                <td class="px-5 py-4">
+                  Outliner·Properties·Toolbar 리디자인과 R(Scale) 모드, 패널
+                  토글, Undo/Redo로 전문가 워크플로우를 보강합니다.
+                </td>
+                <td class="px-5 py-4 text-brand-deep">Phase 6 · 전문가 UI</td>
+              </tr>
+              <tr>
+                <td class="px-5 py-4 font-semibold text-brand-deep">P3</td>
+                <td class="px-5 py-4 font-semibold text-neutral-ink">
+                  Google Nano Banana 프리비주얼
+                </td>
+                <td class="px-5 py-4">
+                  PrevisualizationPanel에서 씬 캡처와 프롬프트를 제출하면 Bull
+                  Queue가 이미지를 생성해 프로젝트 히스토리에 저장합니다.
+                </td>
+                <td class="px-5 py-4 text-brand-deep">Phase 7 · AI 기능</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Data Model & API -->
+      <section class="grid gap-8 lg:grid-cols-[1fr_1fr]">
+        <article class="card bg-white p-8 shadow-card">
+          <h2 class="text-3xl font-bold text-brand-primary">
+            🗂️ 핵심 데이터 모델
+          </h2>
+          <p class="mt-3 text-base leading-snug text-neutral-base">
+            협업 중심 저장 구조를 위해 프로젝트, 씬, 라이트, 스냅샷 네 가지
+            컬렉션을 핵심으로 구성했습니다.
+          </p>
+          <div class="mt-5 space-y-4 text-base text-neutral-base">
+            <div
+              class="rounded-card border border-neutral-line bg-neutral-light px-6 py-4"
+            >
+              <strong>🗃️ projects</strong> — ownerId, 참가자 배열, 최신 씬 참조,
+              공유 토큰 설정.
+            </div>
+            <div
+              class="rounded-card border border-neutral-line bg-neutral-light px-6 py-4"
+            >
+              <strong>🖼️ scenes</strong> — projectId, 카메라 상태, 환경 옵션,
+              포함된 lightIds, 버전 번호.
+            </div>
+            <div
+              class="rounded-card border border-neutral-line bg-neutral-light px-6 py-4"
+            >
+              <strong>💡 lights</strong> — sceneId, 라이트 유형(spot · rect ·
+              area · point), 변환, 색상, 강도, 섀도 설정.
+            </div>
+            <div
+              class="rounded-card border border-neutral-line bg-neutral-light px-6 py-4"
+            >
+              <strong>🕒 snapshots</strong> — sceneId, 저장자, 전체 payload,
+              자동 저장 여부, 레이블.
+            </div>
+          </div>
+        </article>
+        <aside class="card bg-white p-8 shadow-card">
+          <h2 class="text-3xl font-bold text-brand-primary">
+            🔗 API 구조 요약
+          </h2>
+          <p class="mt-3 text-base leading-snug text-neutral-base">
+            Express 기반 REST API는 express-session + MongoDB 스토어로 세션을
+            관리하고 Zod 스키마로 요청을 검증하며, WebSocket 확장을 대비한
+            모듈형 컨트롤러/서비스 계층을 유지합니다.
+          </p>
+          <div class="mt-6 grid gap-4">
+            <div
+              class="rounded-card border border-neutral-line bg-neutral-light px-6 py-4 text-base text-neutral-base"
+            >
+              🔐 Authentication — GET /auth/csrf-token, POST /auth/register,
+              POST /auth/login, POST /auth/logout.
+            </div>
+            <div
+              class="rounded-card border border-neutral-line bg-neutral-light px-6 py-4 text-base text-neutral-base"
+            >
+              📁 Projects — GET /projects, POST /projects, GET
+              /projects/:id/scenes.
+            </div>
+            <div
+              class="rounded-card border border-neutral-line bg-neutral-light px-6 py-4 text-base text-neutral-base"
+            >
+              🎬 Scenes — POST /scenes, PATCH /scenes/:id, POST /snapshots.
+            </div>
+            <div
+              class="rounded-card border border-neutral-line bg-neutral-light px-6 py-4 text-base text-neutral-base"
+            >
+              💡 Lighting & Assets — PATCH /lights/:id, POST /lights/bulk, POST
+              /assets/upload.
+            </div>
+            <div
+              class="rounded-card border border-neutral-line bg-neutral-light px-6 py-4 text-base text-neutral-base"
+            >
+              🤝 Sharing — POST /share-tokens, GET /share/:token, POST
+              /feedback.
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <!-- Project Summary Card -->
+      <section
+        class="relative overflow-hidden rounded-[28px] bg-brand-primary text-white p-10 shadow-soft"
+      >
+        <div
+          class="absolute -right-20 -top-16 h-48 w-48 rounded-full bg-brand-soft/40 blur-3xl"
+        ></div>
+        <div
+          class="absolute -bottom-24 left-10 h-64 w-64 rounded-full bg-brand-soft/20 blur-3xl"
+        ></div>
+        <div class="relative z-10">
+          <div
+            class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
+          >
+            <h2 class="text-3xl font-bold">🌟 LumoStage 핵심 요약</h2>
+          </div>
+          <p class="mt-3 w-full text-base leading-relaxed text-white/90">
+            브라우저 한 탭에서 조명 프리비주얼과 협업을 연결하는 LumoStage는
+            MERN 스택과 Three.js를 결합해 실시간 3D 씬 편집, 세션 기반 협업,
+            향후 AI 프리비주얼까지 확장 가능한 프로덕션 허브를 지향합니다.
+          </p>
+          <div class="mt-8 grid gap-6 md:grid-cols-3">
+            <article
+              class="rounded-card border border-white/10 bg-gradient-to-br from-white/15 via-brand-soft/15 to-brand-warm/10 p-6 backdrop-blur-sm"
+            >
+              <h3 class="text-lg font-semibold text-white">제품 포지셔닝</h3>
+              <p class="mt-3 text-sm leading-relaxed text-white/85">
+                학생·독립 제작자·크리에이터를 겨냥한 웹 기반 조명 스튜디오로,
+                설치형 고가 툴 대비 가벼운 온보딩과 프로젝트 중심 협업 경험을
+                제공합니다.
+              </p>
+            </article>
+            <article
+              class="rounded-card border border-white/10 bg-gradient-to-br from-white/15 via-brand-warm/15 to-brand-soft/10 p-6 backdrop-blur-sm"
+            >
+              <h3 class="text-lg font-semibold text-white">핵심 역량</h3>
+              <p class="mt-3 text-sm leading-relaxed text-white/85">
+                React 18 + Zustand로 관리되는 실시간 3D 에디터, express-session
+                인증, HDRI·GLTF 확장을 염두에 둔 REST 아키텍처가 기반
+                워크플로우를 구성합니다.
+              </p>
+            </article>
+            <article
+              class="rounded-card border border-white/10 bg-gradient-to-br from-white/15 via-brand-soft/10 to-brand-warm/15 p-6 backdrop-blur-sm"
+            >
+              <h3 class="text-lg font-semibold text-white">향후 로드맵</h3>
+              <p class="mt-3 text-sm leading-relaxed text-white/85">
+                Phase 4~7에서 OrbitControl 안정화, HDRI·오브젝트 파이프라인,
+                전문가 UI, Google Nano Banana 기반 AI 프리비주얼 기능을
+                순차적으로 도입합니다.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="pb-10 text-sm text-neutral-base">
+        <div
+          class="h-px w-full bg-gradient-to-r from-transparent via-brand-soft/40 to-transparent"
+        ></div>
+        <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
+          <span class="font-semibold"
+            >LumoStage · Real-Time Lighting Sandbox</span
+          >
+        </div>
+      </footer>
+    </main>
+
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "base",
+        themeVariables: {
+          primaryColor: "#1F2937",
+          primaryTextColor: "#F9FAFB",
+          primaryBorderColor: "#FBBF24",
+          secondaryColor: "#111827",
+          secondaryTextColor: "#E5E7EB",
+          tertiaryColor: "#0F172A",
+          lineColor: "#FBBF24",
+          edgeLabelBackground: "#0F172A",
+        },
+        flowchart: {
+          useMaxWidth: true,
+          nodeSpacing: 120,
+          rankSpacing: 90,
+          htmlLabels: true,
+        },
+      });
+    </script>
+  </body>
+</html>

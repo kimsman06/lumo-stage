@@ -36,6 +36,7 @@ function Experience() {
   const selectedMannequinId = useStore((state) => state.selectedMannequinId);
   const mannequins = useStore((state) => state.mannequins);
   const aspectRatio = useStore((state) => state.aspectRatio);
+  const orbitControlState = useStore((state) => state.orbitControlState);
 
   // blockOriginalLight가 true인 디퓨저에 연결된 조명 ID 목록
   const blockedLightIds = useMemo(() => {
@@ -55,6 +56,9 @@ function Experience() {
   const setIsTransformInteracting = useStore(
     (state) => state.setIsTransformInteracting
   );
+  const updateOrbitControlState = useStore(
+    (state) => state.updateOrbitControlState
+  );
 
   const aspectRatioValue = useMemo(
     () => getAspectRatioValue(aspectRatio),
@@ -66,6 +70,7 @@ function Experience() {
       setIsTransformInteracting(false);
     };
   }, [setIsTransformInteracting]);
+
   const {
     handleLightPointerDown,
     handleStagePointerDown,
@@ -82,6 +87,7 @@ function Experience() {
   const draggingRef = useRef(false);
   const orbitControlsRef = useRef(null);
   const scissorActiveRef = useRef(false);
+  const isRestoringOrbitRef = useRef(false); // 복원 중 플래그
 
   const registerLightHandle = useCallback((id, node) => {
     if (!id) return;
@@ -142,6 +148,83 @@ function Experience() {
     }
     setIsTransformInteracting(false);
   }, [setIsTransformInteracting]);
+
+  // OrbitControls 상태 저장 (프로젝트 로드 시 카메라 위치 복원용)
+  useEffect(() => {
+    const orbit = orbitControlsRef.current;
+    if (!orbit) return;
+
+    let throttleTimer = null;
+
+    const handleOrbitChange = () => {
+      // 복원 중에는 상태 저장하지 않음 (무한 루프 방지)
+      if (isRestoringOrbitRef.current) {
+        return;
+      }
+
+      // 100ms throttle로 성능 최적화
+      if (throttleTimer) return;
+
+      throttleTimer = setTimeout(() => {
+        const newOrbitState = {
+          cameraPosition: [
+            camera.position.x,
+            camera.position.y,
+            camera.position.z,
+          ],
+          target: [orbit.target.x, orbit.target.y, orbit.target.z],
+          zoom: camera.zoom || 1,
+        };
+        updateOrbitControlState(newOrbitState);
+        throttleTimer = null;
+      }, 100);
+    };
+
+    orbit.addEventListener("change", handleOrbitChange);
+
+    return () => {
+      orbit.removeEventListener("change", handleOrbitChange);
+      if (throttleTimer) clearTimeout(throttleTimer);
+    };
+  }, [camera, updateOrbitControlState]);
+
+  // 프로젝트 로드 시 OrbitControls 위치 복원
+  // 의존성을 제거하고 프로젝트 ID 기반으로 한 번만 실행
+  const loadedProjectIdRef = useRef(null);
+
+  useEffect(() => {
+    const orbit = orbitControlsRef.current;
+
+    // 프로젝트 ID가 변경되었을 때만 복원 (무한 루프 방지)
+    const currentProjectId = window.location.pathname.split("/").pop();
+    if (loadedProjectIdRef.current === currentProjectId) {
+      return;
+    }
+
+    if (!orbit || !orbitControlState) {
+      console.warn("⚠️ OrbitControls 복원 실패:", {
+        orbit: orbit ? "exists" : "null",
+        orbitControlState: orbitControlState ? "exists" : "null",
+      });
+      return;
+    }
+
+    // 복원 중 플래그 설정 (change 이벤트 무시)
+    isRestoringOrbitRef.current = true;
+
+    // OrbitControls 위치 복원
+    camera.position.set(...orbitControlState.cameraPosition);
+    orbit.target.set(...orbitControlState.target);
+    camera.zoom = orbitControlState.zoom || 1;
+    camera.updateProjectionMatrix();
+    orbit.update();
+
+    // 복원 완료 후 플래그 해제 (다음 프레임에서)
+    requestAnimationFrame(() => {
+      isRestoringOrbitRef.current = false;
+      loadedProjectIdRef.current = currentProjectId;
+    });
+  }, [orbitControlState, camera]);
 
   // Determine which object to control
   const lightToControl = lightRefs.current.get(selectedLight);
@@ -368,7 +451,10 @@ function Experience() {
                   return <pointLight {...lightProps} />;
                 case "spot":
                   return (
-                    <spotLight {...lightProps} target={currentLightTargetObject} />
+                    <spotLight
+                      {...lightProps}
+                      target={currentLightTargetObject}
+                    />
                   );
                 case "directional":
                   return (
