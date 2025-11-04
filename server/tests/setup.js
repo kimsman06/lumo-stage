@@ -6,12 +6,18 @@ let mongoServer;
 jest.setTimeout(30000);
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const uri = mongoServer.getUri();
+  mongoServer = await MongoMemoryServer.create({
+    instance: {
+      dbName: "lumostage_test"
+    }
+  });
+
+  const uri = mongoServer.getUri("lumostage_test");
 
   process.env.MONGO_URI = uri;
   process.env.SESSION_SECRET = "test-session-secret";
   process.env.SESSION_COOKIE_NAME = "lumostage.sid";
+  process.env.NODE_ENV = "test";
 
   await mongoose.connect(uri);
 });

@@ -14,8 +14,20 @@ const EditorPanel = () => {
           <TabsList className="w-full justify-around h-10">
             <TabsTrigger value="lights" className="flex-1 py-3 h-full">조명</TabsTrigger>
             <TabsTrigger value="diffuser" className="flex-1 py-3 h-full">디퓨저</TabsTrigger>
-            <TabsTrigger value="mannequin" className="flex-1 py-3 h-full">마네킹</TabsTrigger>
-            <TabsTrigger value="camera" className="flex-1 py-3 h-full">카메라</TabsTrigger>
+            <TabsTrigger
+              value="mannequin"
+              className="flex-1 py-3 h-full"
+              data-tutorial="mannequin-tab"
+            >
+              마네킹
+            </TabsTrigger>
+            <TabsTrigger
+              value="camera"
+              className="flex-1 py-3 h-full"
+              data-tutorial="camera-tab"
+            >
+              카메라
+            </TabsTrigger>
           </TabsList>
         </div>
 

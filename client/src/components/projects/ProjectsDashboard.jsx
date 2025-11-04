@@ -8,12 +8,12 @@ import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
-  AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { CenteredAlertDialogContent } from "@/components/ui/centered-alert-dialog";
 
 import ProjectCard from "./ProjectCard";
 import CreateProjectDialog from "./CreateProjectDialog";
@@ -215,7 +215,7 @@ export default function ProjectsDashboard() {
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent>
+          <CenteredAlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>프로젝트 삭제</AlertDialogTitle>
               <AlertDialogDescription>
@@ -232,7 +232,7 @@ export default function ProjectsDashboard() {
                 삭제
               </AlertDialogAction>
             </AlertDialogFooter>
-          </AlertDialogContent>
+          </CenteredAlertDialogContent>
         </AlertDialog>
       </div>
     </>

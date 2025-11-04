@@ -1,47 +1,18 @@
-const request = require("supertest");
 const bcrypt = require("bcryptjs");
 const passport = require("passport");
-
-process.env.SESSION_SECRET = process.env.SESSION_SECRET || "test-session-secret";
-process.env.SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || "lumostage.sid";
+const request = require("supertest");
 
 const { app, connectDatabase } = require("../server");
 const User = require("../models/User");
 const { SESSION_COOKIE_NAME } = require("../config/session");
-
-const getCsrfToken = async (agent) => {
-  const response = await agent.get("/api/auth/csrf-token");
-  expect(response.statusCode).toBe(200);
-  expect(response.body).toHaveProperty("csrfToken");
-  return response.body.csrfToken;
-};
-
-const expectSessionCookie = (response) => {
-  const cookies = response.headers["set-cookie"] || [];
-
-  expect(
-    cookies.some((cookie) => cookie.startsWith(`${SESSION_COOKIE_NAME}=`))
-  ).toBe(true);
-};
-
-const registerThroughAgent = async (agent, overrides = {}) => {
-  const csrfToken = await getCsrfToken(agent);
-  const payload = {
-    username: overrides.username || "테스트유저",
-    email: overrides.email || "auth-user@example.com",
-    password: overrides.password || "password123"
-  };
-
-  const response = await agent.post("/api/auth/register").set("x-csrf-token", csrfToken).send(payload);
-
-  return { response, csrfToken, payload };
-};
-
-const loginThroughAgent = async (agent, credentials) => {
-  const csrfToken = await getCsrfToken(agent);
-
-  return agent.post("/api/auth/login").set("x-csrf-token", csrfToken).send(credentials);
-};
+const {
+  createAgent,
+  createAuthenticatedAgent,
+  expectSessionCookie,
+  getCsrfToken,
+  loginUser,
+  registerUser
+} = require("./utils/auth");
 
 describe("Auth API", () => {
   beforeAll(async () => {
@@ -50,7 +21,7 @@ describe("Auth API", () => {
 
   describe("GET /api/auth/csrf-token", () => {
     it("CSRF 토큰과 쿠키를 발급한다", async () => {
-      const agent = request.agent(app);
+      const agent = await createAgent();
       const response = await agent.get("/api/auth/csrf-token");
 
       expect(response.statusCode).toBe(200);
@@ -63,10 +34,11 @@ describe("Auth API", () => {
 
   describe("POST /api/auth/register", () => {
     it("새로운 사용자를 생성하고 세션 쿠키를 설정한다", async () => {
-      const agent = request.agent(app);
-      const { response, payload } = await registerThroughAgent(agent, {
-        email: "tester@example.com"
-      });
+      const agent = await createAgent();
+      const { response, payload } = await registerUser(
+        { email: "tester@example.com" },
+        { agent }
+      );
 
       expect(response.statusCode).toBe(201);
       expect(response.body).toMatchObject({
@@ -85,7 +57,7 @@ describe("Auth API", () => {
     });
 
     it("이미 존재하는 이메일로는 회원가입할 수 없다", async () => {
-      const agent = request.agent(app);
+      const agent = await createAgent();
       const email = "duplicate@example.com";
 
       await User.create({
@@ -129,7 +101,7 @@ describe("Auth API", () => {
     });
 
     it("Google 프로필로 로그인하면 사용자 생성 후 쿠키를 설정한다", async () => {
-      const agent = request.agent(app);
+      const agent = await createAgent();
       const mockProfile = {
         id: "google-123",
         displayName: "Google Tester",
@@ -162,7 +134,7 @@ describe("Auth API", () => {
     });
 
     it("Passport에서 오류가 발생하면 401 응답을 반환한다", async () => {
-      const agent = request.agent(app);
+      const agent = await createAgent();
 
       jest.spyOn(passport, "authenticate").mockImplementation((_strategy, _options, callback) => {
         return (_req, _res, _next) => {
@@ -193,9 +165,9 @@ describe("Auth API", () => {
     });
 
     it("올바른 자격 증명으로 로그인하면 세션 쿠키를 반환한다", async () => {
-      const agent = request.agent(app);
+      const agent = await createAgent();
 
-      const response = await loginThroughAgent(agent, {
+      const response = await loginUser(agent, {
         email,
         password
       });
@@ -211,9 +183,9 @@ describe("Auth API", () => {
     });
 
     it("잘못된 비밀번호로 로그인하면 401을 반환한다", async () => {
-      const agent = request.agent(app);
+      const agent = await createAgent();
 
-      const response = await loginThroughAgent(agent, {
+      const response = await loginUser(agent, {
         email,
         password: "wrong-password"
       });
@@ -225,9 +197,9 @@ describe("Auth API", () => {
     });
 
     it("존재하지 않는 이메일로 로그인하면 401을 반환한다", async () => {
-      const agent = request.agent(app);
+      const agent = await createAgent();
 
-      const response = await loginThroughAgent(agent, {
+      const response = await loginUser(agent, {
         email: "missing@example.com",
         password
       });
@@ -241,18 +213,16 @@ describe("Auth API", () => {
 
   describe("GET /api/auth/me", () => {
     it("세션이 있으면 사용자 정보를 반환한다", async () => {
-      const agent = request.agent(app);
-      const { response } = await registerThroughAgent(agent, {
+      const { agent, user } = await createAuthenticatedAgent({
         email: "me-user@example.com"
       });
-      expect(response.statusCode).toBe(201);
 
-      const meResponse = await agent.get("/api/auth/me");
+      const response = await agent.get("/api/auth/me");
 
-      expect(meResponse.statusCode).toBe(200);
-      expect(meResponse.body).toMatchObject({
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toMatchObject({
         user: {
-          email: "me-user@example.com"
+          email: user.email
         }
       });
     });
@@ -269,11 +239,9 @@ describe("Auth API", () => {
 
   describe("POST /api/auth/logout", () => {
     it("Refresh 토큰을 폐기하고 쿠키를 지운다", async () => {
-      const agent = request.agent(app);
-      const { response: registerResponse } = await registerThroughAgent(agent, {
+      const { agent } = await createAuthenticatedAgent({
         email: "logout-user@example.com"
       });
-      expect(registerResponse.statusCode).toBe(201);
 
       const csrfToken = await getCsrfToken(agent);
       const response = await agent.post("/api/auth/logout").set("x-csrf-token", csrfToken).send();
@@ -295,11 +263,9 @@ describe("Auth API", () => {
 
   describe("PATCH /api/auth/profile", () => {
     it("프로필을 업데이트할 수 있다", async () => {
-      const agent = request.agent(app);
-      const { response: registerResponse } = await registerThroughAgent(agent, {
+      const { agent } = await createAuthenticatedAgent({
         email: "profile-update@example.com"
       });
-      expect(registerResponse.statusCode).toBe(201);
 
       const csrfToken = await getCsrfToken(agent);
       const updateData = {
@@ -330,12 +296,10 @@ describe("Auth API", () => {
     });
 
     it("일부 필드만 업데이트할 수 있다", async () => {
-      const agent = request.agent(app);
-      const { response: registerResponse } = await registerThroughAgent(agent, {
+      const { agent } = await createAuthenticatedAgent({
         email: "partial-update@example.com",
         username: "원래이름"
       });
-      expect(registerResponse.statusCode).toBe(201);
 
       const csrfToken = await getCsrfToken(agent);
       const updateData = {
@@ -353,8 +317,7 @@ describe("Auth API", () => {
     });
 
     it("bio를 null로 설정하여 삭제할 수 있다", async () => {
-      const agent = request.agent(app);
-      await registerThroughAgent(agent, {
+      const { agent } = await createAuthenticatedAgent({
         email: "bio-delete@example.com"
       });
 
@@ -374,8 +337,7 @@ describe("Auth API", () => {
     });
 
     it("bio가 500자를 초과하면 400을 반환한다", async () => {
-      const agent = request.agent(app);
-      await registerThroughAgent(agent, {
+      const { agent } = await createAuthenticatedAgent({
         email: "bio-long@example.com"
       });
 
@@ -394,7 +356,7 @@ describe("Auth API", () => {
     });
 
     it("인증되지 않은 사용자는 프로필을 업데이트할 수 없다", async () => {
-      const agent = request.agent(app);
+      const agent = await createAgent();
       const csrfToken = await getCsrfToken(agent);
 
       const response = await agent

@@ -32,7 +32,12 @@ const AddLightPanel = ({
             <SelectItem value="directional">Directional Light</SelectItem>
           </SelectContent>
         </Select>
-        <Button className="" onClick={onAddLight} disabled={disabled}>
+        <Button
+          className=""
+          onClick={onAddLight}
+          disabled={disabled}
+          data-tutorial="add-light-button"
+        >
           추가
         </Button>
       </div>

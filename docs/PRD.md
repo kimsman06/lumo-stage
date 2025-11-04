@@ -452,7 +452,7 @@ objects: [
 - **3D**: Three.js, React-Three-Fiber, React-Three-Drei
 - **Styling**: Tailwind CSS, shadcn/ui
 - **Backend**: Node.js, Express
-- **Database**: MongoDB (Mongoose ODM 사용)
+- **Database**: MongoDB (Mongoose ODM 사용), Cloudflare R2 (gltf, hdri 파일 저장용)
 - **Authentication**: Session (express-session + MongoDB) + Passport.js (Google/Naver OAuth)
 - **File Upload**: Multer (추후 AWS S3 연동 고려)
 
@@ -802,19 +802,20 @@ flowchart LR
 
 1. **OrbitControl 카메라 위치 저장** (1-2일)
 
-   - [ ] `editorStore`에 `orbitControlState` 추가
-   - [ ] `Scene.jsx`에서 OrbitControls 이벤트 리스너 구현
-   - [ ] `getSceneData`/`loadSceneData`에 `orbitControlState` 포함
-   - [ ] 프로젝트 저장/로드 시 OrbitControls 위치 유지 테스트
+- [x] `editorStore`에 `orbitControlState` 추가
+- [x] `Scene.jsx`에서 OrbitControls 이벤트 리스너 구현
+- [x] `getSceneData`/`loadSceneData`에 `orbitControlState` 포함
+- [x] 프로젝트 저장/로드 시 OrbitControls 위치 유지 테스트
 
 2. **OrbitControl-카메라 시점 연결** (1-2일)
 
-   - [ ] `setOrbitToCameraView`, `setCameraViewToOrbit` 액션 추가
-   - [ ] `CameraOrbitSync.jsx` 컴포넌트 생성
-   - [ ] `EditorPanel.jsx`에 통합
-   - [ ] 버튼 클릭 시 시점 전환 테스트
+- [x] `setOrbitToCameraView`, `setCameraViewToOrbit` 액션 추가
+- [x] `CameraOrbitSync.jsx` 컴포넌트 생성
+- [x] `EditorPanel.jsx`에 통합
+- [x] 버튼 클릭 시 시점 전환 테스트
 
 3. **튜토리얼 시스템 구현** (3-4일)
+
    - [ ] `TutorialProvider` Context 및 상태 관리
    - [ ] Welcome Dialog (Step 1) 및 완료 Dialog (Step 7) 구현
    - [ ] Step 2-6 인터랙티브 단계 구현
@@ -825,12 +826,11 @@ flowchart LR
 
 4. **백엔드 서버 안정화 및 Scene 스키마 패치** (병행 2일)
 
-   - [ ] `server/models/Project.js`에 `orbitControlState` 스키마 추가 (target, position, zoom)
-   - [ ] `ProjectService.updateScene` 및 `createScene`에서 신규 필드 직렬화/검증
-   - [ ] `scene.service.normalizeSceneData()`에 orbit 기본값 및 역호환 로직 추가
-   - [ ] 공유 토큰 엔드포인트(`GET /api/share/:token`) 응답에 카메라/Orbit 상태 포함
-   - [ ] 기존 데이터 보정 스크립트 작성 (`scripts/migrate-orbit-state.js`) 및 실행 가이드 문서화
-   - [ ] 프로젝트 저장/로드 통합 테스트 추가 (`server/tests/integration/project.scene.spec.js`)
+- [x] `server/models/Project.js`에 `orbitControlState` 스키마 추가 (target, position, zoom)
+- [x] `ProjectService.updateScene` 및 `createScene`에서 신규 필드 직렬화/검증
+- [x] `scene.service.normalizeSceneData()`에 orbit 기본값 및 역호환 로직 추가
+- [x] 공유 토큰 엔드포인트(`GET /api/share/:token`) 응답에 카메라/Orbit 상태 포함
+- [ ] 프로젝트 저장/로드 통합 테스트 추가 (`server/tests/integration/project.scene.spec.js`)
 
 **성공 지표:**
 

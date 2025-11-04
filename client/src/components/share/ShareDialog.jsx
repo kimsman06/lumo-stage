@@ -11,12 +11,12 @@ import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
-  AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { CenteredAlertDialogContent } from "@/components/ui/centered-alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { RefreshCw, Link as LinkIcon } from "lucide-react";
@@ -281,7 +281,7 @@ export default function ShareDialog({ projectId, open, onOpenChange }) {
         open={showRegenerateDialog}
         onOpenChange={setShowRegenerateDialog}
       >
-        <AlertDialogContent>
+        <CenteredAlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>링크 재생성</AlertDialogTitle>
             <AlertDialogDescription>
@@ -297,7 +297,7 @@ export default function ShareDialog({ projectId, open, onOpenChange }) {
               {isLoading ? "재생성 중..." : "재생성"}
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogContent>
+        </CenteredAlertDialogContent>
       </AlertDialog>
     </>
   );

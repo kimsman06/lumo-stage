@@ -1,9 +1,9 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Eye, Edit, Copy } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
-import { SHARE_MESSAGES } from '@/lib/toast-messages';
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Eye, Edit, Copy } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { SHARE_MESSAGES } from "@/lib/toast-messages";
 
 /**
  * ViewerHeader - 공유 프로젝트 뷰어 헤더
@@ -27,8 +27,8 @@ export default function ViewerHeader({
 
   const handleOpenEditor = async () => {
     if (!isAuthenticated) {
-      toast.error('로그인이 필요합니다');
-      navigate('/login');
+      toast.error("로그인이 필요합니다");
+      navigate("/login");
       return;
     }
 
@@ -41,7 +41,7 @@ export default function ViewerHeader({
         // TODO: 프로젝트 복제 API 호출
         // const newProject = await cloneProject(sceneData);
         // navigate(`/editor/${newProject._id}`);
-        toast.info(SHARE_MESSAGES.comingSoon || '곧 출시됩니다');
+        toast.info(SHARE_MESSAGES.comingSoon || "곧 출시됩니다");
       } catch (error) {
         toast.error(SHARE_MESSAGES.projectCloneError);
       }
@@ -49,7 +49,7 @@ export default function ViewerHeader({
   };
 
   const getPermissionBadge = () => {
-    if (permission === 'view') {
+    if (permission === "view") {
       return (
         <Badge variant="outline" className="flex items-center gap-1">
           <Eye className="w-3 h-3" />
@@ -58,7 +58,10 @@ export default function ViewerHeader({
       );
     }
     return (
-      <Badge variant="outline" className="flex items-center gap-1 border-amber-500 text-amber-500">
+      <Badge
+        variant="outline"
+        className="flex items-center gap-1 border-amber-500 text-amber-500"
+      >
         <Edit className="w-3 h-3" />
         편집 가능
       </Badge>
@@ -76,7 +79,7 @@ export default function ViewerHeader({
 
     if (!isAuthenticated) {
       return (
-        <Button onClick={() => navigate('/login')} variant="outline" size="sm">
+        <Button onClick={() => navigate("/login")} variant="outline" size="sm">
           로그인하여 편집하기
         </Button>
       );
@@ -93,21 +96,22 @@ export default function ViewerHeader({
   return (
     <header className="h-14 border-b border-studio-800 bg-studio-900 flex items-center justify-between px-4">
       {/* 좌측: 로고 */}
-      <Link to="/" className="flex items-center gap-2 text-sm text-studio-300 hover:text-primary-500 transition-colors">
+      <Link
+        to="/"
+        className="flex items-center gap-2 text-sm text-studio-300 hover:text-primary-500 transition-colors"
+      >
         <ArrowLeft className="w-4 h-4" />
         <span className="font-semibold">LumoStage</span>
       </Link>
 
       {/* 중앙: 프로젝트 이름 + 권한 */}
       <div className="flex items-center gap-3">
-        <h1 className="text-lg font-semibold text-white">{projectName}</h1>
+        <h1 className="text-lg font-semibold text-black">{projectName}</h1>
         {getPermissionBadge()}
       </div>
 
       {/* 우측: 액션 버튼 */}
-      <div>
-        {getActionButton()}
-      </div>
+      <div>{getActionButton()}</div>
     </header>
   );
 }

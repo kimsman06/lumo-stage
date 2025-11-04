@@ -18,7 +18,7 @@ const {
   SESSION_MAX_AGE_MS,
   getSessionSecret,
   getMongoUri,
-  getSessionCookieOptions
+  getSessionCookieOptions,
 } = require("./config/session");
 
 const app = express();
@@ -27,7 +27,9 @@ const app = express();
 app.set("trust proxy", 1);
 
 const PORT = process.env.PORT || 4000;
-const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN?.split(",").map((origin) => origin.trim());
+const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN?.split(",").map((origin) =>
+  origin.trim()
+);
 
 const corsOptions = {
   origin: (origin, callback) => {
@@ -49,7 +51,7 @@ const corsOptions = {
     callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
-  exposedHeaders: ["set-cookie"]
+  exposedHeaders: ["set-cookie"],
 };
 
 app.use(cors(corsOptions));
@@ -65,9 +67,9 @@ app.use(
     store: MongoStore.create({
       mongoUrl: getMongoUri(),
       collectionName: SESSION_COLLECTION_NAME,
-      ttl: Math.ceil(SESSION_MAX_AGE_MS / 1000)
+      ttl: Math.ceil(SESSION_MAX_AGE_MS / 1000),
     }),
-    cookie: getSessionCookieOptions()
+    cookie: getSessionCookieOptions(),
   })
 );
 
@@ -80,7 +82,7 @@ app.use((err, _req, res, _next) => {
   console.error(err);
   const status = err.status || 500;
   res.status(status).json({
-    message: err.message || "Internal Server Error"
+    message: err.message || "Internal Server Error",
   });
 });
 
@@ -89,10 +91,11 @@ const connectDatabase = async () => {
     return;
   }
 
-  const mongoUri = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/lumostage";
+  const mongoUri =
+    process.env.MONGO_URI || "mongodb://127.0.0.1:27017/lumostage";
 
   await mongoose.connect(mongoUri, {
-    autoIndex: true
+    autoIndex: true,
   });
 };
 

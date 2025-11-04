@@ -9,6 +9,7 @@ import { Button } from '../components/ui/button';
 import toast from '../lib/toast';
 import ShareButton from '@/components/share/ShareButton';
 import ShareDialog from '@/components/share/ShareDialog';
+import { TutorialProvider, TutorialOverlay } from '@/components/tutorial';
 
 function EditorPage() {
   const { id } = useParams();
@@ -126,9 +127,10 @@ function EditorPage() {
   }
 
   return (
-    <div className="w-screen h-screen bg-black flex flex-col overflow-hidden">
-      {/* Header - 고정 높이, shrink 방지 */}
-      <div className="h-14 flex-shrink-0 bg-black/50 backdrop-blur-sm border-b border-white/10 flex items-center justify-between px-4">
+    <TutorialProvider>
+      <div className="w-screen h-screen bg-black flex flex-col overflow-hidden">
+        {/* Header - 고정 높이, shrink 방지 */}
+        <div className="h-14 flex-shrink-0 bg-black/50 backdrop-blur-sm border-b border-white/10 flex items-center justify-between px-4">
         <div className="flex items-center gap-4">
           <Link to="/projects">
             <Button variant="ghost" size="sm" className="text-white gap-2">
@@ -159,6 +161,7 @@ function EditorPage() {
             className="gap-2"
             size="sm"
             aria-label="프로젝트 저장"
+            data-tutorial="save-button"
           >
             <Save className="w-4 h-4" />
             {isSaving ? '저장 중...' : '저장'}
@@ -173,16 +176,20 @@ function EditorPage() {
         onOpenChange={setShareDialogOpen}
       />
 
-      {/* Editor Content - 남은 공간 모두 차지, overflow 방지 */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Scene - 남은 공간 모두 차지 */}
-        <div className="flex-1 overflow-hidden">
-          <Scene />
+        {/* Editor Content - 남은 공간 모두 차지, overflow 방지 */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Scene - 남은 공간 모두 차지 */}
+          <div className="flex-1 overflow-hidden">
+            <Scene />
+          </div>
+          {/* EditorPanel - 고정 너비 */}
+          <EditorPanel />
         </div>
-        {/* EditorPanel - 고정 너비 */}
-        <EditorPanel />
+
+        {/* Tutorial Overlay */}
+        <TutorialOverlay />
       </div>
-    </div>
+    </TutorialProvider>
   );
 }
 

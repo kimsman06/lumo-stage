@@ -30,7 +30,7 @@ const LightsControl = ({ readOnly = false }) => {
       
       <Separator />
 
-      <div className="space-y-4">
+      <div className="space-y-4" data-tutorial="light-controls">
         <h3 className="text-lg font-medium">조명 목록</h3>
         {lights.map((light) => (
           <LightCard
