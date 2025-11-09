@@ -4,6 +4,14 @@
 **최종 수정일:** 2025년 11월 3일
 **프로젝트 오너:** 김재준
 
+## 0. 진행 현황 요약 (2025-11-03)
+
+- **에디터 경험:** OrbitControls 상태 복원, 조명/디퓨저/마네킹/오브젝트 CRUD, 전문가용 Outliner·Properties·Toolbar, 튜토리얼 진입점까지 3D 편집 흐름을 일관된 Zustand 스토어로 연결했습니다.
+- **자산 파이프라인:** Cloudflare R2 기반 HDRI·GLB 업로드, Asset 모델 및 삭제 연동, Background/Diffuser/Object 패널과의 양방향 데이터 싱크를 완료했습니다.
+- **저장/공유:** 프로젝트 CRUD, Scene 정규화 스키마, 공유 토큰 발급, 저장 상태 피드백, 자동 저장 디바운스 로직을 백엔드 MVCS 레이어와 연계했습니다.
+- **UI/접근성:** shadcn/ui 기반 카드/폼 재정비, Letterbox/Aspect 가이드, 단축키 카드, 토스트 피드백, WCAG 2.1 AA 준수 항목 점검이 진행되었습니다.
+- **향후 중점:** Phase 5의 토스트 일관화, 접근성 폴리시 보강, 자동 저장 안정화, AI 프리비주얼 베타가 다음 사이클 범위입니다.
+
 ## 1. 개요 (Overview)
 
 ### 1.1. 프로젝트명: LumoStage
@@ -132,46 +140,10 @@ MERN 스택과 Three.js (React-Three-Fiber)를 활용하여, 사용자가 웹에
 
 ### 3.3. 사용자 여정 플로우
 
-```mermaid
-flowchart TD
-  subgraph A["1단계: 사용자 인증"]
-    A1[랜딩/로그인 페이지 방문]
-    A2{계정 보유 여부?}
-    A2 -- 아니오 --> A3[회원가입<br>POST /api/auth/register]
-    A3 --> A4[CSRF 토큰 발급<br>GET /api/auth/csrf-token]
-    A2 -- 예 --> A4
-    A4 --> A5[로그인 요청<br>POST /api/auth/login]
-    A5 --> A6[세션 쿠키 발급]
-  end
-
-  subgraph B["2단계: 프로젝트 대시보드"]
-    A6 --> B1[프로젝트 대시보드 진입<br>GET /api/projects]
-    B1 --> B2{기존 프로젝트 선택?}
-    B2 -- 예 --> B3[프로젝트 세부 정보 로드<br>GET /api/projects/:id]
-    B3 --> B4[`editorStore.loadSceneData`로<br>장면 복원]
-    B2 -- 신규 생성 --> B5[프로젝트 생성 모달<br>POST /api/projects]
-    B5 --> B6[새 프로젝트 초기 Scene 로드]
-  end
-
-  subgraph C["3단계: 튜토리얼 및 편집"]
-    B4 --> C1[첫 방문 여부 확인]
-    B6 --> C1
-    C1 -- 첫 방문 --> C2[튜토리얼 자동 시작]
-    C2 --> C3[단계별 기능 안내<br>7단계 완료]
-    C1 -- 재방문 --> C4["Scene 편집<br>(조명/배경/객체/카메라 조정)"]
-    C3 --> C4
-  end
-
-  subgraph D["4단계: 프로젝트 저장 및 공유"]
-    C4 --> D1[저장 클릭<br>PATCH /api/projects/:id]
-    D1 --> D2["정규화된 sceneData 저장<br>(orbitControl, background, objects 포함)"]
-    D2 --> D3[저장 성공 피드백<br>& 목록 갱신]
-    D3 --> D4{공유 필요?}
-    D4 -- 예 --> D5[공유 토큰 발급 요청<br>POST /api/share/projects/:id]
-    D5 --> D6[토큰 URL 복사<br>및 외부 공유]
-    D4 -- 아니오 --> D7[작업 종료<br>또는 다른 프로젝트 이동]
-  end
-```
+1. **인증 단계:** 사용자는 랜딩 → 회원가입/로그인 → CSRF 토큰 교환 → 세션 쿠키 발급 순으로 진입하며, 모든 인증 호출은 `/api/auth/*` 엔드포인트를 거칩니다.
+2. **대시보드 단계:** 로그인 후 `/api/projects` 목록을 받아 기존 프로젝트를 선택하거나 신규 모달에서 생성하고, 선택 시 `editorStore.loadSceneData`를 통해 씬이 복원됩니다.
+3. **온보딩/편집 단계:** 첫 방문 시 튜토리얼이 자동 재생되고, 재방문자는 즉시 조명·배경·객체·카메라를 편집할 수 있습니다. 단축키 카드와 단계별 안내는 TutorialProvider가 관리합니다.
+4. **저장/공유 단계:** 저장 버튼은 `sceneData` 정규화 → `PATCH /api/projects/:id` 호출 → 토스트 피드백을 발생시키며, 필요 시 `POST /api/share/projects/:id`로 공유 토큰을 발급해 외부와 URL을 공유합니다.
 
 ## 4. MVP 기능 명세 (MVP Feature Specifications)
 
@@ -278,19 +250,7 @@ flowchart TD
   - 색상 선택
   - 반사도(Reflectivity) 조절 (0~1)
 
-**상태 관리:**
-
-```javascript
-backgroundSettings: {
-  type: 'color' | 'hdri' | 'none',
-  color: '#1a1a1a',
-  hdriUrl: null,
-  hdriIntensity: 1,
-  showGround: true,
-  groundColor: '#808080',
-  groundReflectivity: 0.3,
-}
-```
+**상태 관리 핵심 항목:** `type`(color/hdri/none), `color`, `hdriUrl`, `hdriIntensity`, `showGround`, `groundColor`, `groundReflectivity` 값만 유지하며 `editorStore.backgroundSettings` 슬라이스에서 일괄 제어합니다.
 
 **파일 업로드:**
 
@@ -334,50 +294,13 @@ backgroundSettings: {
   - 선택된 객체는 Properties Panel에 속성 표시
   - 삭제, 복제 기능 (추후 확장)
 
-**상태 관리:**
-
-```javascript
-objects: [
-  {
-    id: "obj_abc123",
-    name: "Cube 1",
-    type: "primitive" | "gltf",
-    primitiveType: "box" | "sphere" | "cylinder" | "plane",
-    gltfUrl: null,
-    position: [0, 0, 0],
-    rotation: [0, 0, 0],
-    scale: [1, 1, 1],
-    material: { color, metalness, roughness },
-    castShadow: true,
-    receiveShadow: true,
-  },
-];
-```
+**상태 관리 핵심 항목:** `objects` 배열은 `id`, `name`, `type`(primitive/gltf), 프리미티브 유형, 자산 URL, `position/rotation/scale`, 머티리얼 프로퍼티, 그림자 토글을 포함하며 ObjectCard, TransformControls, SceneObject가 동일한 구조를 참조합니다.
 
 ### 4.9. 프로페셔널 UI 시스템 (전문가용)
 
 **목표:** Cinema 4D, Blender와 유사한 레이어 기반 UI로 전문가 워크플로우 지원.
 
-**레이아웃:**
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Header (h-14) - 고정                                        │
-│  [Logo] [프로젝트명] [저장] [공유] [도움말]                  │
-├────────────────┬───────────────────────┬─────────────────────┤
-│  Outliner      │   3D Viewport         │  Properties Panel   │
-│  (w-64, 256px) │   (flex-1)            │  (w-80, 320px)      │
-│                │                       │                     │
-│  ├ Scene       │   [OrbitControls]     │  ┌────────────────┐ │
-│  ├ Lights      │                       │  │ Transform      │ │
-│  ├ Mannequins  │                       │  │ Light Settings │ │
-│  ├ Objects     │                       │  │ Material       │ │
-│  └ Camera      │                       │  └────────────────┘ │
-├────────────────┴───────────────────────┴─────────────────────┤
-│  Toolbar (h-10) - 고정                                       │
-│  [W] [E] [Grid] [Snap] | [Undo] [Redo] | [?]                │
-└─────────────────────────────────────────────────────────────┘
-```
+**레이아웃:** 상단 고정 헤더(프로젝트 정보·저장/공유/도움말), 좌측 Outliner(256px 고정 폭), 중앙 3D Viewport, 우측 Properties Panel(320px), 하단 Toolbar(단축키·Undo/Redo)로 4분할 구조를 유지합니다.
 
 **주요 패널:**
 
@@ -474,33 +397,7 @@ objects: [
 
 ### 5.2. 아키텍처 및 컴포넌트 흐름
 
-LumoStage는 클라이언트-서버 구조 위에 Three.js 렌더링 계층을 올린 형태다. 프론트엔드는 Zustand 스토어를 단일 진실 소스로 사용하며, 서버는 MVCS 패턴으로 프로젝트 단위 데이터를 정규화한다.
-
-```
-App.jsx
-└─ Layout/AppLayout
-   └─ EditorPage (client/src/pages)
-      ├─ Scene.jsx ── subscribes editorStore
-      │   ├─ SceneBackground.jsx (신규)
-      │   ├─ Mannequin.jsx
-      │   ├─ SceneObject.jsx (신규 - 3D 오브젝트 렌더링)
-      │   ├─ Diffuser.jsx (동적 N개)
-      │   └─ Three.js Light meshes
-      ├─ EditorPanel.jsx (또는 Properties Panel) ── mutates editorStore/projectStore
-      │   ├─ LightsControl.jsx
-      │   │   └─ LightCard.jsx (목록)
-      │   ├─ DiffuserControl.jsx
-      │   ├─ CameraControl.jsx
-      │   ├─ CameraOrbitSync.jsx (신규)
-      │   ├─ BackgroundControl.jsx (신규)
-      │   ├─ ObjectsControl.jsx (신규)
-      │   │   └─ ObjectCard.jsx
-      │   └─ MannequinControl.jsx
-      ├─ Outliner.jsx (신규 - 좌측 패널)
-      ├─ Toolbar.jsx (신규 - 하단)
-      └─ TutorialProvider (신규)
-          └─ TutorialOverlay, TutorialDialog, TutorialTooltip, etc.
-```
+LumoStage는 클라이언트-서버 구조 위에 Three.js 렌더링 계층을 올린 형태다. 프론트엔드는 EditorPage 아래 Scene(Background/Mannequin/SceneObject/Diffuser), EditorPanel(Lights/Diffuser/Camera/Background/Objects/Mannequin Control), Outliner, Toolbar, TutorialProvider 컴포넌트로 구성되며, 모든 하위 요소가 `editorStore`와 `projectStore`를 단일 진실 소스로 사용한다. 서버는 MVCS 패턴으로 프로젝트 단위 데이터를 정규화한다.
 
 - `editorStore` (`client/src/store/editorStore.js`): 장면 상태(`lights`, `diffusers`, `mannequins`, `objects`, `backgroundSettings`, `cameraState`, `orbitControlState`, `aspectRatio`)와 편집 UI 상태(`selectedLight`, `selectedDiffuser`, `selectedObjectId`)를 관리한다.
 - `projectStore` (`client/src/store/projectStore.js`): 프로젝트 목록 및 단일 프로젝트 CRUD를 담당하고, `editorStore`와 연동해 저장/로드를 트리거한다.
@@ -508,68 +405,13 @@ App.jsx
 
 #### 시스템 플로우차트
 
-```mermaid
-flowchart TD
-    A[사용자 브라우저] -->|UI 상호작용| B[React 컴포넌트]
-    B -->|상태 조회/업데이트| C["editorStore (Zustand)"]
-    B -->|프로젝트 데이터 요청| D["projectStore (Zustand)"]
-    C -->|장면 데이터 전달| E[Scene.jsx / R3F]
-    E -->|Three.js 렌더링| F[WebGL 캔버스]
-    D -->|HTTP 요청| G[client/lib/api]
-    G -->|REST 호출| H[Express Routes]
-    H --> I[Controllers]
-    I --> J["Services (auth/project/session/scene/asset)"]
-    J --> K[Mongoose Models]
-    K --> L[MongoDB]
-    J -->|정규화된 sceneData| I
-    I -->|JSON 응답| G
-    G -->|데이터 반영| D
-    D -->|loadSceneData 호출| C
-```
+사용자 입력은 React 컴포넌트로 전달되고, 컴포넌트는 `editorStore`를 통해 실시간 3D 상태를, `projectStore`를 통해 서버 동기화를 진행합니다. Scene.jsx는 `editorStore`를 구독해 Three.js 렌더를 갱신하고, `projectStore`는 API 클라이언트를 통해 Express Routes → Controller → Service → Mongoose → MongoDB 순으로 요청을 위임한 뒤 응답을 다시 상태에 반영합니다.
 
 #### 컴포넌트·스토어·이벤트 흐름
 
-```mermaid
-flowchart LR
-    subgraph UI
-        A[EditorPanel / Properties]
-        B[Scene.jsx]
-        C[Outliner]
-        D[Toolbar]
-        E[BackgroundControl]
-        F[ObjectsControl]
-        G[TutorialProvider]
-    end
-
-    subgraph Stores
-        H[editorStore]
-        I[projectStore]
-    end
-
-    subgraph API
-        J[client/lib/api]
-        K[Express Routes]
-        L[Controllers]
-        M[Services]
-        N[(MongoDB)]
-    end
-
-    A -->|UI 상태 변경| H
-    C -->|객체 선택| H
-    D -->|Transform 모드 전환| H
-    E -->|배경 설정 변경| H
-    F -->|오브젝트 추가/삭제| H
-    G -->|튜토리얼 단계 제어| H
-    B -->|TransformControls 이벤트| H
-    B -->|씬 렌더링 구독| H
-
-    A -->|프로젝트 저장 요청| I
-    I -->|getSceneData 호출| H
-    I -->|HTTP 요청| J
-    J --> K --> L --> M --> N
-    M -->|정규화된 sceneData| L
-    L -->|응답| J -->|projects 업데이트| I -->|loadSceneData| H
-```
+- 편집 계층(EditorPanel/Outliner/Toolbar/Background/Object Controls)은 `editorStore` 액션을 호출해 조명·객체·카메라 상태를 갱신하며, Scene.jsx는 동일한 스토어를 구독해 TransformControls 이벤트를 반영합니다.
+- 프로젝트 계층(ProjectStore)은 저장·로드 시 `editorStore.getSceneData`를 통해 최신 씬 스냅샷을 수집하고, API 클라이언트를 거쳐 Express → Controller → Service → MongoDB 순으로 전달합니다.
+- 서버 응답이 돌아오면 `projectStore`는 목록/단일 상태를 갱신하고, 필요한 경우 `loadSceneData`를 다시 호출해 클라이언트와 서버 상태를 동기화합니다.
 
 ### 5.3. 데이터 스키마
 
@@ -587,156 +429,17 @@ flowchart LR
 | `backgroundSettings` | `Object`        | 배경 타입, 색상, HDRI URL, Ground plane 설정 (신규)                    |
 | `objects`            | `Array<Object>` | 3D 오브젝트(프리미티브/GLTF) 목록 - 위치, 회전, 스케일, 재질 등 (신규) |
 
-#### Scene Data 예시
+#### Scene Data 예시 개요
 
-```json
-{
-  "schemaVersion": 2,
-  "aspectRatio": "16:9",
-  "mannequins": [
-    {
-      "id": "man-123",
-      "position": [0, -1.5, 0],
-      "pose": { "waist_00": { "x": 0, "y": 0, "z": 0 } }
-    }
-  ],
-  "lights": [
-    {
-      "id": "light-abc",
-      "type": "spot",
-      "position": [5, 7, 5],
-      "color": "#ffffff",
-      "intensity": 15,
-      "targetPosition": [0, 1, 0]
-    }
-  ],
-  "diffusers": [
-    {
-      "id": "diffuser-xyz",
-      "position": [0, 2, 2],
-      "rotation": [0, 0, 0],
-      "scale": [2, 2, 1],
-      "diffuseColor": "#ffffff",
-      "opacity": 0.5,
-      "transmission": 0.9,
-      "thickness": 0.5,
-      "roughness": 0.8,
-      "useShader": true,
-      "enableSecondaryLight": true,
-      "secondaryLightIntensity": 5,
-      "linkedLightIds": ["light-abc"],
-      "blockOriginalLight": false
-    }
-  ],
-  "cameraState": {
-    "position": [0, 2, 8],
-    "target": [0, 2, 0],
-    "focalLength": 50
-  },
-  "orbitControlState": {
-    "cameraPosition": [0, 3, 10],
-    "target": [0, 1, 0],
-    "zoom": 1
-  },
-  "backgroundSettings": {
-    "type": "hdri",
-    "color": "#1a1a1a",
-    "hdriUrl": "/uploads/hdri/sunset.hdr",
-    "hdriIntensity": 1.2,
-    "showGround": true,
-    "groundColor": "#808080",
-    "groundReflectivity": 0.3
-  },
-  "objects": [
-    {
-      "id": "obj-123",
-      "name": "Cube 1",
-      "type": "primitive",
-      "primitiveType": "box",
-      "gltfUrl": null,
-      "position": [2, 0, 0],
-      "rotation": [0, 0.5, 0],
-      "scale": [1, 1, 1],
-      "material": {
-        "color": "#ff5733",
-        "metalness": 0.5,
-        "roughness": 0.5
-      },
-      "castShadow": true,
-      "receiveShadow": true
-    },
-    {
-      "id": "obj-456",
-      "name": "Chair Model",
-      "type": "gltf",
-      "primitiveType": null,
-      "gltfUrl": "/uploads/gltf/chair.glb",
-      "position": [-2, 0, 0],
-      "rotation": [0, 0, 0],
-      "scale": [1, 1, 1],
-      "material": {},
-      "castShadow": true,
-      "receiveShadow": true
-    }
-  ]
-}
-```
+Scene JSON은 위 표에 기재된 필드만 포함하며, 각 배열 항목은 고유 ID·변환값·렌더링 속성으로 구성됩니다. `schemaVersion`으로 마이그레이션을 추적하고, OrbitControls/카메라 상태·배경 설정·자산 참조 URL을 함께 저장해 어떤 장치에서도 동일한 뷰포트와 조명 구성을 재현합니다.
 
 #### 백엔드 데이터 모델
 
-**User Model:**
+**User Model:** `username`, `email`, `password(bcrypt)`, `googleId`, `naverId` 필드로 구성되며 Passport 전략별 식별자를 저장합니다.
 
-```javascript
-{
-  username: String,
-  email: String,
-  password: String (bcrypt),
-  googleId: String,
-  naverId: String,
-}
-```
+**Project Model:** `name`, `description`, `owner(ObjectId)`, `sceneData`, `thumbnail`, `createdAt`, `updatedAt`를 포함하며 프로젝트별 Scene 스냅샷을 보관합니다.
 
-**Project Model:**
-
-```javascript
-{
-  name: String,
-  description: String,
-  owner: ObjectId (User 참조),
-  sceneData: Object (위 Scene Data 구조),
-  thumbnail: String (이미지 URL),
-  createdAt: Date,
-  updatedAt: Date,
-}
-```
-
-**Asset Model (신규 - Phase 5에서 구현 완료):**
-
-```javascript
-{
-  owner: ObjectId,              // User 참조 (required, indexed)
-  projectId: ObjectId,          // Project 참조 (optional - null이면 공용 라이브러리)
-  type: String,                 // 'hdri' | 'gltf' | 'image' (required, indexed)
-  fileName: String,             // 원본 파일명 (required)
-  fileKey: String,              // R2 오브젝트 키 (required, unique)
-                                // 형식: {type}/{ownerId}/{projectId}/{timestamp}-{random}.{ext}
-                                // 예: hdri/507f1f77bcf86cd799439011/library/1699123456789-a3b2c1.hdr
-  fileUrl: String,              // 공개 URL (required)
-                                // 예: https://{accountId}.r2.cloudflarestorage.com/lumo-stage/...
-  fileSize: Number,             // 파일 크기 (바이트 단위, required)
-  mimeType: String,             // MIME 타입 (required)
-                                // HDRI: image/vnd.radiance, image/x-exr
-                                // GLTF: model/gltf-binary
-  metadata: {
-    width: Number,              // HDRI 이미지 너비 (optional)
-    height: Number,             // HDRI 이미지 높이 (optional)
-    compression: String,        // GLTF 압축 방식 (optional: 'draco', null)
-  },
-  storageProvider: String,      // 'r2' (default) - 향후 다른 스토리지 지원 시 확장 가능
-  uploadedAt: Date,             // 생성 시간 (timestamps.createdAt)
-  updatedAt: Date,              // 수정 시간 (timestamps.updatedAt)
-}
-```
+**Asset Model (Phase 5 완료):** `owner`, `projectId`, `type(hdri/gltf/image)`, `fileName`, `fileKey`, `fileUrl`, `fileSize`, `mimeType`, `metadata(width/height/compression)`, `storageProvider`, `uploadedAt`, `updatedAt` 필드로 Cloudflare R2 객체와 메타데이터를 연결합니다.
 
 **인덱스:**
 - `{ owner: 1, uploadedAt: -1 }` - 사용자별 최근 업로드 조회
@@ -759,32 +462,7 @@ flowchart LR
   - 바이너리 포맷으로 파일 크기 최적화 및 로딩 속도 향상
   - 텍스처 포함 단일 파일 업로드로 관리 간편화
 
-**Previsualization Model (신규 - 추후 구현):**
-
-```javascript
-{
-  owner: ObjectId,              // User 참조
-  project: ObjectId,            // Project 참조 (optional)
-  sceneRenderUrl: String,       // 3D 씬 렌더링 이미지 URL
-  prompt: String,               // 사용자 프롬프트 (maxlength: 1000)
-  negativePrompt: String,       // 네거티브 프롬프트
-  generatedImageUrl: String,    // AI 생성 실사 이미지 URL
-  generationParams: {
-    model: String,              // 'nano-banana-v1'
-    steps: Number,
-    guidanceScale: Number,
-    strength: Number            // 조명 구도 유지 강도
-  },
-  status: String,               // 'pending' | 'processing' | 'completed' | 'failed'
-  errorMessage: String,
-  metadata: {
-    processingTime: Number,
-    apiProvider: String
-  },
-  createdAt: Date,
-  updatedAt: Date
-}
-```
+**Previsualization Model (추후):** `owner`, `project`, `sceneRenderUrl`, `prompt/negativePrompt`, `generatedImageUrl`, `generationParams(model/steps/guidance/strength)`, `status`, `errorMessage`, `metadata(processingTime/apiProvider)`, `createdAt`, `updatedAt`를 저장해 AI 생성 이력을 추적합니다.
 
 ### 5.4. API 구조
 
@@ -1042,23 +720,23 @@ flowchart LR
 
 **세부 계획:**
 
-1. **Outliner 구현** (2주, 4-5주차)
+1. **Outliner 구현** (2주, 4-5주차) ✅ 완료
 
-   - [ ] 좌측 Outliner 패널 레이아웃 (256px 너비)
-   - [ ] 계층 트리 뷰 (Custom TreeView 컴포넌트)
-   - [ ] 객체 선택 기능 (Zustand store 연동)
-   - [ ] 가시성 토글 아이콘 (눈 아이콘)
-   - [ ] 우클릭 컨텍스트 메뉴 (복사, 삭제, 이름 변경)
-   - [ ] 검색 및 필터링
+   - ✅ 좌측 Outliner 패널 레이아웃 (256px 너비)
+   - ✅ 계층 트리 뷰 (Custom TreeView 컴포넌트)
+   - ✅ 객체 선택 기능 (Zustand store 연동)
+   - ✅ 가시성 토글 아이콘 (눈 아이콘)
+   - ✅ 우클릭 컨텍스트 메뉴 (삭제, 이름 변경)
+   - ✅ 검색 및 필터링
 
-2. **Properties Panel 전환** (3주, 6-8주차)
+2. **Properties Panel 전환** (3주, 6-8주차) ✅ 완료
 
-   - [ ] 우측 Properties Panel 레이아웃 (320px 너비)
-   - [ ] Accordion 기반 섹션 구조 (Transform, Light Settings, Material, Shadow)
-   - [ ] 인라인 편집 (객체 이름)
-   - [ ] 숫자 입력 + 슬라이더 병행
-   - [ ] 색상 피커 Popover 개선
-   - [ ] 기존 EditorPanel 탭 시스템 제거
+   - ✅ 우측 Properties Panel 레이아웃 (480px 너비, Outliner와 함께)
+   - ✅ Tabs 기반 섹션 구조 (Transform, Properties)
+   - ✅ Outliner에서 인라인 이름 편집
+   - ✅ Input 기반 숫자 입력 (슬라이더 제거, 소수점 지원)
+   - ✅ Light Target Position 컨트롤 추가
+   - ✅ 기존 EditorPanel 제거
 
 3. **Toolbar 및 Undo/Redo** (1주, 9주차)
 

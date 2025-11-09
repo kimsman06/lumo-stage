@@ -260,6 +260,11 @@ npx shadcn@latest add form toast alert-dialog
    - ✅ 키보드 네비게이션 기본 지원
    - ⏳ aria-label 추가 필요 (일부만 적용됨)
 
+5. ✅ **환경 설정 및 튜토리얼 동기화**
+   - ✅ `backgroundSettings` 상태를 추가해 Scene 저장/로드 파이프라인과 연결
+   - ✅ Properties 패널에 Environment 섹션(HDRI 강도, Ground 색상/반사도) 배치
+   - ✅ ToolPanel·Outliner 기반 레이아웃에 맞춰 튜토리얼 타겟/카피/단축키 안내 업데이트
+
 ---
 
 ### **Phase 5 추가: Asset 관리 시스템 (2025-11-09 업데이트)** ✅ 완료
