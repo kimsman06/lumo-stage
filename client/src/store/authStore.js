@@ -7,6 +7,7 @@ const useAuthStore = create((set) => ({
   isAuthenticated: false,
   isLoading: false,
   error: null,
+  hasInitialized: false,
 
   // --- ACTIONS ---
 
@@ -20,6 +21,7 @@ const useAuthStore = create((set) => ({
         user: response.data.user,
         isAuthenticated: true,
         isLoading: false,
+        hasInitialized: true,
       });
     } catch (error) {
       // 인증 실패 시 (토큰 없음 또는 만료)
@@ -28,6 +30,7 @@ const useAuthStore = create((set) => ({
         isAuthenticated: false,
         isLoading: false,
         error: null, // 초기 체크에서는 에러를 표시하지 않음
+        hasInitialized: true,
       });
     }
   },
@@ -41,6 +44,7 @@ const useAuthStore = create((set) => ({
         user: response.data.user,
         isAuthenticated: true,
         isLoading: false,
+        hasInitialized: true,
       });
       resetCsrfToken();
       return { success: true, user: response.data.user };
@@ -64,6 +68,7 @@ const useAuthStore = create((set) => ({
         user: response.data.user,
         isAuthenticated: true,
         isLoading: false,
+        hasInitialized: true,
       });
       resetCsrfToken();
       return { success: true, user: response.data.user };
@@ -87,6 +92,7 @@ const useAuthStore = create((set) => ({
         user: null,
         isAuthenticated: false,
         isLoading: false,
+        hasInitialized: true,
       });
       resetCsrfToken();
       return { success: true };

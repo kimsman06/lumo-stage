@@ -1,17 +1,12 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Navigate } from "react-router-dom";
 import useAuthStore from "../../store/authStore";
 
 export default function PrivateRoute({ children }) {
-  const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
-
-  // 앱 시작 시 인증 상태 확인
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+  const { isAuthenticated, isLoading, hasInitialized } = useAuthStore();
 
   // 로딩 중일 때 스피너 표시
-  if (isLoading) {
+  if (!hasInitialized || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">

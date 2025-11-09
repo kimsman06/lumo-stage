@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
 import HomePage from "./pages/HomePage";
@@ -13,10 +13,13 @@ import useAuthStore from "./store/authStore";
 
 function App() {
   const checkAuth = useAuthStore((state) => state.checkAuth);
+  const hasInitialized = useAuthStore((state) => state.hasInitialized);
 
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+  useLayoutEffect(() => {
+    if (!hasInitialized) {
+      checkAuth();
+    }
+  }, [checkAuth, hasInitialized]);
 
   return (
     <>
