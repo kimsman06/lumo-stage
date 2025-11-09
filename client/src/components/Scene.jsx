@@ -318,11 +318,19 @@ function Experience() {
   useEffect(() => {
     const transformCtrl = transformControlsRef.current;
     if (!transformCtrl) return;
-    if (objectToControl) {
-      transformCtrl.attach(objectToControl);
-    } else {
+
+    if (!objectToControl || !objectToControl.parent) {
       transformCtrl.detach();
+      return;
     }
+
+    transformCtrl.attach(objectToControl);
+
+    return () => {
+      if (transformCtrl.object === objectToControl) {
+        transformCtrl.detach();
+      }
+    };
   }, [objectToControl]);
 
   // viewMode 변경 시 OrbitControls 상태 동기화

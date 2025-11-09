@@ -294,8 +294,15 @@ backgroundSettings: {
 
 **파일 업로드:**
 
-- 클라이언트에서 FileReader로 로컬 읽기 → Blob URL 생성
-- 추후 서버 파일 업로드 API로 확장 (AWS S3 등)
+- **클라이언트**: 파일 선택 → FormData로 서버에 업로드 요청
+- **서버 처리 흐름**:
+  1. Multer로 파일 수신 (메모리 버퍼 또는 임시 디스크)
+  2. 파일 검증 (형식: .hdr, .exr / 크기: 최대 50MB)
+  3. Cloudflare R2에 업로드 (S3 호환 API 사용)
+  4. 공개 URL 생성 및 Asset 모델에 저장
+  5. URL을 클라이언트에 반환 → `backgroundSettings.hdriUrl`에 저장
+- **R2 버킷 구조**: `lumo-stage-assets/hdri/{userId}/{projectId}/{fileName}`
+- **파일 삭제**: 프로젝트 삭제 시 연결된 HDRI 파일도 R2에서 삭제 (cascade)
 
 ### 4.8. 3D Object 관리 시스템
 
@@ -307,8 +314,15 @@ backgroundSettings: {
   - Cube, Sphere, Cylinder, Plane
   - 버튼 클릭으로 즉시 추가
 - **GLTF/GLB 파일 업로드:**
-  - 파일 선택 → 서버 업로드 → URL 반환 → 씬에 배치
-  - 또는 로컬 Blob URL 사용 (초기 버전)
+  - **클라이언트**: 파일 선택 → FormData로 서버에 업로드 요청
+  - **서버 처리 흐름**:
+    1. Multer로 파일 수신
+    2. 파일 검증 (형식: .gltf, .glb / 크기: 최대 100MB)
+    3. Cloudflare R2에 업로드
+    4. 공개 URL 생성 및 Asset 모델에 저장
+    5. URL을 클라이언트에 반환 → 씬에 배치
+  - **R2 버킷 구조**: `lumo-stage-assets/gltf/{userId}/{projectId}/{fileName}`
+  - **최적화**: Draco 압축 권장, 파일 크기 경고 표시
 - **Transform 조작:**
   - Position, Rotation, Scale 슬라이더
   - TransformControls와 연동 (W: 이동, E: 회전)
@@ -453,9 +467,10 @@ objects: [
 - **3D**: Three.js, React-Three-Fiber, React-Three-Drei
 - **Styling**: Tailwind CSS, shadcn/ui
 - **Backend**: Node.js, Express
-- **Database**: MongoDB (Mongoose ODM 사용), Cloudflare R2 (gltf, hdri 파일 저장용)
+- **Database**: MongoDB (Mongoose ODM 사용)
+- **File Storage**: Cloudflare R2 (GLTF, HDRI 파일 저장용)
 - **Authentication**: Session (express-session + MongoDB) + Passport.js (Google/Naver OAuth)
-- **File Upload**: Multer (추후 AWS S3 연동 고려)
+- **File Upload**: Multer + @aws-sdk/client-s3 (S3 호환 API로 Cloudflare R2 연동)
 
 ### 5.2. 아키텍처 및 컴포넌트 흐름
 
@@ -695,18 +710,36 @@ flowchart LR
 }
 ```
 
-**Asset Model (신규 - 추후 구현):**
+**Asset Model (신규 - Phase 5에서 구현):**
 
 ```javascript
 {
-  projectId: ObjectId (Project 참조),
+  owner: ObjectId,              // User 참조
+  projectId: ObjectId,          // Project 참조 (optional - 공용 에셋인 경우 null)
   type: 'hdri' | 'gltf' | 'image',
-  fileName: String,
-  fileUrl: String,
-  fileSize: Number,
+  fileName: String,             // 원본 파일명
+  fileKey: String,              // R2 오브젝트 키 (예: hdri/{userId}/{projectId}/{uuid}.hdr)
+  fileUrl: String,              // 공개 URL (예: https://assets.lumostage.com/hdri/...)
+  fileSize: Number,             // 바이트 단위
+  mimeType: String,             // MIME 타입 (예: image/vnd.radiance, model/gltf-binary)
+  metadata: {
+    width: Number,              // HDRI 이미지 너비 (해당되는 경우)
+    height: Number,             // HDRI 이미지 높이
+    compression: String,        // 압축 방식 (예: Draco, none)
+  },
   uploadedAt: Date,
+  updatedAt: Date,
 }
 ```
+
+**Cloudflare R2 설정:**
+
+- **버킷명**: `lumo-stage-assets`
+- **리전**: Auto (자동 분산)
+- **공개 접근**: R2 Public URL 또는 Custom Domain (`assets.lumostage.com`)
+- **CORS 설정**: 클라이언트 도메인에서 파일 로드 허용
+- **라이프사이클**: 프로젝트 삭제 시 연결된 에셋도 R2에서 삭제
+- **비용 최적화**: 클래스 B 작업 최소화 (업로드/삭제 시에만 발생)
 
 **Previsualization Model (신규 - 추후 구현):**
 
@@ -753,21 +786,28 @@ flowchart LR
 
 #### 신규 API (추후 구현)
 
-| 메서드   | 경로                               | 설명                      | 요청                       | 응답                    |
-| -------- | ---------------------------------- | ------------------------- | -------------------------- | ----------------------- |
-| `POST`   | `/api/assets/upload-hdri`          | HDRI 파일 업로드          | Multipart form-data (file) | `{ assetId, url }`      |
-| `POST`   | `/api/assets/upload-gltf`          | GLTF/GLB 파일 업로드      | Multipart form-data (file) | `{ assetId, url }`      |
-| `GET`    | `/api/assets/project/:projectId`   | 프로젝트의 에셋 목록 조회 | -                          | `{ assets: Asset[] }`   |
-| `DELETE` | `/api/assets/:assetId`             | 에셋 삭제                 | -                          | 상태 코드 `204`         |
-| `POST`   | `/api/ai/api-key`                  | 사용자 API 키 저장        | `{ apiKey }`               | `{ message }`           |
-| `GET`    | `/api/ai/api-key/status`           | API 키 존재 여부 확인     | -                          | `{ hasApiKey, stats }`  |
-| `POST`   | `/api/ai/previsualize`             | 프리비주얼 이미지 생성    | Multipart (scene, prompt)  | `{ previzId, status }`  |
-| `GET`    | `/api/ai/previsualize/:id`         | 생성 상태 조회            | -                          | `{ status, imageUrl? }` |
-| `GET`    | `/api/ai/previsualizations`        | 히스토리 조회             | Query (page, projectId)    | `{ previsualizations }` |
-| `POST`   | `/api/ai/previsualize/:id/iterate` | 프롬프트 변경 재생성      | `{ prompt }`               | `{ previzId, status }`  |
-| `DELETE` | `/api/ai/previsualize/:id`         | 프리비주얼 삭제           | -                          | 상태 코드 `204`         |
+| 메서드   | 경로                               | 설명                                 | 요청                                  | 응답                                       |
+| -------- | ---------------------------------- | ------------------------------------ | ------------------------------------- | ------------------------------------------ |
+| `POST`   | `/api/assets/upload-hdri`          | HDRI 파일 업로드 (Cloudflare R2)     | Multipart form-data (file, projectId) | `{ assetId, fileUrl, fileName, fileSize }` |
+| `POST`   | `/api/assets/upload-gltf`          | GLTF/GLB 파일 업로드 (Cloudflare R2) | Multipart form-data (file, projectId) | `{ assetId, fileUrl, fileName, fileSize }` |
+| `GET`    | `/api/assets/project/:projectId`   | 프로젝트의 에셋 목록 조회            | -                                     | `{ assets: Asset[] }`                      |
+| `DELETE` | `/api/assets/:assetId`             | 에셋 삭제 (R2에서도 삭제)            | -                                     | 상태 코드 `204`                            |
+| `POST`   | `/api/ai/api-key`                  | 사용자 API 키 저장                   | `{ apiKey }`                          | `{ message }`                              |
+| `GET`    | `/api/ai/api-key/status`           | API 키 존재 여부 확인                | -                                     | `{ hasApiKey, stats }`                     |
+| `POST`   | `/api/ai/previsualize`             | 프리비주얼 이미지 생성               | Multipart (scene, prompt)             | `{ previzId, status }`                     |
+| `GET`    | `/api/ai/previsualize/:id`         | 생성 상태 조회                       | -                                     | `{ status, imageUrl? }`                    |
+| `GET`    | `/api/ai/previsualizations`        | 히스토리 조회                        | Query (page, projectId)               | `{ previsualizations }`                    |
+| `POST`   | `/api/ai/previsualize/:id/iterate` | 프롬프트 변경 재생성                 | `{ prompt }`                          | `{ previzId, status }`                     |
+| `DELETE` | `/api/ai/previsualize/:id`         | 프리비주얼 삭제                      | -                                     | 상태 코드 `204`                            |
 
-**Note:** Asset 및 AI 관련 API는 Phase 5 (배경/오브젝트), Phase 7 (AI)에서 구현 예정. 자세한 AI API 설계는 `docs/api/AI_PREVISUALIZATION_API.md` 참고.
+**Note:**
+
+- Asset 업로드 API는 Phase 5에서 Cloudflare R2 연동과 함께 구현 예정.
+- AI 관련 API는 Phase 7에서 구현 예정. 자세한 AI API 설계는 `docs/api/AI_PREVISUALIZATION_API.md` 참고.
+- Cloudflare R2 설정:
+  - SDK: `@aws-sdk/client-s3` (S3 호환 API)
+  - 환경변수: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`
+  - 서비스 레이어: `server/services/storage.service.js`에서 R2 업로드/삭제 로직 추상화
 
 `scene.service.normalizeSceneData()`가 모든 프로젝트 엔드포인트에서 호출되어 `diffusers`, `objects`, `backgroundSettings`, `orbitControlState`를 포함한 장면 정보를 정규화하고, 프로젝트 간 상태 오염을 방지한다.
 
@@ -869,39 +909,75 @@ flowchart LR
 - ✅ 단축키 시스템 구현 완료 (ESC, ?, H, W, E, Ctrl+S)
 - ✅ 프로젝트 저장/로드 통합 테스트 성공률 100% 달성 (백엔드)
 
-### Phase 5: 씬 구성 기능 확장
+### Phase 5: 씬 구성 기능 확장 + Cloudflare R2 연동
 
 **우선순위:** P1 (높음)
 
-**소요 기간:** 2주 (2-3주차)
+**소요 기간:** 2.5주 (2-4.5주차)
 
-**목표:** 실제 촬영 환경을 재현할 수 있는 배경 시스템 및 3D 오브젝트 관리 기능 제공.
+**목표:**
+
+- Cloudflare R2 파일 스토리지 인프라 구축
+- 실제 촬영 환경을 재현할 수 있는 배경 시스템 제공
+- 3D 오브젝트 관리 기능 및 GLTF 파일 업로드 구현
 
 **세부 계획:**
 
-1. **배경 시스템** (3-4일)
+1. **Cloudflare R2 인프라 구축** (1-2일)
 
-   - [ ] `editorStore`에 `backgroundSettings` 추가
-   - [ ] `BackgroundControl.jsx` 컴포넌트 생성
+   - [ ] Cloudflare 대시보드에서 R2 버킷 생성 (`lumo-stage-assets`)
+   - [ ] R2 API 토큰 발급 (Access Key ID, Secret Access Key)
+   - [ ] 공개 URL 설정 (R2 Public URL 또는 Custom Domain)
+   - [ ] CORS 정책 설정 (클라이언트 도메인 허용)
+   - [ ] 환경변수 설정 (`server/.env`에 R2 자격증명 추가)
+   - [ ] `@aws-sdk/client-s3` 패키지 설치 및 S3Client 설정
+   - [ ] `server/services/storage.service.js` 생성 (업로드/삭제 유틸리티)
+   - [ ] R2 연결 테스트 (간단한 파일 업로드/삭제)
+
+2. **배경 시스템** (3-4일)
+
+   - [ ] `editorStore`에 `backgroundSettings` 상태 추가
+   - [ ] `BackgroundControl.jsx` 컴포넌트 생성 (UI)
    - [ ] `SceneBackground.jsx` 컴포넌트 생성 및 `Scene.jsx` 통합
-   - [ ] HDRI 파일 업로드 로직 (로컬 Blob URL)
+   - [ ] **백엔드**: Asset 모델 생성 (`server/models/Asset.js`)
+   - [ ] **백엔드**: `POST /api/assets/upload-hdri` 엔드포인트 구현
+     - Multer 미들웨어로 파일 수신
+     - 파일 검증 (확장자, MIME 타입, 크기)
+     - R2에 업로드 (`storage.service.uploadToR2`)
+     - Asset 모델에 저장
+     - 공개 URL 반환
+   - [ ] **프론트엔드**: HDRI 파일 업로드 UI 및 API 연동
    - [ ] Ground Plane 조건부 렌더링
    - [ ] 단색/HDRI 배경 전환 테스트
+   - [ ] **백엔드**: `DELETE /api/assets/:assetId` 구현 (R2 파일도 삭제)
 
-2. **3D Object 관리 시스템** (5-7일)
+3. **3D Object 관리 시스템** (5-7일)
+
    - [ ] `editorStore`에 `objects` 상태 및 액션 추가
    - [ ] `ObjectsControl.jsx`, `ObjectCard.jsx` 컴포넌트 생성
    - [ ] `SceneObject.jsx` 컴포넌트 생성 (프리미티브/GLTF 렌더링)
    - [ ] `Scene.jsx`에서 객체 렌더링 및 TransformControls 확장
    - [ ] `useSceneSelection` 훅 확장 (객체 선택 로직)
-   - [ ] 백엔드 Asset 업로드 API 추가 (`POST /api/assets/upload-gltf`)
-   - [ ] 프리미티브 추가/삭제, GLTF 업로드/배치 테스트
+   - [ ] **백엔드**: `POST /api/assets/upload-gltf` 엔드포인트 구현
+     - Multer 미들웨어로 파일 수신
+     - 파일 검증 (.gltf, .glb / 최대 100MB)
+     - R2에 업로드
+     - Asset 모델에 저장
+     - 공개 URL 반환
+   - [ ] **프론트엔드**: GLTF 파일 업로드 UI 및 API 연동
+   - [ ] 프리미티브 추가/삭제 테스트
+   - [ ] GLTF 업로드/배치 테스트
+   - [ ] **백엔드**: 프로젝트 삭제 시 연결된 에셋도 R2에서 삭제 (cascade)
 
 **성공 지표:**
 
-- HDRI 배경 로드 시간 3초 이내
+- Cloudflare R2 업로드 성공률 99% 이상
+- HDRI 파일 업로드 시간 10초 이내 (50MB 기준)
+- GLTF 파일 업로드 시간 15초 이내 (100MB 기준)
+- HDRI 배경 로드 시간 3초 이내 (R2에서 다운로드)
 - 3D 오브젝트 10개 이상 배치 시 60fps 유지
 - 사용자 배경 변경율 70% 이상
+- 프로젝트당 평균 에셋 사용 수 2개 이상 (HDRI 또는 GLTF)
 
 ### Phase 6: 전문가용 UI/UX 개선
 
@@ -1084,7 +1160,7 @@ flowchart LR
 
 **온보딩 및 사용성:**
 
-- **튜토리얼 완료율:** 신규 사용자의 80% 이상이 튜토리얼 7단계를 완료.
+- **튜토리얼 완료율:** 신규 사용자의 80% 이상이 튜토리얼 8단계를 완료.
 - **첫 프로젝트 저장 시간:** 첫 방문 사용자가 평균 10분 이내에 첫 프로젝트 저장.
 - **단축키 사용률:** 사용자의 60% 이상이 최소 1개 이상의 단축키 사용.
 
@@ -1155,6 +1231,30 @@ flowchart LR
 
 - **대응:** 선택 우선순위 명확히 정의, Raycasting 최적화
 
+**위험 5: Cloudflare R2 업로드 실패 또는 지연**
+
+- **대응:**
+  - 재시도 로직 구현 (최대 3회)
+  - 업로드 진행 상태 표시 (Progress Bar)
+  - 타임아웃 설정 (30초)
+  - 에러 발생 시 사용자 친화적 메시지 표시
+  - 로컬 Blob URL 폴백 옵션 (임시)
+
+**위험 6: R2 비용 증가 (Class B 작업)**
+
+- **대응:**
+  - 중복 업로드 방지 (파일 해시 체크)
+  - 불필요한 에셋 자동 정리 (90일 미사용 시 경고)
+  - 사용자당 스토리지 쿼터 제한 (무료: 1GB, 프로: 10GB)
+  - 비용 모니터링 대시보드
+
+**위험 7: CORS 정책으로 인한 R2 파일 로드 실패**
+
+- **대응:**
+  - R2 버킷에 올바른 CORS 정책 설정
+  - Custom Domain 사용 시 동일 출처 정책 활용
+  - 프리플라이트 요청 캐싱
+
 ### 8.2. 사용자 경험 위험
 
 **위험 1: 튜토리얼이 너무 길어 이탈률 증가**
@@ -1175,13 +1275,24 @@ flowchart LR
 
 - **대응:** Phase 5까지 먼저 완료하여 MVP 기능 확보, Phase 6은 점진적 롤아웃
 
-**위험 2: 백엔드 Asset 업로드 API 구현 지연**
+**위험 2: Cloudflare R2 연동 지연으로 인한 Phase 5 일정 초과**
 
-- **대응:** Phase 5에서는 로컬 Blob URL로 임시 구현, 추후 서버 API로 전환
+- **대응:**
+  - R2 인프라 구축을 Phase 5의 첫 작업으로 우선 진행
+  - R2 연결 실패 시 로컬 Blob URL로 임시 구현 (폴백)
+  - S3 호환 API 활용으로 추후 다른 스토리지로 전환 가능
+  - 백엔드 개발과 프론트엔드 개발 병렬 진행
 
 ## 9. 결론 (Conclusion)
 
 LumoStage 2.0은 3D 조명 시뮬레이션 웹 앱의 기능을 대폭 확장하여, 신규 사용자를 위한 튜토리얼 시스템부터 전문가를 위한 레이어 기반 UI, 실제 촬영 환경을 재현하는 배경 및 오브젝트 시스템까지 제공합니다.
+
+**Phase 5의 핵심 인프라:**
+
+- Cloudflare R2를 활용한 확장 가능한 파일 스토리지 시스템 구축
+- HDRI 배경 이미지 업로드 및 관리
+- GLTF/GLB 3D 모델 업로드 및 씬 통합
+- 전 세계 사용자에게 빠른 에셋 전송 (CDN 활용)
 
 Phase 4-8에 걸쳐 점진적으로 기능을 확장하며, 각 단계마다 명확한 성공 지표를 두어 사용자 피드백을 반영할 수 있도록 설계되었습니다.
 
@@ -1196,8 +1307,16 @@ Phase 4-8에 걸쳐 점진적으로 기능을 확장하며, 각 단계마다 명
 - **1.2** (2025-10-27): 백엔드 연동 완료
 - **1.3** (2025-10-27): 공유 기능 추가
 - **2.0** (2025-11-03): 튜토리얼, 배경, 오브젝트, 프로페셔널 UI, AI 기능 추가, 로드맵 확장
+- **2.1** (2025-11-09): Cloudflare R2 파일 스토리지 통합 명세 추가
+  - 기술 스택에 Cloudflare R2 및 @aws-sdk/client-s3 추가
+  - 배경 시스템 및 3D Object 관리 시스템에 R2 업로드 프로세스 명시
+  - Asset 모델 스키마 확장 (fileKey, mimeType, metadata)
+  - R2 설정 및 환경변수 가이드 추가
+  - Phase 5에 R2 인프라 구축 단계 추가 (1-2일)
+  - 기술적 위험 요소에 R2 관련 위험 3개 추가
+  - 성공 지표에 R2 업로드/다운로드 성능 지표 추가
 
 **다음 업데이트 예정:**
 
-- Phase 4 완료 후 실제 사용자 피드백 반영 (튜토리얼 개선)
-- Phase 5 완료 후 배경/오브젝트 시스템 성능 최적화 지표 추가
+- Phase 5 완료 후 Cloudflare R2 실제 사용량 및 비용 데이터 반영
+- 배경/오브젝트 시스템 성능 최적화 지표 업데이트

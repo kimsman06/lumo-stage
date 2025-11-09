@@ -34,24 +34,73 @@ const createDefaultLights = () => [
   }),
 ];
 
-// Define the initial pose for a new mannequin
-const createInitialPose = () => ({
-  head_02: { x: 0, y: 0, z: 0 },
-  waist_00: { x: 0, y: 0, z: 0 }, // Add waist control
-  l_shoulder_03: { x: 0, y: 0, z: 0 },
-  l_forearm_04: { x: 0, y: 0, z: 0 },
-  l_hand_05: { x: 0, y: 0, z: 0 },
-  r_shoulder_06: { x: 0, y: 0, z: 0 },
-  r_forearm_07: { x: 0, y: 0, z: 0 },
-  r_hand_08: { x: 0, y: 0, z: 0 },
-  waist_00: { x: 0, y: 0, z: 0 },
-  l_thigh_09: { x: 0, y: 0, z: 0 },
-  l_shin_010: { x: 0, y: 0, z: 0 },
-  l_foot_012: { x: 0, y: 0, z: 0 },
-  r_thigh_013: { x: 0, y: 0, z: 0 },
-  r_shin_014: { x: 0, y: 0, z: 0 },
-  r_foot_016: { x: 0, y: 0, z: 0 },
-});
+const BASE_T_POSE = {
+  head_02: { x: -7.105427357601002e-15, y: 0, z: 0 },
+  waist_00: { x: 1.5707964611537577, y: 0, z: 0 },
+  l_shoulder_03: { x: -1.570796326794911, y: 1.4901160838576344e-7, z: -1.5707962075856106 },
+  l_forearm_04: { x: 9.243807400785628e-24, y: -7.549789415861603e-8, z: 6.9788798979239965e-31 },
+  l_hand_05: { x: 0.000003165124780956999, y: 0.000004595635800824713, z: -1.6389032874262773e-19 },
+  r_shoulder_06: { x: -1.570796326794911, y: -2.9802325940409e-8, z: 1.5707961479809764 },
+  r_forearm_07: { x: 1.38936108761013e-14, y: 1.2399988236211386e-7, z: -5.4205457900033885e-9 },
+  r_hand_08: { x: -6.806159635526661e-15, y: 3.552712775024695e-15, z: 1.6673972424996467e-8 },
+  l_thigh_09: { x: 1.6858520423784492e-7, y: -0.0000011393100073921723, z: -3.0146763326692736 },
+  l_shin_010: { x: 1.4836620985782455e-7, y: 9.646342110937536e-7, z: -0.06611108712966271 },
+  l_foot_012: { x: 1.5707964677445039, y: -0.03624223184471753, z: 0.0000027015737968598264 },
+  r_thigh_013: { x: -7.172502874719498e-8, y: -7.53117076352163e-7, z: 3.0160110295701106 },
+  r_shin_014: { x: -1.284250943720031e-7, y: 0.0000014582442977236153, z: 0.06174627284346381 },
+  r_foot_016: { x: 1.5707964073676413, y: 0.03603908863813603, z: 0.0000027566931007736348 },
+};
+
+// Define the initial pose for a new mannequin using the GLTF T-pose values
+const createInitialPose = () =>
+  Object.entries(BASE_T_POSE).reduce((pose, [boneName, rotation]) => {
+    pose[boneName] = { ...rotation };
+    return pose;
+  }, {});
+
+const isValidVector3 = (value) =>
+  Array.isArray(value) &&
+  value.length === 3 &&
+  value.every((component) => typeof component === "number" && Number.isFinite(component));
+
+const sanitizePose = (pose) => {
+  const template = createInitialPose();
+
+  if (!pose || typeof pose !== "object") {
+    return template;
+  }
+
+  const sanitized = {};
+
+  Object.entries(template).forEach(([boneName, defaults]) => {
+    const current = pose[boneName];
+    sanitized[boneName] = {
+      x: typeof current?.x === "number" ? current.x : defaults.x,
+      y: typeof current?.y === "number" ? current.y : defaults.y,
+      z: typeof current?.z === "number" ? current.z : defaults.z,
+    };
+  });
+
+  // 예상하지 못한 추가 본 정보가 이미 저장되어 있으면 그대로 유지
+  Object.keys(pose).forEach((boneName) => {
+    if (!sanitized[boneName] && typeof pose[boneName] === "object") {
+      sanitized[boneName] = { ...pose[boneName] };
+    }
+  });
+
+  return sanitized;
+};
+
+const sanitizeMannequin = (mannequin = {}, fallbackIndex = 0) => {
+  const defaultPosition = [0, -1.5, 0];
+
+  return {
+    ...mannequin,
+    id: mannequin.id || `mannequin-${fallbackIndex}-${Date.now()}`,
+    position: isValidVector3(mannequin.position) ? mannequin.position : defaultPosition,
+    pose: sanitizePose(mannequin.pose),
+  };
+};
 
 const firstMannequinId = nanoid();
 
@@ -114,13 +163,18 @@ const useStore = create((set, get) => {
     })),
   selectMannequin: (id) => set({ selectedMannequinId: id }),
   deleteMannequin: (id) =>
-    set((state) => ({
-      mannequins: state.mannequins.filter((m) => m.id !== id),
-      selectedMannequinId:
-        state.selectedMannequinId === id
-          ? state.mannequins[0]?.id || null
-          : state.selectedMannequinId,
-    })),
+    set((state) => {
+      const remaining = state.mannequins.filter((m) => m.id !== id);
+      const nextSelected =
+        state.selectedMannequinId === id ? remaining[0]?.id || null : state.selectedMannequinId;
+
+      return {
+        mannequins: remaining,
+        selectedMannequinId: nextSelected && remaining.some((m) => m.id === nextSelected)
+          ? nextSelected
+          : remaining[0]?.id || null,
+      };
+    }),
   applyPosePreset: (id, presetPose) =>
     set((state) => ({
       mannequins: state.mannequins.map(
@@ -349,9 +403,11 @@ const useStore = create((set, get) => {
       const updates = {};
 
       if (sceneData.mannequins && Array.isArray(sceneData.mannequins)) {
-        updates.mannequins = sceneData.mannequins;
-        updates.selectedMannequinId =
-          sceneData.mannequins[0]?.id || null;
+        const sanitizedMannequins = sceneData.mannequins.map((mannequin, index) =>
+          sanitizeMannequin(mannequin, index)
+        );
+        updates.mannequins = sanitizedMannequins;
+        updates.selectedMannequinId = sanitizedMannequins[0]?.id || null;
       }
 
       const importedLights = Array.isArray(sceneData.lights)

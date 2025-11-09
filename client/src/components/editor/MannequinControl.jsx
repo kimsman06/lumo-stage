@@ -137,7 +137,7 @@ const MannequinControl = () => {
           <Button
             variant="destructive"
             onClick={() => deleteMannequin(selectedMannequinId)}
-            disabled={mannequins.length <= 1}
+            disabled={!selectedMannequinId}
           >
             삭제
           </Button>

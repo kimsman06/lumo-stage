@@ -1,6 +1,6 @@
 const Project = require("../models/Project");
 const ShareToken = require("../models/ShareToken");
-const { normalizeSceneData, applySceneDefaults } = require("./scene.service");
+const { normalizeSceneData, applySceneDefaults, createDefaultSceneData } = require("./scene.service");
 
 const toPlainProject = (projectDoc, skipNormalize = false) => {
   const project = projectDoc.toObject({ versionKey: false });
@@ -62,13 +62,19 @@ const formatProject = async (projectDoc, skipDefaults = false) => {
 };
 
 const createProject = async (data, ownerId) => {
-  if (!data.name || !data.sceneData) {
+  if (!data.name) {
     const error = new Error("필수 필드가 누락되었습니다.");
     error.status = 400;
     throw error;
   }
 
-  const { data: normalizedScene } = normalizeSceneData(data.sceneData);
+  // sceneData가 없거나 비어있으면 기본값 사용 (최초 생성 시에만)
+  let sceneData = data.sceneData;
+  if (!sceneData || (typeof sceneData === 'object' && Object.keys(sceneData).length === 0)) {
+    sceneData = createDefaultSceneData();
+  }
+
+  const { data: normalizedScene } = normalizeSceneData(sceneData);
 
   const project = await Project.create({
     ...data,

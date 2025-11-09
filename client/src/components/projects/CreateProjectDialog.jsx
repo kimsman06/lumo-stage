@@ -32,19 +32,11 @@ const CreateProjectDialog = ({ open, onOpenChange }) => {
     setError("");
 
     // 프로젝트 생성 API 호출 (Promise 기반 Toast)
+    // sceneData를 비워두면 백엔드에서 기본 마네킹(1개)과 조명(3점 조명)을 추가
     const createPromise = createProject({
       name: name.trim(),
       description: description.trim(),
-      sceneData: {
-        mannequins: [],
-        lights: [],
-        cameraState: {
-          position: [0, 2, 8],
-          target: [0, 2, 0],
-          focalLength: 50,
-        },
-        aspectRatio: "16:9",
-      },
+      sceneData: {},
     });
 
     // Toast로 진행 상황 표시
