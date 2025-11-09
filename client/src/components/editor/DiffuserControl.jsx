@@ -25,7 +25,6 @@ import { X } from "lucide-react";
 const DiffuserCard = ({ diffuser, isSelected }) => {
   const {
     updateDiffuser,
-    deleteDiffuser,
     lights,
     linkDiffuserToLight,
     unlinkDiffuserFromLight,
@@ -322,17 +321,6 @@ const DiffuserCard = ({ diffuser, isSelected }) => {
             </Label>
           </div>
         )}
-
-        <Separator />
-
-        <Button
-          variant="destructive"
-          size="sm"
-          className="w-full"
-          onClick={() => deleteDiffuser(diffuser.id)}
-        >
-          디퓨저 삭제
-        </Button>
       </CardContent>
     </Card>
   );

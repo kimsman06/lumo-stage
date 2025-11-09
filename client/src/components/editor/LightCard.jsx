@@ -1,18 +1,24 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
-import { Lightbulb, Trash2 } from "lucide-react";
+import { Lightbulb } from "lucide-react";
 import useStore from "../../store/editorStore";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const LightCard = React.forwardRef(
   ({ light, isSelected, readOnly = false }, ref) => {
-    const { updateLight, deleteLight } = useStore();
+    const { updateLight, changeLightType } = useStore();
 
     const isDisabled = readOnly;
 
@@ -28,28 +34,36 @@ const LightCard = React.forwardRef(
       updateLight(light.id, "position", newPosition);
     };
 
+    const handleLightTypeChange = (nextType) => {
+      if (isDisabled) return;
+      changeLightType(light.id, nextType);
+    };
+
     return (
       <Card ref={ref} className={cn(isSelected && "ring-2 ring-primary")}>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base font-medium flex items-center gap-2">
-            <Lightbulb className="w-4 h-4 text-primary" />
-            {light.type.replace(/\b[a-z]/, (letter) =>
-              letter.toUpperCase()
-            )}{" "}
-            Light
-          </CardTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => !isDisabled && deleteLight(light.id)}
-            disabled={isDisabled}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <CardTitle className="text-base font-medium flex items-center gap-2">
+              <Lightbulb className="w-4 h-4 text-primary" />
+              {light.name || "Light"}
+            </CardTitle>
+            <Select
+              value={light.type}
+              onValueChange={handleLightTypeChange}
+              disabled={isDisabled}
+            >
+              <SelectTrigger className="h-8 w-40 text-xs capitalize">
+                <SelectValue placeholder="타입 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="point">Point Light</SelectItem>
+                <SelectItem value="spot">Spot Light</SelectItem>
+                <SelectItem value="directional">Directional Light</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Separator />
           <div className="space-y-2">
             <Label>Intensity</Label>
             <div className="flex items-center gap-2">
@@ -88,7 +102,6 @@ const LightCard = React.forwardRef(
               />
             </div>
           </div>
-          <Separator />
           <div className="space-y-2">
             <Label>Position</Label>
             <div className="space-y-2">
@@ -109,9 +122,7 @@ const LightCard = React.forwardRef(
                 <Input
                   type="number"
                   value={light.position[0]}
-                  onChange={(e) =>
-                    handlePositionChange(0, e.target.value)
-                  }
+                  onChange={(e) => handlePositionChange(0, e.target.value)}
                   className="w-20 h-8"
                   disabled={isDisabled}
                 />
@@ -133,9 +144,7 @@ const LightCard = React.forwardRef(
                 <Input
                   type="number"
                   value={light.position[1]}
-                  onChange={(e) =>
-                    handlePositionChange(1, e.target.value)
-                  }
+                  onChange={(e) => handlePositionChange(1, e.target.value)}
                   className="w-20 h-8"
                   disabled={isDisabled}
                 />
@@ -157,9 +166,7 @@ const LightCard = React.forwardRef(
                 <Input
                   type="number"
                   value={light.position[2]}
-                  onChange={(e) =>
-                    handlePositionChange(2, e.target.value)
-                  }
+                  onChange={(e) => handlePositionChange(2, e.target.value)}
                   className="w-20 h-8"
                   disabled={isDisabled}
                 />
@@ -168,7 +175,6 @@ const LightCard = React.forwardRef(
           </div>
           {light.type === "spot" && (
             <>
-              <Separator />
               <div className="space-y-2">
                 <Label>Angle</Label>
                 <div className="flex items-center gap-2">
@@ -215,14 +221,11 @@ const LightCard = React.forwardRef(
               </div>
             </>
           )}
-          <Separator />
           <div className="flex items-center space-x-2">
             <Checkbox
               id={`cast-shadow-${light.id}`}
               checked={light.castShadow}
-              onCheckedChange={(checked) =>
-                handleUpdate("castShadow", checked)
-              }
+              onCheckedChange={(checked) => handleUpdate("castShadow", checked)}
               disabled={isDisabled}
             />
             <Label

@@ -1,6 +1,5 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,11 +7,59 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
 } from "@/components/ui/select";
 import useStore from "../../store/editorStore";
 import { ASPECT_RATIO_OPTIONS } from "../../lib/aspectRatio";
-import CameraOrbitSync from "./CameraOrbitSync";
+
+const Vector3Input = ({ label, value, onChange, disabled }) => {
+  const handleChange = (index, newValue) => {
+    const updated = [...value];
+    updated[index] = parseFloat(newValue) || 0;
+    onChange(updated);
+  };
+
+  return (
+    <div className="space-y-2">
+      <h3 className="text-sm font-medium">{label}</h3>
+      <div className="grid grid-cols-3 gap-2">
+        <div>
+          <Label className="text-[10px] text-muted-foreground mb-1">X</Label>
+          <Input
+            type="number"
+            step="0.01"
+            value={value[0]}
+            onChange={(e) => handleChange(0, e.target.value)}
+            className="h-8 text-xs"
+            disabled={disabled}
+          />
+        </div>
+        <div>
+          <Label className="text-[10px] text-muted-foreground mb-1">Y</Label>
+          <Input
+            type="number"
+            step="0.01"
+            value={value[1]}
+            onChange={(e) => handleChange(1, e.target.value)}
+            className="h-8 text-xs"
+            disabled={disabled}
+          />
+        </div>
+        <div>
+          <Label className="text-[10px] text-muted-foreground mb-1">Z</Label>
+          <Input
+            type="number"
+            step="0.01"
+            value={value[2]}
+            onChange={(e) => handleChange(2, e.target.value)}
+            className="h-8 text-xs"
+            disabled={disabled}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const CameraControl = ({ readOnly = false }) => {
   const {
@@ -26,28 +73,25 @@ const CameraControl = ({ readOnly = false }) => {
 
   const isDisabled = readOnly;
 
-  const handlePositionChange = (axisIndex, value) => {
-    const newPosition = [...cameraState.position];
-    newPosition[axisIndex] = parseFloat(value);
+  const handlePositionChange = (newPosition) => {
     updateCameraState("position", newPosition);
   };
 
-  const handleTargetChange = (axisIndex, value) => {
-    const newTarget = [...cameraState.target];
-    newTarget[axisIndex] = parseFloat(value);
+  const handleTargetChange = (newTarget) => {
     updateCameraState("target", newTarget);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* View Mode Controls */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">View Mode</h3>
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium">View Mode</h3>
         <div className="grid grid-cols-2 gap-2">
           <Button
             onClick={() => setViewMode("free")}
             variant={viewMode === "free" ? "default" : "outline"}
             disabled={isDisabled}
+            size="sm"
           >
             자유 시점
           </Button>
@@ -55,6 +99,7 @@ const CameraControl = ({ readOnly = false }) => {
             onClick={() => setViewMode("camera")}
             variant={viewMode === "camera" ? "default" : "outline"}
             disabled={isDisabled}
+            size="sm"
           >
             카메라 시점
           </Button>
@@ -65,13 +110,13 @@ const CameraControl = ({ readOnly = false }) => {
 
       {/* Aspect Ratio */}
       <div className="space-y-2">
-        <h3 className="text-lg font-medium">화면 비율</h3>
+        <h3 className="text-sm font-medium">화면 비율</h3>
         <Select
           value={aspectRatio}
           onValueChange={setAspectRatio}
           disabled={isDisabled}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-full h-8 text-xs">
             <SelectValue placeholder="화면 비율 선택" />
           </SelectTrigger>
           <SelectContent>
@@ -82,193 +127,44 @@ const CameraControl = ({ readOnly = false }) => {
             ))}
           </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground">
-          미리보기와 렌더링 기준 화면 비율을 선택합니다.
-        </p>
       </div>
 
       <Separator />
 
       {/* Position Controls */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">Position</h3>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="cam-pos-x" className="w-4">
-              X
-            </Label>
-            <Slider
-              id="cam-pos-x"
-              value={[cameraState.position[0]]}
-              max={50}
-              min={-50}
-              step={0.1}
-              onValueChange={(v) => handlePositionChange(0, v[0])}
-              className="flex-1"
-              disabled={isDisabled}
-            />
-            <Input
-              type="number"
-              value={cameraState.position[0]}
-              onChange={(e) => handlePositionChange(0, e.target.value)}
-              className="w-20 h-8"
-              disabled={isDisabled}
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="cam-pos-y" className="w-4">
-              Y
-            </Label>
-            <Slider
-              id="cam-pos-y"
-              value={[cameraState.position[1]]}
-              max={50}
-              min={-50}
-              step={0.1}
-              onValueChange={(v) => handlePositionChange(1, v[0])}
-              className="flex-1"
-              disabled={isDisabled}
-            />
-            <Input
-              type="number"
-              value={cameraState.position[1]}
-              onChange={(e) => handlePositionChange(1, e.target.value)}
-              className="w-20 h-8"
-              disabled={isDisabled}
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="cam-pos-z" className="w-4">
-              Z
-            </Label>
-            <Slider
-              id="cam-pos-z"
-              value={[cameraState.position[2]]}
-              max={50}
-              min={-50}
-              step={0.1}
-              onValueChange={(v) => handlePositionChange(2, v[0])}
-              className="flex-1"
-              disabled={isDisabled}
-            />
-            <Input
-              type="number"
-              value={cameraState.position[2]}
-              onChange={(e) => handlePositionChange(2, e.target.value)}
-              className="w-20 h-8"
-              disabled={isDisabled}
-            />
-          </div>
-        </div>
-      </div>
+      <Vector3Input
+        label="Position"
+        value={cameraState.position}
+        onChange={handlePositionChange}
+        disabled={isDisabled}
+      />
 
       <Separator />
 
       {/* Target Controls */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">Target</h3>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="cam-tar-x" className="w-4">
-              X
-            </Label>
-            <Slider
-              id="cam-tar-x"
-              value={[cameraState.target[0]]}
-              max={50}
-              min={-50}
-              step={0.1}
-              onValueChange={(v) => handleTargetChange(0, v[0])}
-              className="flex-1"
-              disabled={isDisabled}
-            />
-            <Input
-              type="number"
-              value={cameraState.target[0]}
-              onChange={(e) => handleTargetChange(0, e.target.value)}
-              className="w-20 h-8"
-              disabled={isDisabled}
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="cam-tar-y" className="w-4">
-              Y
-            </Label>
-            <Slider
-              id="cam-tar-y"
-              value={[cameraState.target[1]]}
-              max={50}
-              min={-50}
-              step={0.1}
-              onValueChange={(v) => handleTargetChange(1, v[0])}
-              className="flex-1"
-              disabled={isDisabled}
-            />
-            <Input
-              type="number"
-              value={cameraState.target[1]}
-              onChange={(e) => handleTargetChange(1, e.target.value)}
-              className="w-20 h-8"
-              disabled={isDisabled}
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="cam-tar-z" className="w-4">
-              Z
-            </Label>
-            <Slider
-              id="cam-tar-z"
-              value={[cameraState.target[2]]}
-              max={50}
-              min={-50}
-              step={0.1}
-              onValueChange={(v) => handleTargetChange(2, v[0])}
-              className="flex-1"
-              disabled={isDisabled}
-            />
-            <Input
-              type="number"
-              value={cameraState.target[2]}
-              onChange={(e) => handleTargetChange(2, e.target.value)}
-              className="w-20 h-8"
-              disabled={isDisabled}
-            />
-          </div>
-        </div>
-      </div>
+      <Vector3Input
+        label="Target"
+        value={cameraState.target}
+        onChange={handleTargetChange}
+        disabled={isDisabled}
+      />
 
       <Separator />
 
       {/* Focal Length Control */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">Focal Length</h3>
-        <div className="flex items-center gap-2">
-          <Slider
-            id="focal-length"
-            value={[cameraState.focalLength]}
-            max={200}
-            min={18}
-            step={1}
-            onValueChange={(v) => updateCameraState("focalLength", v[0])}
-            className="flex-1"
-            disabled={isDisabled}
-          />
-          <Input
-            type="number"
-            value={cameraState.focalLength}
-            onChange={(e) =>
-              updateCameraState("focalLength", parseFloat(e.target.value))
-            }
-            className="w-20 h-8"
-            disabled={isDisabled}
-          />
-        </div>
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium">Focal Length</h3>
+        <Input
+          type="number"
+          step="0.1"
+          value={cameraState.focalLength}
+          onChange={(e) =>
+            updateCameraState("focalLength", parseFloat(e.target.value) || 18)
+          }
+          className="h-8 text-xs"
+          disabled={isDisabled}
+        />
       </div>
-
-      <Separator />
-
-      {/* Camera-Orbit Sync (Cinema 4D 스타일) */}
-      {!isDisabled && <CameraOrbitSync />}
     </div>
   );
 };

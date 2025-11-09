@@ -1,12 +1,9 @@
-import { useState, useEffect, useRef } from "react"
-import { Separator } from "@/components/ui/separator"
-import AddLightPanel from "./AddLightPanel";
+import { useEffect, useRef } from "react"
 import LightCard from "./LightCard";
 import useStore from "../../store/editorStore";
 
 const LightsControl = ({ readOnly = false }) => {
-  const { lights, addLight, selectedLight } = useStore();
-  const [newLightType, setNewLightType] = useState("point");
+  const { lights, selectedLight } = useStore();
   const lightCardRefs = useRef(new Map());
 
   useEffect(() => {
@@ -20,31 +17,20 @@ const LightsControl = ({ readOnly = false }) => {
   }, [selectedLight]);
 
   return (
-    <div className="space-y-6">
-      <AddLightPanel
-        lightType={newLightType}
-        onLightTypeChange={setNewLightType}
-        onAddLight={() => !readOnly && addLight(newLightType)}
-        disabled={readOnly}
-      />
-      
-      <Separator />
-
-      <div className="space-y-4" data-tutorial="light-controls">
-        <h3 className="text-lg font-medium">조명 목록</h3>
-        {lights.map((light) => (
-          <LightCard
-            key={light.id}
-            light={light}
-            ref={(el) => lightCardRefs.current.set(light.id, el)}
-            isSelected={
-              light.id === selectedLight ||
-              `${light.id}-target` === selectedLight
-            }
-            readOnly={readOnly}
-          />
-        ))}
-      </div>
+    <div className="space-y-4" data-tutorial="light-controls">
+      <h3 className="text-lg font-medium">조명 목록</h3>
+      {lights.map((light) => (
+        <LightCard
+          key={light.id}
+          light={light}
+          ref={(el) => lightCardRefs.current.set(light.id, el)}
+          isSelected={
+            light.id === selectedLight ||
+            `${light.id}-target` === selectedLight
+          }
+          readOnly={readOnly}
+        />
+      ))}
     </div>
   );
 };

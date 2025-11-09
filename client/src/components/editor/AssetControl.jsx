@@ -189,10 +189,14 @@ function AssetControl({ projectId }) {
       error: (err) => err.error || "파일 삭제에 실패했습니다.",
     });
 
-    await deletePromise;
+    const result = await deletePromise;
 
     setDeleteDialogOpen(false);
     setAssetToDelete(null);
+
+    if (result.success) {
+      toast.success("HDRI 설정이 초기화되었습니다.");
+    }
   };
 
   // HDRI Asset 목록
