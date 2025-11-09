@@ -2,7 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Save, ArrowLeft, Check } from "lucide-react";
 import Scene from "../components/Scene";
-import EditorPanel from "../components/EditorPanel";
+import Outliner from "../components/outliner/Outliner";
+import PropertiesPanel from "../components/properties/PropertiesPanel";
+import ToolPanel from "../components/editor/ToolPanel";
 import useStore from "../store/editorStore";
 import useProjectStore from "../store/projectStore";
 import useAssetStore from "../store/assetStore";
@@ -18,8 +20,12 @@ function EditorPage() {
   const { loadSceneData, getSceneData } = useStore();
   const { getProjectById, updateProject, currentProject, isLoading, error } =
     useProjectStore();
-  const { loadAssets, loadAssetSceneData, getAssetSceneData, reset: resetAssetStore } =
-    useAssetStore();
+  const {
+    loadAssets,
+    loadAssetSceneData,
+    getAssetSceneData,
+    reset: resetAssetStore,
+  } = useAssetStore();
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -57,7 +63,15 @@ function EditorPage() {
     return () => {
       resetAssetStore();
     };
-  }, [id, getProjectById, loadSceneData, loadAssets, loadAssetSceneData, resetAssetStore, navigate]);
+  }, [
+    id,
+    getProjectById,
+    loadSceneData,
+    loadAssets,
+    loadAssetSceneData,
+    resetAssetStore,
+    navigate,
+  ]);
 
   // 키보드 단축키
   useEffect(() => {
@@ -209,14 +223,29 @@ function EditorPage() {
           onOpenChange={setShareDialogOpen}
         />
 
-        {/* Editor Content - 남은 공간 모두 차지, overflow 방지 */}
+        {/* Editor Content - Scene + ToolPanel + (Outliner/Properties) */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Scene - 남은 공간 모두 차지 */}
+          {/* Scene - 좌측 남은 공간 */}
           <div className="flex-1 overflow-hidden">
             <Scene />
           </div>
-          {/* EditorPanel - 고정 너비 */}
-          <EditorPanel projectId={id} />
+
+          {/* ToolPanel - 세로 전체 */}
+          <div className="flex-shrink-0">
+            <ToolPanel projectId={id} />
+          </div>
+
+          {/* 우측 패널 - Outliner + PropertiesPanel */}
+          <div className="w-[480px] flex flex-col overflow-hidden border-l">
+            {/* Outliner - 상단 */}
+            <div className="h-80 flex-shrink-0">
+              <Outliner />
+            </div>
+            {/* PropertiesPanel - 하단 (남은 공간) */}
+            <div className="flex-1 overflow-hidden">
+              <PropertiesPanel projectId={id} />
+            </div>
+          </div>
         </div>
 
         {/* Tutorial Overlay */}
