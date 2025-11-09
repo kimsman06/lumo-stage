@@ -13,18 +13,199 @@ import {
   TransformControls,
   Cone,
   Grid,
+  Environment,
+  useGLTF,
 } from "@react-three/drei";
 import useStore from "../store/editorStore";
+import useAssetStore from "../store/assetStore";
 import * as THREE from "three";
+import { RGBELoader, EXRLoader } from "three-stdlib";
 import { Mannequin } from "./Mannequin";
 import Diffuser from "./Diffuser";
 import LetterboxOverlay from "./editor/LetterboxOverlay";
 import { computeLetterbox, getAspectRatioValue } from "../lib/aspectRatio";
 import { useSceneSelection } from "./editor/useSceneSelection";
+import { getAssetId } from "../lib/assetUtils";
+
+const getGltfModelKey = (model, index) => {
+  if (!model) return `model-${index}`;
+  return (
+    model.id ||
+    model.instanceId ||
+    (model.assetId ? `asset-${model.assetId}` : `model-${index}`)
+  );
+};
+
+function useHdriTexture(fileUrl) {
+  const [texture, setTexture] = React.useState(null);
+  const [error, setError] = React.useState(null);
+  const textureRef = React.useRef(null);
+  const disposeCurrentTexture = useCallback(() => {
+    if (textureRef.current) {
+      textureRef.current.dispose?.();
+      textureRef.current = null;
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (!fileUrl) {
+      disposeCurrentTexture();
+      setTexture(null);
+      setError(null);
+      return;
+    }
+
+    let isCancelled = false;
+    const lowerUrl = fileUrl.toLowerCase();
+    const isExr = lowerUrl.endsWith(".exr");
+    const LoaderClass = isExr ? EXRLoader : RGBELoader;
+    const loader = new LoaderClass();
+
+    if (loader.setDataType) {
+      loader.setDataType(isExr ? THREE.FloatType : THREE.HalfFloatType);
+    }
+
+    if (loader.setCrossOrigin) {
+      loader.setCrossOrigin("anonymous");
+    }
+
+    loader.load(
+      fileUrl,
+      (nextTexture) => {
+        if (isCancelled) {
+          nextTexture?.dispose?.();
+          return;
+        }
+
+        nextTexture.mapping = THREE.EquirectangularReflectionMapping;
+        nextTexture.colorSpace = THREE.LinearSRGBColorSpace;
+        nextTexture.needsUpdate = true;
+
+        disposeCurrentTexture();
+        textureRef.current = nextTexture;
+        setError(null);
+        setTexture(nextTexture);
+      },
+      undefined,
+      (err) => {
+        if (isCancelled) return;
+        console.error("HDRI 로드 에러:", err);
+        setError(err);
+        disposeCurrentTexture();
+        setTexture(null);
+      }
+    );
+
+    return () => {
+      isCancelled = true;
+      disposeCurrentTexture();
+      if (loader.dispose) {
+        loader.dispose();
+      }
+    };
+  }, [fileUrl, disposeCurrentTexture]);
+
+  return { texture, error };
+}
+
+// HDRI Environment 컴포넌트 (에러 핸들링 포함)
+function HdriEnvironment({ fileUrl }) {
+  const { texture, error } = useHdriTexture(fileUrl);
+
+  if (!fileUrl || error || !texture) {
+    return <ambientLight intensity={0.2} />;
+  }
+
+  return <Environment map={texture} background={false} />;
+}
+
+// GLTF Model 컴포넌트 (Wrapper)
+function GltfModelWrapper({
+  fileUrl,
+  position,
+  rotation,
+  scale,
+  registerHandle,
+  onPointerDown,
+}) {
+  if (!fileUrl) {
+    return null;
+  }
+
+  return (
+    <React.Suspense fallback={null}>
+      <GltfModel
+        fileUrl={fileUrl}
+        position={position}
+        rotation={rotation}
+        scale={scale}
+        registerHandle={registerHandle}
+        onPointerDown={onPointerDown}
+      />
+    </React.Suspense>
+  );
+}
+
+// GLTF Model 실제 로드 컴포넌트
+function GltfModel({
+  fileUrl,
+  position,
+  rotation,
+  scale,
+  registerHandle,
+  onPointerDown,
+}) {
+  // useGLTF는 항상 호출되어야 함 (훅 규칙)
+  const gltf = useGLTF(fileUrl);
+  const groupRef = useRef();
+  const clonedScene = useMemo(() => {
+    if (!gltf?.scene) return null;
+    return gltf.scene.clone();
+  }, [gltf]);
+
+  useEffect(() => {
+    if (!registerHandle) {
+      return undefined;
+    }
+    registerHandle(groupRef.current || null);
+    return () => registerHandle(null);
+  }, [registerHandle]);
+
+  if (!gltf || !gltf.scene) {
+    console.warn('GLTF 로드 실패:', fileUrl);
+    // 폴백 박스 표시
+    return (
+      <group
+        ref={groupRef}
+        position={position}
+        rotation={rotation}
+        scale={scale}
+        onPointerDown={onPointerDown}
+      >
+        <mesh>
+          <boxGeometry args={[1, 1, 1]} />
+          <meshStandardMaterial color="red" wireframe />
+        </mesh>
+      </group>
+    );
+  }
+
+  return (
+    <group
+      ref={groupRef}
+      position={position}
+      rotation={rotation}
+      scale={scale}
+      onPointerDown={onPointerDown}
+    >
+      {clonedScene && <primitive object={clonedScene} />}
+    </group>
+  );
+}
 
 // This component will contain all the 3D logic and objects.
 // It is rendered inside the Canvas, so it can safely use R3F hooks.
-function Experience() {
+function Experience({ readOnly = false }) {
   // 각 값을 개별적으로 구독하여 무한 루프 방지
   const transformMode = useStore((state) => state.transformMode);
   const lights = useStore((state) => state.lights);
@@ -37,6 +218,19 @@ function Experience() {
   const mannequins = useStore((state) => state.mannequins);
   const aspectRatio = useStore((state) => state.aspectRatio);
   const orbitControlState = useStore((state) => state.orbitControlState);
+  const selectedGltfModelId = useStore((state) => state.selectedGltfModelId);
+  const setSelectedGltfModel = useStore(
+    (state) => state.setSelectedGltfModel
+  );
+
+  // Asset 상태
+  const assets = useAssetStore((state) => state.assets);
+  const currentHdri = useAssetStore((state) => state.currentHdri);
+  const currentGltfModels = useAssetStore((state) => state.currentGltfModels);
+  const updateGltfModel = useAssetStore((state) => state.updateGltfModel);
+  const currentHdriAsset = assets.find(
+    (asset) => getAssetId(asset) === currentHdri
+  );
 
   // blockOriginalLight가 true인 디퓨저에 연결된 조명 ID 목록
   const blockedLightIds = useMemo(() => {
@@ -52,7 +246,9 @@ function Experience() {
   // 액션 함수들
   const updateLight = useStore((state) => state.updateLight);
   const setMannequinPosition = useStore((state) => state.setMannequinPosition);
+  const setMannequinScale = useStore((state) => state.setMannequinScale);
   const setDiffuserPosition = useStore((state) => state.setDiffuserPosition);
+  const setDiffuserScale = useStore((state) => state.setDiffuserScale);
   const setIsTransformInteracting = useStore(
     (state) => state.setIsTransformInteracting
   );
@@ -73,8 +269,8 @@ function Experience() {
 
   const {
     handleLightPointerDown,
-    handleStagePointerDown,
     handleDiffuserPointerDown,
+    handleGltfModelPointerDown,
   } = useSceneSelection();
 
   const { camera, size, gl } = useThree();
@@ -113,6 +309,16 @@ function Experience() {
       diffuserRefs.current.set(id, node);
     } else {
       diffuserRefs.current.delete(id);
+    }
+  }, []);
+
+  const gltfModelRefs = useRef(new Map());
+  const registerGltfModelHandle = useCallback((assetId, node) => {
+    if (!assetId) return;
+    if (node) {
+      gltfModelRefs.current.set(assetId, node);
+    } else {
+      gltfModelRefs.current.delete(assetId);
     }
   }, []);
 
@@ -241,11 +447,26 @@ function Experience() {
   const lightToControl = lightRefs.current.get(selectedLight);
   const mannequinToControl = mannequinRefs.current.get(selectedMannequinId);
   const diffuserToControl = diffuserRefs.current.get(selectedDiffuser);
+  const gltfModelToControl = gltfModelRefs.current.get(selectedGltfModelId);
   const objectToControl = selectedLight
     ? lightToControl
     : selectedDiffuser
     ? diffuserToControl
+    : selectedGltfModelId
+    ? gltfModelToControl
     : mannequinToControl;
+
+  useEffect(() => {
+    if (!selectedGltfModelId) {
+      return;
+    }
+    const stillExists = currentGltfModels.some(
+      (model) => model.assetId === selectedGltfModelId
+    );
+    if (!stillExists) {
+      setSelectedGltfModel(null);
+    }
+  }, [currentGltfModels, selectedGltfModelId, setSelectedGltfModel]);
 
   // TransformControls 이벤트 리스너 설정
   // 기즈모 드래그 시 OrbitControls 비활성화하여 충돌 방지
@@ -440,7 +661,14 @@ function Experience() {
     <>
       {viewMode === "free" && <cameraHelper args={[virtualCamera.current]} />}
 
-      <ambientLight intensity={0.2} />
+      {/* HDRI 환경 맵 */}
+      {currentHdriAsset && currentHdriAsset.fileUrl ? (
+        <React.Suspense fallback={<ambientLight intensity={0.2} />}>
+          <HdriEnvironment fileUrl={currentHdriAsset.fileUrl} />
+        </React.Suspense>
+      ) : (
+        <ambientLight intensity={0.2} />
+      )}
 
       {/* [Architecture 시나리오 2: 기즈모로 조명 이동 - 1단계: 조명 렌더링 및 선택] */}
       {lights.map((light) => {
@@ -562,7 +790,7 @@ function Experience() {
       })}
 
       {/* [Architecture 시나리오 2: 기즈모로 조명 이동 - 2단계: TransformControls] */}
-      {objectToControl && (
+      {!readOnly && objectToControl && (
         <TransformControls
           ref={transformControlsRef}
           object={objectToControl}
@@ -575,6 +803,7 @@ function Experience() {
               // 이벤트 핸들러는 클로저로 인해 오래된 state를 참조할 수 있으므로
               // getState()를 사용하여 항상 최신 상태를 가져옴
               const state = useStore.getState(); // Get fresh state
+              const mode = state.transformMode;
 
               // [시나리오 2-3: updateLight 액션 호출하여 Zustand Store 업데이트]
               // Use fresh state to determine what to update
@@ -593,22 +822,62 @@ function Experience() {
                 } else {
                   updateLight(state.selectedLight, "position", newPosition);
                 }
+              } else if (state.selectedGltfModelId) {
+                const assetId = state.selectedGltfModelId;
+                if (mode === "rotate") {
+                  const newRotation = [
+                    obj.rotation.x,
+                    obj.rotation.y,
+                    obj.rotation.z,
+                  ];
+                  updateGltfModel(assetId, "rotation", newRotation);
+                } else if (mode === "scale") {
+                  const newScale = [
+                    obj.scale.x,
+                    obj.scale.y,
+                    obj.scale.z,
+                  ];
+                  updateGltfModel(assetId, "scale", newScale);
+                } else {
+                  const newPosition = [
+                    obj.position.x,
+                    obj.position.y,
+                    obj.position.z,
+                  ];
+                  updateGltfModel(assetId, "position", newPosition);
+                }
               } else if (state.selectedDiffuser) {
-                // Diffuser 위치 이동
-                const newPosition = [
-                  obj.position.x,
-                  obj.position.y,
-                  obj.position.z,
-                ];
-                setDiffuserPosition(state.selectedDiffuser, newPosition);
+                if (mode === "scale") {
+                  const newScale = [
+                    obj.scale.x,
+                    obj.scale.y,
+                    obj.scale.z,
+                  ];
+                  setDiffuserScale(state.selectedDiffuser, newScale);
+                } else {
+                  const newPosition = [
+                    obj.position.x,
+                    obj.position.y,
+                    obj.position.z,
+                  ];
+                  setDiffuserPosition(state.selectedDiffuser, newPosition);
+                }
               } else if (state.selectedMannequinId) {
-                // 마네킹 위치 이동 (시나리오 2와 유사한 패턴)
-                const newPosition = [
-                  obj.position.x,
-                  obj.position.y,
-                  obj.position.z,
-                ];
-                setMannequinPosition(state.selectedMannequinId, newPosition);
+                if (mode === "scale") {
+                  const newScale = [
+                    obj.scale.x,
+                    obj.scale.y,
+                    obj.scale.z,
+                  ];
+                  setMannequinScale(state.selectedMannequinId, newScale);
+                } else {
+                  const newPosition = [
+                    obj.position.x,
+                    obj.position.y,
+                    obj.position.z,
+                  ];
+                  setMannequinPosition(state.selectedMannequinId, newPosition);
+                }
               }
             }
           }}
@@ -623,6 +892,35 @@ function Experience() {
             ref={(el) => registerMannequinHandle(m.id, el)}
           />
         ))}
+
+        {/* GLTF 모델들 */}
+        {currentGltfModels
+          .filter((model) => {
+            const asset = assets.find(
+              (a) => getAssetId(a) === model.assetId
+            );
+            return asset && asset.fileUrl;
+          })
+          .map((model, index) => {
+            const asset = assets.find(
+              (a) => getAssetId(a) === model.assetId
+            );
+            return (
+              <GltfModelWrapper
+                key={getGltfModelKey(model, index)}
+                fileUrl={asset.fileUrl}
+                position={model.position}
+                rotation={model.rotation}
+                scale={model.scale}
+                registerHandle={(node) =>
+                  registerGltfModelHandle(model.assetId, node)
+                }
+                onPointerDown={(event) =>
+                  handleGltfModelPointerDown(event, model.assetId)
+                }
+              />
+            );
+          })}
       </React.Suspense>
 
       {/* Diffusers - 광목천/실크 디퓨저 */}
@@ -662,7 +960,7 @@ function Experience() {
     </>
   );
 }
-function Scene() {
+function Scene({ readOnly = false }) {
   const containerRef = useRef(null);
   const aspectRatio = useStore((state) => state.aspectRatio);
   const viewMode = useStore((state) => state.viewMode);
@@ -711,7 +1009,7 @@ function Scene() {
           handleStagePointerDown(event);
         }}
       >
-        <Experience />
+        <Experience readOnly={readOnly} />
       </Canvas>
       {viewMode === "camera" && <LetterboxOverlay safeArea={safeArea} />}
     </div>

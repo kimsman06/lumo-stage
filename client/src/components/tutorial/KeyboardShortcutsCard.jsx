@@ -16,6 +16,7 @@ const shortcuts = [
     items: [
       { key: "W", description: "이동 모드로 전환" },
       { key: "E", description: "회전 모드로 전환" },
+      { key: "R", description: "스케일 모드로 전환" },
     ],
   },
   {

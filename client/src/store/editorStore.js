@@ -93,11 +93,13 @@ const sanitizePose = (pose) => {
 
 const sanitizeMannequin = (mannequin = {}, fallbackIndex = 0) => {
   const defaultPosition = [0, -1.5, 0];
+  const defaultScale = [1, 1, 1];
 
   return {
     ...mannequin,
     id: mannequin.id || `mannequin-${fallbackIndex}-${Date.now()}`,
     position: isValidVector3(mannequin.position) ? mannequin.position : defaultPosition,
+    scale: isValidVector3(mannequin.scale) ? mannequin.scale : defaultScale,
     pose: sanitizePose(mannequin.pose),
   };
 };
@@ -113,6 +115,7 @@ const useStore = create((set, get) => {
     {
       id: firstMannequinId,
       position: [0, -1.5, 0],
+      scale: [1, 1, 1],
       pose: createInitialPose(),
     },
   ],
@@ -134,7 +137,7 @@ const useStore = create((set, get) => {
 
   // UI State
   viewMode: "free", // 'free' or 'camera'
-  transformMode: "translate", // 'translate' or 'rotate'
+  transformMode: "translate", // 'translate' | 'rotate' | 'scale'
   isTransformInteracting: false,
   highlightedBone: null, // For direct joint selection
 
@@ -145,6 +148,7 @@ const useStore = create((set, get) => {
   // Diffuser Management
   diffusers: [],
   selectedDiffuser: null,
+  selectedGltfModelId: null,
 
   // --- ACTIONS ---
 
@@ -157,6 +161,7 @@ const useStore = create((set, get) => {
         {
           id: nanoid(),
           position: [Math.random() * 4 - 2, -1.5, Math.random() * 4 - 2],
+          scale: [1, 1, 1],
           pose: createInitialPose(),
         },
       ],
@@ -210,6 +215,12 @@ const useStore = create((set, get) => {
     set((state) => ({
       mannequins: state.mannequins.map((m) =>
         m.id === id ? { ...m, position } : m
+      ),
+    })),
+  setMannequinScale: (id, scale) =>
+    set((state) => ({
+      mannequins: state.mannequins.map((m) =>
+        m.id === id ? { ...m, scale } : m
       ),
     })),
 
@@ -316,6 +327,7 @@ const useStore = create((set, get) => {
 
   // Diffuser Actions
   setSelectedDiffuser: (id) => set({ selectedDiffuser: id }),
+  setSelectedGltfModel: (assetId) => set({ selectedGltfModelId: assetId }),
   addDiffuser: () =>
     set((state) => {
       const newDiffuser = {
@@ -432,6 +444,7 @@ const useStore = create((set, get) => {
       if (sceneData.aspectRatio) {
         updates.aspectRatio = sceneData.aspectRatio;
       }
+      updates.selectedGltfModelId = null;
 
       return updates;
     });

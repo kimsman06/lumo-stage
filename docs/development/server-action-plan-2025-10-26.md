@@ -62,3 +62,58 @@
 - 인증 라우팅 시 토큰 갱신 실패 처리 부재 (`docs/frontend-refactor-plan-2025-10-26.md:68`): Refresh 실패 시 강제 로그아웃 및 에러 토스트 노출 설계.
 - 로그인/회원가입 입력 검증 미흡 (`docs/frontend-refactor-plan-2025-10-26.md:69`): 길이/패턴 검증, 오류 메시지, 가이드 텍스트 명시.
 - HTTP 기반 소셜 로그인 링크 유지 (`docs/frontend-refactor-plan-2025-10-26.md:22`): HTTPS 리디렉션 강제, 미등록 도메인 차단 및 실패 시 보안 알림 처리.
+
+### 2.5 Cloudflare R2 자산 파이프라인 (Phase 5 백엔드) — ✅ 2025-11-09 완료
+
+- **작업 범위** ✅ 완료
+  - ✅ `server/models/Asset.js`: Asset 모델 정의 (hdri/gltf/image 타입, 메타데이터, 인덱스)
+    - 필드: owner, projectId, type, fileName, fileKey, fileUrl, fileSize, mimeType, metadata, storageProvider
+    - 인덱스: `{ owner: 1, uploadedAt: -1 }`, `{ projectId: 1, type: 1 }`
+  - ✅ `server/services/storage.service.js`: R2 스토리지 서비스 구현
+    - S3 호환 API 사용 (`@aws-sdk/client-s3`)
+    - `uploadBuffer()`, `deleteObject()`, `generateAssetKey()` 유틸리티
+    - 테스트/개발 환경용 인메모리 모킹 (`isMockMode()`)
+  - ✅ `server/services/asset.service.js`: Asset 비즈니스 로직
+    - `createAssetFromBuffer()`: 파일 업로드 및 DB 저장
+    - `getAssetsForProject()`: 프로젝트별 Asset 조회
+    - `removeAsset()`: Asset 삭제 (R2 파일 포함)
+    - `removeAssetsByProject()`: 프로젝트 삭제 시 cascade 삭제
+  - ✅ `server/controllers/asset.controller.js`: Asset 컨트롤러
+    - `uploadHdri()`: HDRI 업로드 처리 (.hdr, .exr / 최대 50MB)
+    - `uploadGltf()`: GLB 업로드 처리 (.glb / 최대 100MB)
+    - `listByProject()`: 프로젝트별 Asset 목록 조회
+    - `remove()`: Asset 삭제
+    - 파일 검증: 확장자, MIME 타입, 크기
+  - ✅ `server/routes/asset.routes.js`: Asset 라우터
+    - `POST /api/assets/upload-hdri`: HDRI 업로드 (Multer 미들웨어)
+    - `POST /api/assets/upload-gltf`: GLB 업로드 (Multer 미들웨어)
+    - `GET /api/assets/project/:projectId`: 프로젝트별 Asset 목록
+    - `DELETE /api/assets/:assetId`: Asset 삭제
+    - 모든 엔드포인트: `requireAuth` 미들웨어로 인증 검증
+  - ✅ `server/validators/asset.schemas.js`: Asset 유효성 검사 스키마
+  - ✅ 프로젝트 삭제 연계: `project.service.js`에서 `removeAssetsByProject()` 호출
+
+- **테스트** ✅ 완료
+  - ✅ `server/tests/assets.test.js`: TDD 기반 통합 테스트
+    - HDRI 업로드 플로우 (파일 검증, R2 업로드, DB 저장)
+    - GLB 업로드 플로우
+    - 프로젝트별 Asset 목록 조회
+    - Asset 삭제 (R2 파일 및 DB 레코드)
+    - 프로젝트 삭제 시 cascade 삭제
+    - 파일 크기/확장자 검증 시나리오
+    - 권한 검증 (소유자만 삭제 가능)
+  - ✅ 인메모리 모킹: `storage.service.js`의 `__memoryStore`로 R2 업로드/삭제 검증
+
+- **주요 변경사항**
+  - **GLB 전용 지원**: `.gltf` 대신 `.glb` (Binary GLTF)만 지원
+    - 이유: 파일 크기 최적화, 로딩 속도 향상, 관리 간편화
+    - 영향: PRD 및 관련 문서에서 "GLTF" → "GLB" 명시
+
+- **환경 설정**
+  - 환경변수: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`
+  - 테스트: `NODE_ENV=test` 또는 `R2_USE_LOCAL=true` 시 로컬 모킹 사용
+
+- **다음 단계** (Phase 5 나머지 작업)
+  - ⏳ 프론트엔드 Scene 통합 (HDRI 환경 맵, GLB 모델 렌더링)
+  - ⏳ TransformControls 확장 (GLB 모델 조작)
+  - ⏳ Ground Plane 조건부 렌더링

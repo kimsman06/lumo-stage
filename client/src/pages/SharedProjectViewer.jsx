@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useShareStore from '@/store/shareStore';
+import useAssetStore from '@/store/assetStore';
 import { useEditorStore, useAuthStore } from '@/store';
 import { toast } from 'sonner';
 import { SHARE_MESSAGES } from '@/lib/toast-messages';
@@ -18,32 +19,40 @@ export default function SharedProjectViewer() {
   const { sharedProject, isLoading, error, getSharedProject } = useShareStore();
   const loadSceneData = useEditorStore((state) => state.loadSceneData);
   const user = useAuthStore((state) => state.user);
+  const loadAssetSceneData = useAssetStore((state) => state.loadAssetSceneData);
+  const resetAssetStore = useAssetStore((state) => state.reset);
 
-  useEffect(() => {
-    if (token) {
-      loadSharedProject();
-    }
-  }, [token]);
-
-  const loadSharedProject = async () => {
+  const loadSharedProject = useCallback(async () => {
+    if (!token) return;
     try {
       const data = await getSharedProject(token);
 
-      // 프로젝트 데이터를 store에 로드
       if (data.project && data.project.sceneData) {
         loadSceneData(data.project.sceneData);
+        if (data.project.sceneData.assets) {
+          loadAssetSceneData(data.project.sceneData.assets);
+        }
       }
     } catch (err) {
-      // 에러 타입에 따라 다른 처리
       if (err.message.includes('만료')) {
-        // 만료된 경우 - ExpiredMessage에서 처리
+        // handled by ExpiredMessage
       } else if (err.message.includes('비활성')) {
-        // 비활성화된 경우 - ExpiredMessage에서 처리
+        // handled by ExpiredMessage
       } else {
         toast.error(err.message || SHARE_MESSAGES.loadSharedProjectError);
       }
     }
-  };
+  }, [token, getSharedProject, loadSceneData, loadAssetSceneData]);
+
+  useEffect(() => {
+    loadSharedProject();
+  }, [loadSharedProject]);
+
+  useEffect(() => {
+    return () => {
+      resetAssetStore();
+    };
+  }, [resetAssetStore]);
 
   const handleOpenEditor = () => {
     if (sharedProject?.project?._id) {

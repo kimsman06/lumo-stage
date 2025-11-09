@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { MongoMemoryServer } = require("mongodb-memory-server");
+const { __memoryStore } = require("../services/storage.service");
 
 let mongoServer;
 
@@ -18,6 +19,8 @@ beforeAll(async () => {
   process.env.SESSION_SECRET = "test-session-secret";
   process.env.SESSION_COOKIE_NAME = "lumostage.sid";
   process.env.NODE_ENV = "test";
+  process.env.R2_BUCKET_NAME = "test-bucket";
+  process.env.R2_PUBLIC_URL = "https://r2.test-bucket.local";
 
   await mongoose.connect(uri);
 });
@@ -30,6 +33,8 @@ afterEach(async () => {
       await collection.deleteMany({});
     })
   );
+
+  __memoryStore.clear();
 });
 
 afterAll(async () => {

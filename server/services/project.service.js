@@ -1,5 +1,6 @@
 const Project = require("../models/Project");
 const ShareToken = require("../models/ShareToken");
+const { removeAssetsByProject } = require("./asset.service");
 const { normalizeSceneData, applySceneDefaults, createDefaultSceneData } = require("./scene.service");
 
 const toPlainProject = (projectDoc, skipNormalize = false) => {
@@ -157,6 +158,7 @@ const updateProject = async (projectId, ownerId, updates) => {
 const deleteProject = async (projectId, ownerId) => {
   const project = await findProjectForOwner(projectId, ownerId);
 
+  await removeAssetsByProject(project._id, ownerId);
   await project.deleteOne();
 };
 

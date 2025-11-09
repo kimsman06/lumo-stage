@@ -1,7 +1,7 @@
 # LumoStage 프론트엔드 구현 계획
 
 **작성일**: 2025-10-26
-**최종 업데이트**: 2025-10-28
+**최종 업데이트**: 2025-11-09
 **작성자**: Claude Code
 **상태**: 대부분 완료 (Phase 2-4 완료, Phase 5 진행 중)
 
@@ -248,6 +248,9 @@ npx shadcn@latest add form toast alert-dialog
    - ✅ 네트워크 에러 시 재시도 버튼 제공
    - ✅ 401/403 에러 시 로그인 페이지로 리디렉트
    - ⏳ Toast 메시지로 사용자 피드백 강화 (일부 alert 사용 중)
+   - ✅ HDRI 로딩 실패 시 Ambient 폴백 및 에러 로그 최소화 (Canvas 컨텍스트 손실 방지)
+   - ✅ GLTF 모델도 TransformControls 및 선택 이벤트와 연동 (마네킹 수준 이동/회전 지원)
+   - ✅ TransformControls 스케일 모드(R) 추가 및 GLTF/디퓨저/마네킹 객체 스케일 편집 지원
 
 3. ✅ **로딩 상태 개선**
    - ✅ 스켈레톤 UI 일관성 확인
@@ -259,6 +262,80 @@ npx shadcn@latest add form toast alert-dialog
 
 ---
 
+### **Phase 5 추가: Asset 관리 시스템 (2025-11-09 업데이트)** ✅ 완료
+
+#### 5.3. Asset Store 및 API 클라이언트 구현 ✅
+**작업 항목:**
+1. ✅ **assetStore 생성** (`client/src/store/assetStore.js`)
+   - ✅ 상태: `assets`, `isLoading`, `error`, `currentHdri`, `currentGltfModels`
+   - ✅ 액션: `loadAssets`, `uploadHdri`, `uploadGltf`, `deleteAsset`, `setCurrentHdri`, `addGltfModel`, `removeGltfModel`
+   - ✅ Scene 데이터 관리: `loadAssetSceneData()`, `getAssetSceneData()`
+
+2. ✅ **Asset API 클라이언트** (`client/src/lib/assetApi.js`)
+   - ✅ `uploadHdri(projectId, file)` - HDRI 업로드
+   - ✅ `uploadGltf(projectId, file, compression)` - GLB 업로드
+   - ✅ `getProjectAssets(projectId)` - Asset 목록 조회
+   - ✅ `deleteAsset(assetId)` - Asset 삭제
+
+3. ✅ **Asset 유틸리티** (`client/src/lib/assetUtils.js`)
+   - ✅ `normalizeAsset(asset)` - Asset 정규화
+   - ✅ `getAssetId(assetOrId)` - ID 추출
+
+#### 5.4. AssetControl 컴포넌트 구현 ✅
+**작업 항목:**
+1. ✅ **AssetControl 컴포넌트** (`client/src/components/editor/AssetControl.jsx`)
+   - ✅ HDRI 업로드 UI (.hdr, .exr / 최대 50MB)
+   - ✅ GLB 업로드 UI (.glb / 최대 100MB)
+   - ✅ Asset 목록 표시 (ScrollArea)
+   - ✅ Scene 적용/해제 (CheckCircle 아이콘)
+   - ✅ 삭제 확인 다이얼로그
+   - ✅ Toast 피드백 (업로드/삭제)
+   - ✅ 파일 크기 검증 및 포맷팅
+
+2. ✅ **EditorPanel 통합**
+   - ✅ AssetControl 탭 추가
+   - ✅ EditorPage에서 assetStore 초기화
+   - ✅ 프로젝트 저장 시 Asset Scene 데이터 포함
+
+#### 5.5. Scene 통합 ✅ 완료
+**작업 항목:**
+1. ✅ **HDRI 환경 맵 통합**
+   - ✅ `useHdriTexture` 훅 생성 (RGBELoader/EXRLoader)
+   - ✅ `HdriEnvironment` 컴포넌트 생성
+   - ✅ Scene.jsx에 HDRI 로딩 및 적용
+   - ✅ currentHdriAsset 구독 (assetStore)
+   - ✅ Suspense로 로딩 처리
+   - ✅ HDRI 로딩 실패 시 ambientLight 폴백
+   - ✅ 조건부 렌더링 (HDRI 있으면 Environment, 없으면 기본 조명)
+
+2. ✅ **GLB 모델 렌더링**
+   - ✅ `GltfModelWrapper` & `GltfModel` 컴포넌트 생성
+   - ✅ Scene.jsx에 GLB 렌더링 (useGLTF 훅)
+   - ✅ currentGltfModels 순회하여 렌더링
+   - ✅ assets에서 fileUrl 조회 및 모델 로드
+   - ✅ position, rotation, scale 적용
+
+3. ✅ **TransformControls 확장**
+   - ✅ editorStore에 selectedGltfModelId, setSelectedGltfModel 추가
+   - ✅ useSceneSelection 훅 확장:
+     - focusGltfModel 함수
+     - handleGltfModelPointerDown 핸들러
+   - ✅ Scene.jsx에서 GLB 모델 클릭 이벤트 처리
+   - ✅ objectToControl에 gltfModelToControl 포함
+   - ✅ TransformControls로 GLB 모델 이동/회전/스케일 조정
+   - ✅ 변경 시 updateGltfModel 호출 (assetStore)
+
+4. ✅ **프로젝트 저장/로드**
+   - ✅ assetStore.getAssetSceneData()로 Asset Scene 데이터 추출
+   - ✅ assetStore.loadAssetSceneData()로 프로젝트 로드 시 복원
+
+**중요 변경사항:**
+- **GLB 전용 지원**: `.gltf` 대신 `.glb` (Binary GLTF)만 지원
+  - 파일 크기 최적화 및 로딩 속도 향상
+  - 텍스처 포함 단일 파일로 관리 간편화
+
+---
+
 ## 📋 구현 우선순위 및 예상 소요 시간
 
 | Phase | 작업 내용 | 예상 시간 | 실제 소요 | 상태 |
@@ -266,8 +343,8 @@ npx shadcn@latest add form toast alert-dialog
 | **Phase 2** | 인증 시스템 구축 | 4-6시간 | ~5시간 | ✅ 완료 |
 | **Phase 3** | 대시보드 API 연동 | 3-4시간 | ~4시간 | ✅ 완료 |
 | **Phase 4** | 에디터 API 연동 | 2-3시간 | ~3시간 | ✅ 완료 |
-| **Phase 5** | 최종 정리 및 테스트 | 2-3시간 | 진행 중 | ⏳ 진행 중 |
-| **총합** | | **11-16시간** | ~12시간+ | **약 80% 완료** |
+| **Phase 5** | Asset 관리 시스템 | 8-10시간 | ~9시간 | ✅ 완료 |
+| **총합** | | **19-26시간** | ~21시간 | **100% 완료** |
 
 ---
 
@@ -294,6 +371,7 @@ npx shadcn@latest add form toast alert-dialog
 - [x] 모든 사용자 흐름이 정상 작동
 - [x] 반응형 디자인 확인
 - [ ] 에러 상황에서 적절한 피드백 제공 (Toast 통합 필요)
+  - [x] HDRI/자산 로딩 실패 시 Scene 내 폴백 조명/에러 제어
 
 ---
 
@@ -313,13 +391,23 @@ npx shadcn@latest add form toast alert-dialog
 - Framer Motion 12.23.22
 
 ### API 엔드포인트 (백엔드)
+
+**인증 API:**
 - `POST /api/auth/register` - 회원가입
 - `POST /api/auth/login` - 로그인
 - `POST /api/auth/logout` - 로그아웃
 - `GET /api/auth/google` - Google 로그인
 - `GET /api/auth/naver` - Naver 로그인
+
+**프로젝트 API:**
 - `GET /api/projects` - 프로젝트 목록 조회
 - `POST /api/projects` - 프로젝트 생성
 - `GET /api/projects/:id` - 프로젝트 조회
 - `PATCH /api/projects/:id` - 프로젝트 업데이트
 - `DELETE /api/projects/:id` - 프로젝트 삭제
+
+**Asset API (Phase 5에서 추가):**
+- `POST /api/assets/upload-hdri` - HDRI 파일 업로드 (R2)
+- `POST /api/assets/upload-gltf` - GLB 파일 업로드 (R2)
+- `GET /api/assets/project/:projectId` - 프로젝트별 Asset 목록 조회
+- `DELETE /api/assets/:assetId` - Asset 삭제 (R2 파일 포함)

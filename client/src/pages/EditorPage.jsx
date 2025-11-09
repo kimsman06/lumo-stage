@@ -5,6 +5,7 @@ import Scene from "../components/Scene";
 import EditorPanel from "../components/EditorPanel";
 import useStore from "../store/editorStore";
 import useProjectStore from "../store/projectStore";
+import useAssetStore from "../store/assetStore";
 import { Button } from "../components/ui/button";
 import toast from "../lib/toast";
 import ShareButton from "@/components/share/ShareButton";
@@ -17,6 +18,8 @@ function EditorPage() {
   const { loadSceneData, getSceneData } = useStore();
   const { getProjectById, updateProject, currentProject, isLoading, error } =
     useProjectStore();
+  const { loadAssets, loadAssetSceneData, getAssetSceneData, reset: resetAssetStore } =
+    useAssetStore();
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -34,6 +37,14 @@ function EditorPage() {
       if (result.success && result.project) {
         // Scene 데이터를 에디터 스토어에 로드
         loadSceneData(result.project.sceneData);
+
+        // Asset Scene 데이터 로드 (HDRI, GLTF 모델 정보)
+        if (result.project.sceneData?.assets) {
+          loadAssetSceneData(result.project.sceneData.assets);
+        }
+
+        // Asset 목록 로드
+        loadAssets(id);
       } else {
         toast.error("프로젝트를 불러올 수 없습니다.");
         navigate("/projects");
@@ -41,7 +52,12 @@ function EditorPage() {
     };
 
     loadProject();
-  }, [id, getProjectById, loadSceneData, navigate]);
+
+    // 컴포넌트 언마운트 시 Asset Store 초기화
+    return () => {
+      resetAssetStore();
+    };
+  }, [id, getProjectById, loadSceneData, loadAssets, loadAssetSceneData, resetAssetStore, navigate]);
 
   // 키보드 단축키
   useEffect(() => {
@@ -65,6 +81,9 @@ function EditorPage() {
         case "e":
           useStore.getState().setTransformMode("rotate");
           break;
+        case "r":
+          useStore.getState().setTransformMode("scale");
+          break;
         default:
           break;
       }
@@ -85,9 +104,16 @@ function EditorPage() {
     setSaveSuccess(false);
 
     const sceneData = getSceneData();
+    const assetSceneData = getAssetSceneData();
+
+    // Asset 정보를 sceneData에 포함
+    const fullSceneData = {
+      ...sceneData,
+      assets: assetSceneData,
+    };
 
     // Promise 기반 Toast로 저장 진행 상황 표시
-    const savePromise = updateProject(id, { sceneData });
+    const savePromise = updateProject(id, { sceneData: fullSceneData });
     toast.project.save(savePromise);
 
     const result = await savePromise;
@@ -190,7 +216,7 @@ function EditorPage() {
             <Scene />
           </div>
           {/* EditorPanel - 고정 너비 */}
-          <EditorPanel />
+          <EditorPanel projectId={id} />
         </div>
 
         {/* Tutorial Overlay */}

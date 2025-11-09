@@ -16,7 +16,8 @@ export const useSceneSelection = () => {
         state.selectedLight === next.selectedLight &&
         state.selectedMannequinId === next.selectedMannequinId &&
         state.highlightedBone === next.highlightedBone &&
-        state.selectedDiffuser === next.selectedDiffuser;
+        state.selectedDiffuser === next.selectedDiffuser &&
+        state.selectedGltfModelId === next.selectedGltfModelId;
 
       return unchanged ? state : next;
     });
@@ -28,6 +29,7 @@ export const useSceneSelection = () => {
       selectedMannequinId: null,
       highlightedBone: null,
       selectedDiffuser: null,
+      selectedGltfModelId: null,
     }));
   }, [applySelection]);
 
@@ -44,6 +46,7 @@ export const useSceneSelection = () => {
         selectedMannequinId: null,
         highlightedBone: null,
         selectedDiffuser: null,
+        selectedGltfModelId: null,
       }));
     },
     [applySelection, clearSelection]
@@ -56,6 +59,7 @@ export const useSceneSelection = () => {
         selectedMannequinId: mannequinId,
         highlightedBone: boneName,
         selectedDiffuser: null,
+        selectedGltfModelId: null,
       }));
     },
     [applySelection]
@@ -68,9 +72,27 @@ export const useSceneSelection = () => {
         selectedMannequinId: null,
         highlightedBone: null,
         selectedDiffuser: diffuserId,
+        selectedGltfModelId: null,
       }));
     },
     [applySelection]
+  );
+
+  const focusGltfModel = useCallback(
+    (modelId) => {
+      if (!modelId) {
+        clearSelection();
+        return;
+      }
+      applySelection(() => ({
+        selectedLight: null,
+        selectedMannequinId: null,
+        highlightedBone: null,
+        selectedDiffuser: null,
+        selectedGltfModelId: modelId,
+      }));
+    },
+    [applySelection, clearSelection]
   );
 
   const isLeftClick = (event) => {
@@ -152,14 +174,28 @@ export const useSceneSelection = () => {
     [focusDiffuser]
   );
 
+  const handleGltfModelPointerDown = useCallback(
+    (event, modelId) => {
+      if (!isLeftClick(event)) {
+        return;
+      }
+      event?.stopPropagation?.();
+      event?.nativeEvent?.stopImmediatePropagation?.();
+      focusGltfModel(modelId);
+    },
+    [focusGltfModel]
+  );
+
   return {
     focusLight,
     focusMannequin,
     focusDiffuser,
+    focusGltfModel,
     clearSelection,
     handleLightPointerDown,
     handleStagePointerDown,
     handleMannequinPointerDown,
     handleDiffuserPointerDown,
+    handleGltfModelPointerDown,
   };
 };

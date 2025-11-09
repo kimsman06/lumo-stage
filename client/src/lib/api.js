@@ -51,6 +51,11 @@ api.interceptors.request.use(async (config) => {
   const method = (config.method || "get").toLowerCase();
   const url = config.url || "";
 
+  // FormData인 경우 Content-Type 헤더를 제거 (axios가 자동으로 설정)
+  if (config.data instanceof FormData) {
+    delete config.headers["Content-Type"];
+  }
+
   if (!SAFE_METHODS.has(method) && !AUTH_EXEMPT_PATHS.has(url)) {
     const token = await ensureCsrfToken();
 
