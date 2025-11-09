@@ -23,9 +23,11 @@ const TutorialOverlay = () => {
   } = useTutorial();
 
   const lights = useStore((state) => state.lights);
+  const mannequins = useStore((state) => state.mannequins);
+  const setSelectedLight = useStore((state) => state.setSelectedLight);
+  const selectMannequin = useStore((state) => state.selectMannequin);
+  const selectCamera = useStore((state) => state.selectCamera);
   const [hasAddedLight, setHasAddedLight] = useState(false);
-  const [hasAdjustedLight, setHasAdjustedLight] = useState(false);
-  const [hasChangedPose, setHasChangedPose] = useState(false);
   const [initialLightCount] = useState(lights.length);
 
   // Step 3: 조명 추가 감지
@@ -40,6 +42,37 @@ const TutorialOverlay = () => {
       }
     }
   }, [lights, currentStep, TUTORIAL_STEPS.ADD_LIGHT, initialLightCount, hasAddedLight, nextStep]);
+
+  // 튜토리얼 단계별 선택 상태 동기화
+  useEffect(() => {
+    if (!isActive) {
+      return;
+    }
+
+    if (currentStep === TUTORIAL_STEPS.ADJUST_LIGHT) {
+      const newestLight = lights[lights.length - 1] || lights[0];
+      if (newestLight) {
+        setSelectedLight(newestLight.id);
+      }
+    } else if (currentStep === TUTORIAL_STEPS.MANNEQUIN_POSE) {
+      if (mannequins[0]) {
+        selectMannequin(mannequins[0].id);
+      }
+    } else if (currentStep === TUTORIAL_STEPS.CAMERA_CONTROL) {
+      selectCamera();
+    }
+  }, [
+    currentStep,
+    isActive,
+    lights,
+    mannequins,
+    setSelectedLight,
+    selectMannequin,
+    selectCamera,
+    TUTORIAL_STEPS.ADJUST_LIGHT,
+    TUTORIAL_STEPS.MANNEQUIN_POSE,
+    TUTORIAL_STEPS.CAMERA_CONTROL,
+  ]);
 
   // 키보드 단축키 카드
   const handleCloseShortcuts = () => {
@@ -137,11 +170,10 @@ const TutorialOverlay = () => {
         <TutorialTooltip
           targetSelector="[data-tutorial='add-light-button']"
           title="조명 추가하기"
-          description={`씬에 새로운 조명을 추가해보세요!
+          description={`왼쪽 툴바(ToolPanel)의 전구 버튼을 눌러 새로운 조명을 추가해보세요.
 
-💡 "조명 추가" 버튼을 클릭하면 다양한 타입의 조명을 선택할 수 있습니다.
-
-지금 한번 추가해보세요!`}
+💡 버튼을 클릭하면 즉시 씬에 Spot Light가 생성되고
+Outliner와 Properties 패널에서 편집할 수 있습니다.`}
           position="left"
           isActive={true}
           onNext={nextStep}
@@ -160,21 +192,18 @@ const TutorialOverlay = () => {
     return (
       <>
         <TutorialSpotlight
-          targetSelector="[data-tutorial='light-controls']"
+          targetSelector="[data-tutorial='light-properties-tab']"
           isActive={true}
           padding={12}
           borderRadius={8}
         />
         <TutorialTooltip
-          targetSelector="[data-tutorial='light-controls']"
+          targetSelector="[data-tutorial='light-properties-tab']"
           title="조명 속성 조정"
-          description={`조명의 색상, 강도, 위치 등을 조절해보세요!
+          description={`우측 Properties 패널에서 방금 추가한 조명의 색상과 강도를 조정해보세요.
 
-🎨 Color: 조명 색상
-💪 Intensity: 조명 밝기
-📍 Position: 조명 위치
-
-슬라이더를 움직여 실시간으로 변화를 확인할 수 있습니다.`}
+1. Properties 탭을 열고
+2. Color/Intensity 값을 바꾸면 씬에 즉시 반영됩니다.`}
           position="left"
           isActive={true}
           onNext={nextStep}
@@ -193,20 +222,18 @@ const TutorialOverlay = () => {
     return (
       <>
         <TutorialSpotlight
-          targetSelector="[data-tutorial='mannequin-tab']"
+          targetSelector="[data-node-type='mannequin']"
           isActive={true}
           padding={8}
           borderRadius={8}
         />
         <TutorialTooltip
-          targetSelector="[data-tutorial='mannequin-tab']"
+          targetSelector="[data-node-type='mannequin']"
           title="마네킹 포즈 변경"
-          description={`마네킹 탭으로 이동하여 포즈를 변경해보세요!
+          description={`우측 상단 Outliner에서 마네킹 노드를 선택해보세요.
 
-🧍 다양한 프리셋 포즈를 선택하거나
-🦴 개별 관절을 조정하여 원하는 포즈를 만들 수 있습니다.
-
-탭을 클릭해보세요!`}
+선택 후 Properties 패널에서 프리셋 포즈를 적용하거나
+관절을 직접 조정해 다양한 연출을 만들 수 있습니다.`}
           position="left"
           isActive={true}
           onNext={nextStep}
@@ -225,21 +252,18 @@ const TutorialOverlay = () => {
     return (
       <>
         <TutorialSpotlight
-          targetSelector="[data-tutorial='camera-tab']"
+          targetSelector="[data-tutorial='camera-section']"
           isActive={true}
-          padding={8}
+          padding={12}
           borderRadius={8}
         />
         <TutorialTooltip
-          targetSelector="[data-tutorial='camera-tab']"
+          targetSelector="[data-tutorial='camera-section']"
           title="카메라 설정"
-          description={`카메라 탭에서 시점을 조정해보세요!
+          description={`Scene 카메라를 선택하면 우측 Properties 패널에서
+위치·피사체·FOV를 한 번에 조정할 수 있습니다.
 
-📷 카메라 위치, 각도 조정
-🎯 FOV(시야각) 변경
-🔄 OrbitControl과 카메라 뷰 동기화
-
-탭을 클릭하여 카메라 설정을 확인해보세요!`}
+카메라를 조정해 원하는 프레이밍을 맞춰보세요.`}
           position="left"
           isActive={true}
           onNext={nextStep}

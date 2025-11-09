@@ -211,6 +211,20 @@ const useAssetStore = create((set, get) => ({
     }));
   },
 
+  // GLTF 모델 가시성 업데이트
+  setGltfModelVisibility: (assetOrId, visible) => {
+    const assetId = getAssetId(assetOrId);
+    if (!assetId) {
+      return;
+    }
+
+    set((state) => ({
+      currentGltfModels: state.currentGltfModels.map((model) =>
+        model.assetId === assetId ? { ...model, visible } : model
+      ),
+    }));
+  },
+
   // 스토어 초기화 (프로젝트 변경 시)
   reset: () => {
     set({

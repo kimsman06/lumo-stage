@@ -1,9 +1,74 @@
 import { create } from "zustand";
 import { nanoid } from "nanoid";
 
+const BACKGROUND_TYPES = ["color", "hdri", "none"];
+
+const DEFAULT_BACKGROUND_SETTINGS = {
+  type: "color",
+  color: "#050505",
+  hdriIntensity: 1,
+  showGround: true,
+  groundColor: "#1f1f1f",
+  groundReflectivity: 0.15,
+};
+
+const clampNumber = (value, min, max, fallback) => {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return fallback;
+  }
+  return Math.min(Math.max(value, min), max);
+};
+
+const sanitizeBackgroundSettings = (settings) => {
+  const defaults = { ...DEFAULT_BACKGROUND_SETTINGS };
+  if (!settings || typeof settings !== "object") {
+    return defaults;
+  }
+
+  return {
+    type: BACKGROUND_TYPES.includes(settings.type)
+      ? settings.type
+      : defaults.type,
+    color:
+      typeof settings.color === "string" && settings.color.trim()
+        ? settings.color
+        : defaults.color,
+    hdriIntensity: clampNumber(
+      settings.hdriIntensity,
+      0,
+      5,
+      defaults.hdriIntensity
+    ),
+    showGround:
+      typeof settings.showGround === "boolean"
+        ? settings.showGround
+        : defaults.showGround,
+    groundColor:
+      typeof settings.groundColor === "string" && settings.groundColor.trim()
+        ? settings.groundColor
+        : defaults.groundColor,
+    groundReflectivity: clampNumber(
+      settings.groundReflectivity,
+      0,
+      1,
+      defaults.groundReflectivity
+    ),
+  };
+};
+
+const areBackgroundSettingsEqual = (a, b) =>
+  a.type === b.type &&
+  a.color === b.color &&
+  a.hdriIntensity === b.hdriIntensity &&
+  a.showGround === b.showGround &&
+  a.groundColor === b.groundColor &&
+  a.groundReflectivity === b.groundReflectivity;
+
 const buildSpotLight = (overrides = {}) => ({
   id: nanoid(),
   type: "spot",
+  name: overrides.name || "Spot Light",
+  visible: true,
   color: "#FFFFFF",
   intensity: 10,
   position: [0, 3, 0],
@@ -18,16 +83,19 @@ const buildSpotLight = (overrides = {}) => ({
 
 const createDefaultLights = () => [
   buildSpotLight({
+    name: "Key Light",
     intensity: 15,
     position: [5, 7, 5],
     angle: Math.PI / 6,
   }),
   buildSpotLight({
+    name: "Fill Light",
     intensity: 5,
     position: [-5, 4, 5],
     angle: Math.PI / 6,
   }),
   buildSpotLight({
+    name: "Back Light",
     intensity: 8,
     position: [0, 5, -8],
     angle: Math.PI / 4,
@@ -61,7 +129,54 @@ const createInitialPose = () =>
 const isValidVector3 = (value) =>
   Array.isArray(value) &&
   value.length === 3 &&
-  value.every((component) => typeof component === "number" && Number.isFinite(component));
+  value.every(
+    (component) => typeof component === "number" && Number.isFinite(component)
+  );
+
+const ensureVector3 = (value, fallback = [0, 0, 0]) =>
+  isValidVector3(value) ? value : fallback;
+
+const remapLightForType = (light, nextType) => {
+  const baseLight = {
+    id: light.id,
+    name: light.name,
+    type: nextType,
+    visible: light.visible !== undefined ? light.visible : true,
+    position: ensureVector3(light.position, [0, 3, 0]),
+    color: light.color || "#ffffff",
+    intensity:
+      typeof light.intensity === "number" ? light.intensity : 10,
+    castShadow:
+      light.castShadow !== undefined ? light.castShadow : true,
+  };
+
+  switch (nextType) {
+    case "spot":
+      return {
+        ...baseLight,
+        angle: typeof light.angle === "number" ? light.angle : Math.PI / 4,
+        penumbra:
+          typeof light.penumbra === "number" ? light.penumbra : 0.5,
+        distance:
+          typeof light.distance === "number" ? light.distance : 0,
+        decay: typeof light.decay === "number" ? light.decay : 2,
+        targetPosition: ensureVector3(light.targetPosition),
+      };
+    case "directional":
+      return {
+        ...baseLight,
+        targetPosition: ensureVector3(light.targetPosition),
+      };
+    case "point":
+    default:
+      return {
+        ...baseLight,
+        distance:
+          typeof light.distance === "number" ? light.distance : 0,
+        decay: typeof light.decay === "number" ? light.decay : 2,
+      };
+  }
+};
 
 const sanitizePose = (pose) => {
   const template = createInitialPose();
@@ -98,9 +213,35 @@ const sanitizeMannequin = (mannequin = {}, fallbackIndex = 0) => {
   return {
     ...mannequin,
     id: mannequin.id || `mannequin-${fallbackIndex}-${Date.now()}`,
+    name: mannequin.name || `Mannequin ${fallbackIndex + 1}`,
+    visible: mannequin.visible !== undefined ? mannequin.visible : true,
     position: isValidVector3(mannequin.position) ? mannequin.position : defaultPosition,
     scale: isValidVector3(mannequin.scale) ? mannequin.scale : defaultScale,
     pose: sanitizePose(mannequin.pose),
+  };
+};
+
+const sanitizeLight = (light, fallbackIndex = 0) => {
+  if (!light || !light.type) return null;
+
+  const baseName = light.type === 'spot' ? 'Spot Light' :
+                   light.type === 'point' ? 'Point Light' :
+                   light.type === 'directional' ? 'Directional Light' : 'Light';
+
+  return {
+    ...light,
+    name: light.name || `${baseName} ${fallbackIndex + 1}`,
+    visible: light.visible !== undefined ? light.visible : true,
+  };
+};
+
+const sanitizeDiffuser = (diffuser, fallbackIndex = 0) => {
+  if (!diffuser) return null;
+
+  return {
+    ...diffuser,
+    name: diffuser.name || `Diffuser ${fallbackIndex + 1}`,
+    visible: diffuser.visible !== undefined ? diffuser.visible : true,
   };
 };
 
@@ -114,6 +255,8 @@ const useStore = create((set, get) => {
   mannequins: [
     {
       id: firstMannequinId,
+      name: "Mannequin",
+      visible: true,
       position: [0, -1.5, 0],
       scale: [1, 1, 1],
       pose: createInitialPose(),
@@ -134,6 +277,7 @@ const useStore = create((set, get) => {
     zoom: 1,
   },
   aspectRatio: "16:9",
+  backgroundSettings: sanitizeBackgroundSettings(),
 
   // UI State
   viewMode: "free", // 'free' or 'camera'
@@ -144,6 +288,10 @@ const useStore = create((set, get) => {
   // Light Management
   lights: initialLights,
   selectedLight: null,
+  selectedCamera: false,
+  selectedHdri: false,
+  selectedModelLibrary: false,
+  selectedEnvironment: false,
 
   // Diffuser Management
   diffusers: [],
@@ -160,13 +308,25 @@ const useStore = create((set, get) => {
         ...state.mannequins,
         {
           id: nanoid(),
+          name: `Mannequin ${state.mannequins.length + 1}`,
+          visible: true,
           position: [Math.random() * 4 - 2, -1.5, Math.random() * 4 - 2],
           scale: [1, 1, 1],
           pose: createInitialPose(),
         },
       ],
     })),
-  selectMannequin: (id) => set({ selectedMannequinId: id }),
+  selectMannequin: (id) =>
+    set({
+      selectedMannequinId: id,
+      selectedCamera: false,
+      selectedHdri: false,
+      selectedModelLibrary: false,
+      selectedEnvironment: false,
+      selectedLight: null,
+      selectedDiffuser: null,
+      selectedGltfModelId: null,
+    }),
   deleteMannequin: (id) =>
     set((state) => {
       const remaining = state.mannequins.filter((m) => m.id !== id);
@@ -259,16 +419,83 @@ const useStore = create((set, get) => {
     })),
   setAspectRatio: (ratio) => set({ aspectRatio: ratio }),
   setTransformMode: (mode) => set({ transformMode: mode }),
+  updateBackgroundSettings: (partial) => {
+    const current = get().backgroundSettings;
+    const nextSettings = sanitizeBackgroundSettings({
+      ...current,
+      ...(partial || {}),
+    });
+    if (areBackgroundSettingsEqual(current, nextSettings)) {
+      return;
+    }
+    set({ backgroundSettings: nextSettings });
+  },
   // [Architecture 시나리오 2: 조명 선택]
   // useSceneSelection의 focusLight에서 호출되어 선택된 조명 ID 저장
   // 이 상태 변경은 Scene의 TransformControls가 해당 조명에 연결되도록 트리거
   // 참고: docs/LumoStage-Architecture.md 시나리오 2
-  setSelectedLight: (id) => set({ selectedLight: id }),
+  setSelectedLight: (id) =>
+    set({
+      selectedLight: id,
+      selectedCamera: false,
+      selectedHdri: false,
+      selectedModelLibrary: false,
+      selectedEnvironment: false,
+      selectedMannequinId: null,
+      selectedDiffuser: null,
+      selectedGltfModelId: null,
+    }),
+  selectCamera: () =>
+    set({
+      selectedCamera: true,
+      selectedHdri: false,
+      selectedModelLibrary: false,
+      selectedEnvironment: false,
+      selectedLight: null,
+      selectedMannequinId: null,
+      selectedDiffuser: null,
+      selectedGltfModelId: null,
+    }),
+  selectHdri: () =>
+    set({
+      selectedHdri: true,
+      selectedCamera: false,
+      selectedModelLibrary: false,
+      selectedEnvironment: false,
+      selectedLight: null,
+      selectedMannequinId: null,
+      selectedDiffuser: null,
+      selectedGltfModelId: null,
+    }),
+  selectModelLibrary: () =>
+    set({
+      selectedModelLibrary: true,
+      selectedCamera: false,
+      selectedHdri: false,
+      selectedEnvironment: false,
+      selectedLight: null,
+      selectedMannequinId: null,
+      selectedDiffuser: null,
+      selectedGltfModelId: null,
+    }),
+  selectEnvironment: () =>
+    set({
+      selectedEnvironment: true,
+      selectedCamera: false,
+      selectedHdri: false,
+      selectedModelLibrary: false,
+      selectedLight: null,
+      selectedMannequinId: null,
+      selectedDiffuser: null,
+      selectedGltfModelId: null,
+    }),
   addLight: (type = "point") =>
     set((state) => {
       let newLight;
+      const lightCount = state.lights.length + 1;
       const commonProps = {
         id: nanoid(),
+        visible: true,
         position: [0, 3, 0],
         color: "#ffffff",
         intensity: 10,
@@ -276,12 +503,13 @@ const useStore = create((set, get) => {
       };
       switch (type) {
         case "point":
-          newLight = { ...commonProps, type: "point", distance: 0, decay: 2 };
+          newLight = { ...commonProps, type: "point", name: `Point Light ${lightCount}`, distance: 0, decay: 2 };
           break;
         case "spot":
           newLight = {
             ...commonProps,
             type: "spot",
+            name: `Spot Light ${lightCount}`,
             angle: Math.PI / 4,
             penumbra: 0.5,
             distance: 0,
@@ -293,15 +521,25 @@ const useStore = create((set, get) => {
           newLight = {
             ...commonProps,
             type: "directional",
+            name: `Directional Light ${lightCount}`,
             intensity: 5,
             targetPosition: [0, 0, 0],
           };
           break;
         default:
-          newLight = { ...commonProps, type: "point", distance: 0, decay: 2 };
+          newLight = { ...commonProps, type: "point", name: `Point Light ${lightCount}`, distance: 0, decay: 2 };
       }
       const nextLights = [...state.lights, newLight];
-      return { lights: nextLights };
+      return {
+        lights: nextLights,
+        selectedLight: newLight.id,
+        selectedCamera: false,
+        selectedHdri: false,
+        selectedModelLibrary: false,
+        selectedMannequinId: null,
+        selectedDiffuser: null,
+        selectedGltfModelId: null,
+      };
     }),
   deleteLight: (id) =>
     set((state) => {
@@ -324,14 +562,42 @@ const useStore = create((set, get) => {
         light.id === id ? { ...light, [property]: value } : light
       ),
     })),
+  changeLightType: (id, nextType) =>
+    set((state) => ({
+      lights: state.lights.map((light) =>
+        light.id === id ? remapLightForType(light, nextType) : light
+      ),
+    })),
 
   // Diffuser Actions
-  setSelectedDiffuser: (id) => set({ selectedDiffuser: id }),
-  setSelectedGltfModel: (assetId) => set({ selectedGltfModelId: assetId }),
+  setSelectedDiffuser: (id) =>
+    set({
+      selectedDiffuser: id,
+      selectedCamera: false,
+      selectedHdri: false,
+      selectedModelLibrary: false,
+      selectedEnvironment: false,
+      selectedLight: null,
+      selectedMannequinId: null,
+      selectedGltfModelId: null,
+    }),
+  setSelectedGltfModel: (assetId) =>
+    set({
+      selectedGltfModelId: assetId,
+      selectedCamera: false,
+      selectedHdri: false,
+      selectedModelLibrary: false,
+      selectedEnvironment: false,
+      selectedLight: null,
+      selectedMannequinId: null,
+      selectedDiffuser: null,
+    }),
   addDiffuser: () =>
     set((state) => {
       const newDiffuser = {
         id: nanoid(),
+        name: `Diffuser ${state.diffusers.length + 1}`,
+        visible: true,
         position: [0, 2, 2],
         rotation: [0, 0, 0],
         scale: [2, 2, 1],
@@ -407,6 +673,58 @@ const useStore = create((set, get) => {
       }),
     })),
 
+  // Outliner Actions
+  renameObject: (id, objectType, newName) =>
+    set((state) => {
+      switch (objectType) {
+        case 'light':
+          return {
+            lights: state.lights.map((light) =>
+              light.id === id ? { ...light, name: newName } : light
+            ),
+          };
+        case 'mannequin':
+          return {
+            mannequins: state.mannequins.map((mannequin) =>
+              mannequin.id === id ? { ...mannequin, name: newName } : mannequin
+            ),
+          };
+        case 'diffuser':
+          return {
+            diffusers: state.diffusers.map((diffuser) =>
+              diffuser.id === id ? { ...diffuser, name: newName } : diffuser
+            ),
+          };
+        default:
+          return state;
+      }
+    }),
+  setObjectVisibility: (id, objectType, visible) =>
+    set((state) => {
+      switch (objectType) {
+        case 'light':
+          return {
+            lights: state.lights.map((light) =>
+              light.id === id ? { ...light, visible } : light
+            ),
+          };
+        case 'mannequin':
+          return {
+            mannequins: state.mannequins.map((mannequin) =>
+              mannequin.id === id ? { ...mannequin, visible } : mannequin
+            ),
+          };
+        case 'diffuser':
+          return {
+            diffusers: state.diffusers.map((diffuser) =>
+              diffuser.id === id ? { ...diffuser, visible } : diffuser
+            ),
+          };
+        default:
+          return state;
+      }
+    }),
+
   // Scene Data 로드 (API에서 받은 데이터로 에디터 상태 초기화)
   loadSceneData: (sceneData) => {
     if (!sceneData) return;
@@ -422,18 +740,25 @@ const useStore = create((set, get) => {
         updates.selectedMannequinId = sanitizedMannequins[0]?.id || null;
       }
 
-      const importedLights = Array.isArray(sceneData.lights)
-        ? sceneData.lights
-        : state.lights;
+      if (Array.isArray(sceneData.lights)) {
+        const sanitizedLights = sceneData.lights
+          .map((light, index) => sanitizeLight(light, index))
+          .filter(Boolean);
+        updates.lights = sanitizedLights;
+      } else {
+        updates.lights = state.lights;
+      }
 
-      updates.lights = importedLights;
-
-      const importedDiffusers = Array.isArray(sceneData.diffusers)
-        ? sceneData.diffusers
-        : [];
-
-      updates.diffusers = importedDiffusers;
-      updates.selectedDiffuser = importedDiffusers[0]?.id || null;
+      if (Array.isArray(sceneData.diffusers)) {
+        const sanitizedDiffusers = sceneData.diffusers
+          .map((diffuser, index) => sanitizeDiffuser(diffuser, index))
+          .filter(Boolean);
+        updates.diffusers = sanitizedDiffusers;
+        updates.selectedDiffuser = sanitizedDiffusers[0]?.id || null;
+      } else {
+        updates.diffusers = [];
+        updates.selectedDiffuser = null;
+      }
 
       if (sceneData.cameraState) {
         updates.cameraState = sceneData.cameraState;
@@ -444,6 +769,10 @@ const useStore = create((set, get) => {
       if (sceneData.aspectRatio) {
         updates.aspectRatio = sceneData.aspectRatio;
       }
+      updates.backgroundSettings = sanitizeBackgroundSettings(
+        sceneData.backgroundSettings
+      );
+      updates.selectedEnvironment = false;
       updates.selectedGltfModelId = null;
 
       return updates;
@@ -460,6 +789,7 @@ const useStore = create((set, get) => {
       cameraState: state.cameraState,
       orbitControlState: state.orbitControlState,
       aspectRatio: state.aspectRatio,
+      backgroundSettings: state.backgroundSettings,
     };
   },
   };

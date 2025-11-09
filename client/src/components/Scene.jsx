@@ -109,14 +109,14 @@ function useHdriTexture(fileUrl) {
 }
 
 // HDRI Environment 컴포넌트 (에러 핸들링 포함)
-function HdriEnvironment({ fileUrl }) {
+function HdriEnvironment({ fileUrl, setAsBackground = false }) {
   const { texture, error } = useHdriTexture(fileUrl);
 
   if (!fileUrl || error || !texture) {
     return <ambientLight intensity={0.2} />;
   }
 
-  return <Environment map={texture} background={false} />;
+  return <Environment map={texture} background={setAsBackground} />;
 }
 
 // GLTF Model 컴포넌트 (Wrapper)
@@ -222,6 +222,7 @@ function Experience({ readOnly = false }) {
   const setSelectedGltfModel = useStore(
     (state) => state.setSelectedGltfModel
   );
+  const backgroundSettings = useStore((state) => state.backgroundSettings);
 
   // Asset 상태
   const assets = useAssetStore((state) => state.assets);
@@ -273,7 +274,7 @@ function Experience({ readOnly = false }) {
     handleGltfModelPointerDown,
   } = useSceneSelection();
 
-  const { camera, size, gl } = useThree();
+  const { camera, size, gl, scene } = useThree();
   const transformControlsRef = useRef();
   const lightRefs = useRef(new Map());
   const mannequinRefs = useRef(new Map());
@@ -467,6 +468,34 @@ function Experience({ readOnly = false }) {
       setSelectedGltfModel(null);
     }
   }, [currentGltfModels, selectedGltfModelId, setSelectedGltfModel]);
+
+  const hdriActive =
+    backgroundSettings.type === "hdri" && currentHdriAsset?.fileUrl;
+
+  useEffect(() => {
+    if (!scene) {
+      return;
+    }
+
+    if (backgroundSettings.type === "color" || !hdriActive) {
+      const colorValue = backgroundSettings.color || "#050505";
+      const nextColor = new THREE.Color(colorValue);
+      scene.background = nextColor;
+    } else if (backgroundSettings.type === "none") {
+      scene.background = null;
+    } else if (backgroundSettings.type === "hdri" && hdriActive) {
+      scene.background = null;
+    }
+  }, [scene, backgroundSettings, hdriActive]);
+
+  useEffect(() => {
+    if (!scene) {
+      return;
+    }
+    if (typeof scene.environmentIntensity === "number") {
+      scene.environmentIntensity = backgroundSettings.hdriIntensity || 1;
+    }
+  }, [scene, backgroundSettings.hdriIntensity]);
 
   // TransformControls 이벤트 리스너 설정
   // 기즈모 드래그 시 OrbitControls 비활성화하여 충돌 방지
@@ -662,16 +691,23 @@ function Experience({ readOnly = false }) {
       {viewMode === "free" && <cameraHelper args={[virtualCamera.current]} />}
 
       {/* HDRI 환경 맵 */}
-      {currentHdriAsset && currentHdriAsset.fileUrl ? (
-        <React.Suspense fallback={<ambientLight intensity={0.2} />}>
-          <HdriEnvironment fileUrl={currentHdriAsset.fileUrl} />
+      {hdriActive && (
+        <React.Suspense fallback={null}>
+          <HdriEnvironment
+            fileUrl={currentHdriAsset.fileUrl}
+            setAsBackground={backgroundSettings.type === "hdri"}
+          />
         </React.Suspense>
-      ) : (
-        <ambientLight intensity={0.2} />
       )}
+      <ambientLight intensity={0.2} />
 
       {/* [Architecture 시나리오 2: 기즈모로 조명 이동 - 1단계: 조명 렌더링 및 선택] */}
       {lights.map((light) => {
+        // visible이 false면 렌더링하지 않음
+        if (light.visible === false) {
+          return null;
+        }
+
         if (!lightTargetObjectsRef.current.has(light.id)) {
           lightTargetObjectsRef.current.set(light.id, new THREE.Object3D());
         }
@@ -885,17 +921,27 @@ function Experience({ readOnly = false }) {
       )}
 
       <React.Suspense fallback={null}>
-        {mannequins.map((m) => (
-          <Mannequin
-            key={m.id}
-            {...m}
-            ref={(el) => registerMannequinHandle(m.id, el)}
-          />
-        ))}
+        {mannequins.map((m) => {
+          // visible이 false면 렌더링하지 않음
+          if (m.visible === false) {
+            return null;
+          }
+          return (
+            <Mannequin
+              key={m.id}
+              {...m}
+              ref={(el) => registerMannequinHandle(m.id, el)}
+            />
+          );
+        })}
 
         {/* GLTF 모델들 */}
         {currentGltfModels
           .filter((model) => {
+            // visible이 false면 렌더링하지 않음
+            if (model.visible === false) {
+              return false;
+            }
             const asset = assets.find(
               (a) => getAssetId(a) === model.assetId
             );
@@ -924,37 +970,60 @@ function Experience({ readOnly = false }) {
       </React.Suspense>
 
       {/* Diffusers - 광목천/실크 디퓨저 */}
-      {diffusers.map((diffuser) => (
-        <Diffuser
-          key={diffuser.id}
-          {...diffuser}
-          ref={(el) => registerDiffuserHandle(diffuser.id, el)}
-          onPointerDown={(event) =>
-            handleDiffuserPointerDown(event, diffuser.id)
-          }
-        />
-      ))}
+      {diffusers.map((diffuser) => {
+        // visible이 false면 렌더링하지 않음
+        if (diffuser.visible === false) {
+          return null;
+        }
+        return (
+          <Diffuser
+            key={diffuser.id}
+            {...diffuser}
+            ref={(el) => registerDiffuserHandle(diffuser.id, el)}
+            onPointerDown={(event) =>
+              handleDiffuserPointerDown(event, diffuser.id)
+            }
+          />
+        );
+      })}
 
-      <Grid
-        position={[0, -1.49, 0]}
-        rotation={[0, -Math.PI / 2, 0]}
-        args={[100, 100]}
-        cellColor={"white"}
-        cellSize={1}
-        sectionSize={10}
-        sectionColor={"#444"}
-        fadeDistance={30}
-        fadeStrength={1}
-        infiniteGrid
-      />
-      <Plane
-        receiveShadow
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, -1.5, 0]}
-        args={[100, 100]}
-      >
-        <meshStandardMaterial color="grey" />
-      </Plane>
+      {backgroundSettings.showGround && (
+        <>
+          <Grid
+            position={[0, -1.49, 0]}
+            rotation={[0, -Math.PI / 2, 0]}
+            args={[100, 100]}
+            cellColor="#ffffff"
+            cellSize={1}
+            sectionSize={10}
+            sectionColor="#444"
+            fadeDistance={30}
+            fadeStrength={1}
+            infiniteGrid
+          />
+          <Plane
+            receiveShadow
+            rotation={[-Math.PI / 2, 0, 0]}
+            position={[0, -1.5, 0]}
+            args={[100, 100]}
+          >
+            <meshStandardMaterial
+              color={backgroundSettings.groundColor || "#666666"}
+              metalness={
+                typeof backgroundSettings.groundReflectivity === "number"
+                  ? backgroundSettings.groundReflectivity
+                  : 0.15
+              }
+              roughness={
+                1 -
+                (typeof backgroundSettings.groundReflectivity === "number"
+                  ? backgroundSettings.groundReflectivity
+                  : 0.15)
+              }
+            />
+          </Plane>
+        </>
+      )}
 
       <OrbitControls ref={orbitControlsRef} makeDefault />
     </>

@@ -17,7 +17,10 @@ export const useSceneSelection = () => {
         state.selectedMannequinId === next.selectedMannequinId &&
         state.highlightedBone === next.highlightedBone &&
         state.selectedDiffuser === next.selectedDiffuser &&
-        state.selectedGltfModelId === next.selectedGltfModelId;
+        state.selectedGltfModelId === next.selectedGltfModelId &&
+        state.selectedCamera === next.selectedCamera &&
+        state.selectedHdri === next.selectedHdri &&
+        state.selectedModelLibrary === next.selectedModelLibrary;
 
       return unchanged ? state : next;
     });
@@ -30,6 +33,9 @@ export const useSceneSelection = () => {
       highlightedBone: null,
       selectedDiffuser: null,
       selectedGltfModelId: null,
+      selectedCamera: false,
+      selectedHdri: false,
+      selectedModelLibrary: false,
     }));
   }, [applySelection]);
 
@@ -47,6 +53,9 @@ export const useSceneSelection = () => {
         highlightedBone: null,
         selectedDiffuser: null,
         selectedGltfModelId: null,
+        selectedCamera: false,
+        selectedHdri: false,
+        selectedModelLibrary: false,
       }));
     },
     [applySelection, clearSelection]
@@ -60,6 +69,9 @@ export const useSceneSelection = () => {
         highlightedBone: boneName,
         selectedDiffuser: null,
         selectedGltfModelId: null,
+        selectedCamera: false,
+        selectedHdri: false,
+        selectedModelLibrary: false,
       }));
     },
     [applySelection]
@@ -73,6 +85,9 @@ export const useSceneSelection = () => {
         highlightedBone: null,
         selectedDiffuser: diffuserId,
         selectedGltfModelId: null,
+        selectedCamera: false,
+        selectedHdri: false,
+        selectedModelLibrary: false,
       }));
     },
     [applySelection]
@@ -90,6 +105,9 @@ export const useSceneSelection = () => {
         highlightedBone: null,
         selectedDiffuser: null,
         selectedGltfModelId: modelId,
+        selectedCamera: false,
+        selectedHdri: false,
+        selectedModelLibrary: false,
       }));
     },
     [applySelection, clearSelection]
