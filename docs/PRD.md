@@ -738,13 +738,16 @@ Scene JSON은 위 표에 기재된 필드만 포함하며, 각 배열 항목은 
    - ✅ Light Target Position 컨트롤 추가
    - ✅ 기존 EditorPanel 제거
 
-3. **Toolbar 및 Undo/Redo** (1주, 9주차)
+3. **Toolbar 및 Undo/Redo** (1주, 9주차) ✅ 완료
 
-   - [ ] 하단 Toolbar 레이아웃 (h-10)
-   - [ ] Transform 모드 버튼 (W: 이동, E: 회전)
-   - [ ] Grid, Snap 토글 버튼
-   - [ ] Undo/Redo 미들웨어 (Zustand temporal)
-   - [ ] 단축키 통합 (`Ctrl+Z`, `Ctrl+Shift+Z`)
+   - ✅ 하단 Toolbar 레이아웃 (h-10)
+   - ✅ Transform 모드 버튼 (W: 이동, E: 회전)
+   - ✅ Grid, Snap 토글 버튼
+   - ✅ Undo/Redo 미들웨어 (Zustand 기반 history 관리)
+   - ✅ 단축키 통합 (`Ctrl+Z`, `Ctrl+Shift+Z`)
+   - ✅ Grid Helper 표시 기능 (Scene.jsx)
+   - ✅ TransformControls에 Snap 기능 추가
+   - ✅ 주요 액션(add/delete Light/Mannequin/Diffuser)에 히스토리 저장
 
 4. **반응형 및 패널 토글** (1주, 10주차)
    - [ ] 패널 접기/펼치기 버튼

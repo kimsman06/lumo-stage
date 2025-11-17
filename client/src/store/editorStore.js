@@ -284,6 +284,13 @@ const useStore = create((set, get) => {
   transformMode: "translate", // 'translate' | 'rotate' | 'scale'
   isTransformInteracting: false,
   highlightedBone: null, // For direct joint selection
+  gridEnabled: true, // Grid helper visibility
+  snapEnabled: false, // Snap to grid enabled
+
+  // History Management (Undo/Redo)
+  history: [], // Array of scene snapshots
+  historyIndex: -1, // Current position in history
+  maxHistorySize: 50, // Maximum number of snapshots
 
   // Light Management
   lights: initialLights,
@@ -302,7 +309,7 @@ const useStore = create((set, get) => {
 
   // Mannequin Actions
   setHighlightedBone: (boneName) => set({ highlightedBone: boneName }),
-  addMannequin: () =>
+  addMannequin: () => {
     set((state) => ({
       mannequins: [
         ...state.mannequins,
@@ -315,7 +322,10 @@ const useStore = create((set, get) => {
           pose: createInitialPose(),
         },
       ],
-    })),
+    }));
+    // Save history after adding mannequin
+    setTimeout(() => get().saveHistory(), 0);
+  },
   selectMannequin: (id) =>
     set({
       selectedMannequinId: id,
@@ -327,7 +337,7 @@ const useStore = create((set, get) => {
       selectedDiffuser: null,
       selectedGltfModelId: null,
     }),
-  deleteMannequin: (id) =>
+  deleteMannequin: (id) => {
     set((state) => {
       const remaining = state.mannequins.filter((m) => m.id !== id);
       const nextSelected =
@@ -339,7 +349,10 @@ const useStore = create((set, get) => {
           ? nextSelected
           : remaining[0]?.id || null,
       };
-    }),
+    });
+    // Save history after deleting mannequin
+    setTimeout(() => get().saveHistory(), 0);
+  },
   applyPosePreset: (id, presetPose) =>
     set((state) => ({
       mannequins: state.mannequins.map(
@@ -419,6 +432,8 @@ const useStore = create((set, get) => {
     })),
   setAspectRatio: (ratio) => set({ aspectRatio: ratio }),
   setTransformMode: (mode) => set({ transformMode: mode }),
+  setGridEnabled: (enabled) => set({ gridEnabled: enabled }),
+  setSnapEnabled: (enabled) => set({ snapEnabled: enabled }),
   updateBackgroundSettings: (partial) => {
     const current = get().backgroundSettings;
     const nextSettings = sanitizeBackgroundSettings({
@@ -489,7 +504,7 @@ const useStore = create((set, get) => {
       selectedDiffuser: null,
       selectedGltfModelId: null,
     }),
-  addLight: (type = "point") =>
+  addLight: (type = "point") => {
     set((state) => {
       let newLight;
       const lightCount = state.lights.length + 1;
@@ -540,8 +555,11 @@ const useStore = create((set, get) => {
         selectedDiffuser: null,
         selectedGltfModelId: null,
       };
-    }),
-  deleteLight: (id) =>
+    });
+    // Save history after adding light
+    setTimeout(() => get().saveHistory(), 0);
+  },
+  deleteLight: (id) => {
     set((state) => {
       const remainingLights = state.lights.filter((light) => light.id !== id);
       const selectedMatches =
@@ -551,7 +569,10 @@ const useStore = create((set, get) => {
         lights: remainingLights,
         selectedLight: selectedMatches ? null : state.selectedLight,
       };
-    }),
+    });
+    // Save history after deleting light
+    setTimeout(() => get().saveHistory(), 0);
+  },
   // [Architecture 시나리오 2: 기즈모로 조명 이동 - 상태 업데이트]
   // Scene의 TransformControls onObjectChange에서 호출되어 lights 배열 업데이트
   // getState()로 최신 상태를 확인한 후 이 액션을 호출하여 조명의 position/targetPosition 업데이트
@@ -592,7 +613,7 @@ const useStore = create((set, get) => {
       selectedMannequinId: null,
       selectedDiffuser: null,
     }),
-  addDiffuser: () =>
+  addDiffuser: () => {
     set((state) => {
       const newDiffuser = {
         id: nanoid(),
@@ -613,12 +634,18 @@ const useStore = create((set, get) => {
         blockOriginalLight: false, // 원본 조명을 차단할지 여부
       };
       return { diffusers: [...state.diffusers, newDiffuser] };
-    }),
-  deleteDiffuser: (id) =>
+    });
+    // Save history after adding diffuser
+    setTimeout(() => get().saveHistory(), 0);
+  },
+  deleteDiffuser: (id) => {
     set((state) => ({
       diffusers: state.diffusers.filter((diffuser) => diffuser.id !== id),
       selectedDiffuser: state.selectedDiffuser === id ? null : state.selectedDiffuser,
-    })),
+    }));
+    // Save history after deleting diffuser
+    setTimeout(() => get().saveHistory(), 0);
+  },
   updateDiffuser: (id, property, value) =>
     set((state) => ({
       diffusers: state.diffusers.map((diffuser) =>
@@ -775,8 +802,15 @@ const useStore = create((set, get) => {
       updates.selectedEnvironment = false;
       updates.selectedGltfModelId = null;
 
+      // Reset history when loading new scene
+      updates.history = [];
+      updates.historyIndex = -1;
+
       return updates;
     });
+
+    // Save initial state to history
+    setTimeout(() => get().saveHistory(), 0);
   },
 
   // Scene Data 추출 (저장용)
@@ -791,6 +825,103 @@ const useStore = create((set, get) => {
       aspectRatio: state.aspectRatio,
       backgroundSettings: state.backgroundSettings,
     };
+  },
+
+  // History Management Actions
+  saveHistory: () => {
+    const state = get();
+    const snapshot = {
+      mannequins: JSON.parse(JSON.stringify(state.mannequins)),
+      lights: JSON.parse(JSON.stringify(state.lights)),
+      diffusers: JSON.parse(JSON.stringify(state.diffusers)),
+      cameraState: JSON.parse(JSON.stringify(state.cameraState)),
+      orbitControlState: JSON.parse(JSON.stringify(state.orbitControlState)),
+      backgroundSettings: JSON.parse(JSON.stringify(state.backgroundSettings)),
+    };
+
+    set((s) => {
+      // Remove any history after current index (when undoing then making new changes)
+      const newHistory = s.history.slice(0, s.historyIndex + 1);
+      newHistory.push(snapshot);
+
+      // Limit history size
+      if (newHistory.length > s.maxHistorySize) {
+        newHistory.shift();
+        return {
+          history: newHistory,
+          historyIndex: newHistory.length - 1,
+        };
+      }
+
+      return {
+        history: newHistory,
+        historyIndex: newHistory.length - 1,
+      };
+    });
+  },
+
+  undo: () => {
+    const state = get();
+    if (state.historyIndex <= 0) return;
+
+    const newIndex = state.historyIndex - 1;
+    const snapshot = state.history[newIndex];
+
+    set({
+      ...snapshot,
+      historyIndex: newIndex,
+      // Preserve history array and UI state
+      history: state.history,
+      transformMode: state.transformMode,
+      gridEnabled: state.gridEnabled,
+      snapEnabled: state.snapEnabled,
+      viewMode: state.viewMode,
+      selectedLight: null,
+      selectedMannequinId: null,
+      selectedDiffuser: null,
+      selectedGltfModelId: null,
+      selectedCamera: false,
+      selectedHdri: false,
+      selectedModelLibrary: false,
+      selectedEnvironment: false,
+    });
+  },
+
+  redo: () => {
+    const state = get();
+    if (state.historyIndex >= state.history.length - 1) return;
+
+    const newIndex = state.historyIndex + 1;
+    const snapshot = state.history[newIndex];
+
+    set({
+      ...snapshot,
+      historyIndex: newIndex,
+      // Preserve history array and UI state
+      history: state.history,
+      transformMode: state.transformMode,
+      gridEnabled: state.gridEnabled,
+      snapEnabled: state.snapEnabled,
+      viewMode: state.viewMode,
+      selectedLight: null,
+      selectedMannequinId: null,
+      selectedDiffuser: null,
+      selectedGltfModelId: null,
+      selectedCamera: false,
+      selectedHdri: false,
+      selectedModelLibrary: false,
+      selectedEnvironment: false,
+    });
+  },
+
+  canUndo: () => {
+    const state = get();
+    return state.historyIndex > 0;
+  },
+
+  canRedo: () => {
+    const state = get();
+    return state.historyIndex < state.history.length - 1;
   },
   };
 });

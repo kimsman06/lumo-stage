@@ -223,6 +223,7 @@ function Experience({ readOnly = false }) {
     (state) => state.setSelectedGltfModel
   );
   const backgroundSettings = useStore((state) => state.backgroundSettings);
+  const snapEnabled = useStore((state) => state.snapEnabled);
 
   // Asset 상태
   const assets = useAssetStore((state) => state.assets);
@@ -832,6 +833,13 @@ function Experience({ readOnly = false }) {
           object={objectToControl}
           mode={transformMode}
           makeDefault={false}
+          translationSnap={snapEnabled ? 0.5 : null}
+          rotationSnap={snapEnabled ? Math.PI / 12 : null}
+          scaleSnap={snapEnabled ? 0.1 : null}
+          onMouseUp={() => {
+            // Transform 완료 시 히스토리 저장
+            useStore.getState().saveHistory();
+          }}
           onObjectChange={(e) => {
             if (e?.target?.object) {
               const obj = e.target.object;

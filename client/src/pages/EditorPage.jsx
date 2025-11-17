@@ -5,6 +5,7 @@ import Scene from "../components/Scene";
 import Outliner from "../components/outliner/Outliner";
 import PropertiesPanel from "../components/properties/PropertiesPanel";
 import ToolPanel from "../components/editor/ToolPanel";
+import Toolbar from "../components/editor/Toolbar";
 import useStore from "../store/editorStore";
 import useProjectStore from "../store/projectStore";
 import useAssetStore from "../store/assetStore";
@@ -85,6 +86,20 @@ function EditorPage() {
         return;
       }
 
+      // Ctrl+Z 또는 Cmd+Z로 Undo
+      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        useStore.getState().undo();
+        return;
+      }
+
+      // Ctrl+Shift+Z 또는 Cmd+Shift+Z로 Redo
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        useStore.getState().redo();
+        return;
+      }
+
       switch (event.key.toLowerCase()) {
         case "escape":
           useStore.getState().setSelectedLight(null);
@@ -97,6 +112,12 @@ function EditorPage() {
           break;
         case "r":
           useStore.getState().setTransformMode("scale");
+          break;
+        case "f":
+          useStore.getState().setViewMode("free");
+          break;
+        case "c":
+          useStore.getState().setViewMode("camera");
           break;
         default:
           break;
@@ -225,9 +246,11 @@ function EditorPage() {
 
         {/* Editor Content - Scene + ToolPanel + (Outliner/Properties) */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Scene - 좌측 남은 공간 */}
-          <div className="flex-1 overflow-hidden">
+          {/* Scene - 좌측 남은 공간 (Toolbar floating 포함) */}
+          <div className="flex-1 overflow-hidden relative">
             <Scene />
+            {/* Toolbar - Scene 위에 floating */}
+            <Toolbar />
           </div>
 
           {/* ToolPanel - 세로 전체 */}

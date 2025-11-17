@@ -16,7 +16,7 @@ const shortcuts = [
     items: [
       { key: "W", description: "이동 모드로 전환" },
       { key: "E", description: "회전 모드로 전환" },
-      { key: "R", description: "스케일 모드로 전환" },
+      { key: "R", description: "크기 조절 모드로 전환" },
     ],
   },
   {
@@ -28,18 +28,25 @@ const shortcuts = [
   },
   {
     category: "프로젝트",
-    items: [{ key: "Ctrl+S", description: "프로젝트 저장", mac: "⌘+S" }],
+    items: [
+      { key: "Ctrl+S", description: "프로젝트 저장", mac: "⌘+S" },
+    ],
   },
   {
-    category: "편집 (추후 구현)",
+    category: "편집",
     items: [
-      { key: "Ctrl+Z", description: "실행 취소", mac: "⌘+Z", disabled: true },
+      { key: "Ctrl+Z", description: "실행 취소", mac: "⌘+Z" },
       {
         key: "Ctrl+Shift+Z",
         description: "다시 실행",
         mac: "⌘+Shift+Z",
-        disabled: true,
       },
+    ],
+  },
+  {
+    category: "기타",
+    items: [
+      { key: "ESC", description: "선택 해제" },
     ],
   },
   {
@@ -47,7 +54,6 @@ const shortcuts = [
     items: [
       { key: "?", description: "단축키 도움말 (이 카드)" },
       { key: "H", description: "튜토리얼 다시 시작" },
-      { key: "ESC", description: "튜토리얼 건너뛰기" },
     ],
   },
 ];
