@@ -12,7 +12,7 @@ import ModelLibrarySection from "./ModelLibrarySection";
 import HdriPropertiesSection from "./HdriPropertiesSection";
 import EnvironmentPropertiesSection from "./EnvironmentPropertiesSection";
 
-const PropertiesPanel = () => {
+const PropertiesPanel = ({ projectId, readOnly = false }) => {
   const {
     selectedLight,
     selectedMannequinId,
@@ -104,23 +104,25 @@ const PropertiesPanel = () => {
                     selectedDiffuser ||
                     selectedGltfModelId
                   }
+                  readOnly={readOnly}
                 />
               </TabsContent>
 
               <TabsContent value="properties" className="p-4 m-0">
                 {selectedType === "light" && (
-                  <LightPropertiesSection light={selectedLightObj} />
+                  <LightPropertiesSection light={selectedLightObj} readOnly={readOnly} />
                 )}
                 {selectedType === "mannequin" && (
                   <MannequinPropertiesSection
                     mannequin={selectedMannequinObj}
+                    readOnly={readOnly}
                   />
                 )}
                 {selectedType === "diffuser" && (
-                  <DiffuserPropertiesSection diffuser={selectedDiffuserObj} />
+                  <DiffuserPropertiesSection diffuser={selectedDiffuserObj} readOnly={readOnly} />
                 )}
                 {selectedType === "gltfModel" && (
-                  <ModelLibrarySection model={selectedGltfModelObj} />
+                  <ModelLibrarySection model={selectedGltfModelObj} readOnly={readOnly} />
                 )}
               </TabsContent>
             </ScrollArea>
@@ -128,17 +130,17 @@ const PropertiesPanel = () => {
         ) : (
           <ScrollArea className="h-full">
             <div className="p-4 space-y-6">
-              {selectedType === "environment" && <EnvironmentPropertiesSection />}
+              {selectedType === "environment" && <EnvironmentPropertiesSection readOnly={readOnly} />}
 
               {selectedType === "hdri" && (
-                <HdriPropertiesSection asset={selectedHdriAsset} />
+                <HdriPropertiesSection asset={selectedHdriAsset} projectId={projectId} readOnly={readOnly} />
               )}
 
-              {selectedType === "modelLibrary" && <ModelLibrarySection />}
+              {selectedType === "modelLibrary" && <ModelLibrarySection projectId={projectId} readOnly={readOnly} />}
 
               {(selectedType === "camera" ||
                 selectedType === null ||
-                selectedType === undefined) && <CameraPropertiesSection />}
+                selectedType === undefined) && <CameraPropertiesSection readOnly={readOnly} />}
             </div>
           </ScrollArea>
         )}

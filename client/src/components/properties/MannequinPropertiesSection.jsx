@@ -1,11 +1,11 @@
 import MannequinControl from "@/components/editor/MannequinControl";
 
-const MannequinPropertiesSection = ({ mannequin }) => {
+const MannequinPropertiesSection = ({ mannequin, readOnly = false }) => {
   if (!mannequin) return null;
 
   return (
     <div>
-      <MannequinControl readOnly={false} selectedMannequinId={mannequin.id} />
+      <MannequinControl readOnly={readOnly} selectedMannequinId={mannequin.id} />
     </div>
   );
 };

@@ -22,7 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import useStore from "../../store/editorStore";
 import { X } from "lucide-react";
 
-const DiffuserCard = ({ diffuser, isSelected }) => {
+const DiffuserCard = ({ diffuser, isSelected, readOnly = false }) => {
   const {
     updateDiffuser,
     lights,
@@ -37,6 +37,7 @@ const DiffuserCard = ({ diffuser, isSelected }) => {
 
   // 조명 연결 핸들러
   const handleLinkLight = (lightId) => {
+    if (readOnly) return;
     if (lightId) {
       linkDiffuserToLight(diffuser.id, lightId);
     }
@@ -44,6 +45,7 @@ const DiffuserCard = ({ diffuser, isSelected }) => {
 
   // 조명 연결 해제 핸들러
   const handleUnlinkLight = (lightId) => {
+    if (readOnly) return;
     unlinkDiffuserFromLight(diffuser.id, lightId);
   };
 
@@ -80,7 +82,8 @@ const DiffuserCard = ({ diffuser, isSelected }) => {
                       {light.type} #{lightId.substring(0, 6)}
                       <button
                         onClick={() => handleUnlinkLight(lightId)}
-                        className="ml-1 hover:text-destructive"
+                        className={`ml-1 ${!readOnly ? 'hover:text-destructive' : 'cursor-not-allowed opacity-50'}`}
+                        disabled={readOnly}
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -90,7 +93,7 @@ const DiffuserCard = ({ diffuser, isSelected }) => {
               </div>
             )}
             {availableLights.length > 0 && (
-              <Select onValueChange={handleLinkLight}>
+              <Select onValueChange={handleLinkLight} disabled={readOnly}>
                 <SelectTrigger className="h-8">
                   <SelectValue placeholder="조명 연결..." />
                 </SelectTrigger>
@@ -130,6 +133,7 @@ const DiffuserCard = ({ diffuser, isSelected }) => {
                 updateDiffuser(diffuser.id, "diffuseColor", e.target.value)
               }
               className="w-16 h-10 p-1"
+              disabled={readOnly}
             />
             <Input
               type="text"
@@ -138,6 +142,7 @@ const DiffuserCard = ({ diffuser, isSelected }) => {
                 updateDiffuser(diffuser.id, "diffuseColor", e.target.value)
               }
               className="flex-1 h-10"
+              disabled={readOnly}
             />
           </div>
         </div>
@@ -156,6 +161,7 @@ const DiffuserCard = ({ diffuser, isSelected }) => {
             onValueChange={(v) =>
               updateDiffuser(diffuser.id, "opacity", v[0])
             }
+            disabled={readOnly}
           />
         </div>
 
@@ -173,6 +179,7 @@ const DiffuserCard = ({ diffuser, isSelected }) => {
             onValueChange={(v) =>
               updateDiffuser(diffuser.id, "transmission", v[0])
             }
+            disabled={readOnly}
           />
           <p className="text-xs text-muted-foreground">
             빛이 통과하는 정도 (높을수록 더 많이 투과)
@@ -193,6 +200,7 @@ const DiffuserCard = ({ diffuser, isSelected }) => {
             onValueChange={(v) =>
               updateDiffuser(diffuser.id, "thickness", v[0])
             }
+            disabled={readOnly}
           />
           <p className="text-xs text-muted-foreground">
             재질의 두께 (두꺼울수록 빛이 더 확산됨)
@@ -213,6 +221,7 @@ const DiffuserCard = ({ diffuser, isSelected }) => {
             onValueChange={(v) =>
               updateDiffuser(diffuser.id, "roughness", v[0])
             }
+            disabled={readOnly}
           />
           <p className="text-xs text-muted-foreground">
             표면의 거칠기 (높을수록 더 부드러운 확산)
@@ -233,6 +242,7 @@ const DiffuserCard = ({ diffuser, isSelected }) => {
             onValueChange={(v) =>
               updateDiffuser(diffuser.id, "secondaryLightIntensity", v[0])
             }
+            disabled={readOnly}
           />
           <p className="text-xs text-muted-foreground">
             디퓨저를 통과한 빛의 강도 (높을수록 더 밝은 확산)
@@ -260,6 +270,7 @@ const DiffuserCard = ({ diffuser, isSelected }) => {
                 }
                 step={0.1}
                 className="h-8"
+                disabled={readOnly}
               />
             </div>
             <div>
@@ -279,6 +290,7 @@ const DiffuserCard = ({ diffuser, isSelected }) => {
                 }
                 step={0.1}
                 className="h-8"
+                disabled={readOnly}
               />
             </div>
             <div>
@@ -298,6 +310,7 @@ const DiffuserCard = ({ diffuser, isSelected }) => {
                 }
                 step={0.1}
                 className="h-8"
+                disabled={readOnly}
               />
             </div>
           </div>
@@ -312,10 +325,11 @@ const DiffuserCard = ({ diffuser, isSelected }) => {
               onCheckedChange={(checked) =>
                 updateDiffuser(diffuser.id, "blockOriginalLight", checked)
               }
+              disabled={readOnly}
             />
             <Label
               htmlFor={`diffuser-block-light-${diffuser.id}`}
-              className="text-sm font-normal cursor-pointer"
+              className={`text-sm font-normal ${!readOnly ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
             >
               원본 조명 차단 (디퓨저만 빛 방출)
             </Label>
@@ -326,9 +340,32 @@ const DiffuserCard = ({ diffuser, isSelected }) => {
   );
 };
 
-const DiffuserControl = () => {
+const DiffuserControl = ({ readOnly = false, selectedDiffuserId = null }) => {
   const { diffusers, addDiffuser, selectedDiffuser } = useStore();
 
+  const handleAddDiffuser = () => {
+    if (readOnly) return;
+    addDiffuser();
+  };
+
+  // selectedDiffuserId prop이 제공되면 그것을 사용, 없으면 store의 selectedDiffuser 사용
+  const activeDiffuserId = selectedDiffuserId || selectedDiffuser;
+  const activeDiffuser = diffusers.find(d => d.id === activeDiffuserId);
+
+  // selectedDiffuserId가 제공된 경우 (PropertiesPanel에서 호출), 해당 디퓨저만 표시
+  if (selectedDiffuserId && activeDiffuser) {
+    return (
+      <div className="space-y-6">
+        <DiffuserCard
+          diffuser={activeDiffuser}
+          isSelected={true}
+          readOnly={readOnly}
+        />
+      </div>
+    );
+  }
+
+  // 전체 디퓨저 관리 UI (EditorPanel에서 호출)
   return (
     <div className="space-y-6">
       <div className="space-y-4 p-4 border rounded-lg">
@@ -336,7 +373,11 @@ const DiffuserControl = () => {
         <p className="text-sm text-muted-foreground">
           조명 앞에 배치하여 빛을 부드럽게 확산시키는 광목천/실크 디퓨저
         </p>
-        <Button className="w-full" onClick={addDiffuser}>
+        <Button
+          className="w-full"
+          onClick={handleAddDiffuser}
+          disabled={readOnly}
+        >
           디퓨저 추가
         </Button>
       </div>
@@ -354,7 +395,8 @@ const DiffuserControl = () => {
             <DiffuserCard
               key={diffuser.id}
               diffuser={diffuser}
-              isSelected={diffuser.id === selectedDiffuser}
+              isSelected={diffuser.id === activeDiffuserId}
+              readOnly={readOnly}
             />
           ))
         )}

@@ -32,7 +32,7 @@ const CategoryHeader = ({ icon: Icon, label, isExpanded, onToggle, count }) => (
   </div>
 );
 
-const OutlinerTree = ({ searchQuery }) => {
+const OutlinerTree = ({ searchQuery, readOnly = false }) => {
   const {
     lights,
     mannequins,
@@ -191,6 +191,7 @@ const OutlinerTree = ({ searchQuery }) => {
                   showVisibilityToggle={false}
                   showContextMenu={false}
                   actions={actions}
+                  readOnly={readOnly}
                 />
               );
             })}
@@ -217,6 +218,7 @@ const OutlinerTree = ({ searchQuery }) => {
                 type="light"
                 visible={light.visible}
                 icon={Lightbulb}
+                readOnly={readOnly}
               />
             ))}
           </div>
@@ -242,6 +244,7 @@ const OutlinerTree = ({ searchQuery }) => {
                 type="mannequin"
                 visible={mannequin.visible}
                 icon={User}
+                readOnly={readOnly}
               />
             ))}
           </div>
@@ -267,6 +270,7 @@ const OutlinerTree = ({ searchQuery }) => {
                 type="gltfModel"
                 visible={model.visible !== false}
                 icon={Box}
+                readOnly={readOnly}
               />
             ))}
           </div>

@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import OutlinerTree from "./OutlinerTree";
 
-const Outliner = () => {
+const Outliner = ({ readOnly = false }) => {
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
@@ -35,7 +35,7 @@ const Outliner = () => {
         <Separator />
 
         <ScrollArea className="flex-1">
-          <OutlinerTree searchQuery={searchQuery} />
+          <OutlinerTree searchQuery={searchQuery} readOnly={readOnly} />
         </ScrollArea>
       </div>
     </TooltipProvider>

@@ -740,20 +740,20 @@ Scene JSON은 위 표에 기재된 필드만 포함하며, 각 배열 항목은 
 
 3. **Toolbar 및 Undo/Redo** (1주, 9주차) ✅ 완료
 
-   - ✅ 하단 Toolbar 레이아웃 (h-10)
-   - ✅ Transform 모드 버튼 (W: 이동, E: 회전)
-   - ✅ Grid, Snap 토글 버튼
-   - ✅ Undo/Redo 미들웨어 (Zustand 기반 history 관리)
-   - ✅ 단축키 통합 (`Ctrl+Z`, `Ctrl+Shift+Z`)
-   - ✅ Grid Helper 표시 기능 (Scene.jsx)
-   - ✅ TransformControls에 Snap 기능 추가
-   - ✅ 주요 액션(add/delete Light/Mannequin/Diffuser)에 히스토리 저장
-
-4. **반응형 및 패널 토글** (1주, 10주차)
-   - [ ] 패널 접기/펼치기 버튼
-   - [ ] localStorage 기반 패널 상태 저장
-   - [ ] 태블릿 반응형 Drawer 전환
-   - [ ] 애니메이션 최적화 (Framer Motion)
+   - ✅ 중앙 하단 Floating Toolbar 레이아웃 (Figma 스타일)
+   - ✅ Transform 모드 버튼 (W: 이동, E: 회전, R: 크기 조절)
+   - ✅ Grid 토글 버튼 (기존 backgroundSettings.showGround 연결)
+   - ✅ Snap 토글 버튼 (TransformControls snap 기능)
+   - ✅ Undo/Redo 버튼 및 미들웨어 (Zustand 기반 history 관리)
+   - ✅ 단축키 통합
+     - ⌘+Z / Ctrl+Z: Undo
+     - ⌘+Shift+Z / Ctrl+Shift+Z: Redo
+     - W/E/R: Transform 모드
+     - F/C: View 모드
+   - ✅ TransformControls에 Snap 기능 추가 (translation: 0.5, rotation: π/12, scale: 0.1)
+   - ✅ 주요 액션에 히스토리 자동 저장 (add/delete Light/Mannequin/Diffuser, Transform 완료 시)
+   - ✅ KeyboardShortcutsCard 업데이트 (? 키로 호출)
+   - ✅ 버튼 가시성 개선 (선택 안된 버튼 text-white/80)
 
 **성공 지표:**
 

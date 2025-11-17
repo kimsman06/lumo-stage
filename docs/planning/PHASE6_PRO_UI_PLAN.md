@@ -117,27 +117,84 @@ client/src/components/
 │   ├─ MannequinPropertiesSection.jsx (기존 MannequinControl 리팩토링)
 │   ├─ CameraPropertiesSection.jsx (기존 CameraControl 리팩토링)
 │   └─ DiffuserPropertiesSection.jsx (기존 DiffuserControl 리팩토링)
-└─ EditorPanel.jsx (삭제 예정)
+├─ editor/
+│   └─ Toolbar.jsx (✅ 신규 추가 - Floating Toolbar)
+├─ tutorial/
+│   └─ KeyboardShortcutsCard.jsx (✅ 업데이트)
+└─ EditorPanel.jsx (✅ 삭제 완료)
+
+client/src/store/
+└─ editorStore.js (✅ 업데이트)
+    - history: [] (히스토리 배열)
+    - historyIndex: -1 (현재 히스토리 위치)
+    - maxHistorySize: 50
+    - saveHistory() (스냅샷 저장)
+    - undo() (이전 상태로 복원)
+    - redo() (다음 상태로 복원)
+    - canUndo(), canRedo() (가능 여부 확인)
 ```
 
 ## 5. 개발 순서
 
-### Phase 6.1 (Outliner)
-1. Outliner 레이아웃 및 기본 구조
-2. TreeNode 컴포넌트 개발
-3. 객체 선택 연동 (store)
-4. 가시성 토글 구현
-5. 컨텍스트 메뉴 (이름 변경, 삭제)
-6. 검색/필터링
+### Phase 6.1 (Outliner) ✅ 완료
+1. ✅ Outliner 레이아웃 및 기본 구조
+2. ✅ TreeNode 컴포넌트 개발
+3. ✅ 객체 선택 연동 (store)
+4. ✅ 가시성 토글 구현
+5. ✅ 컨텍스트 메뉴 (이름 변경, 삭제)
+6. ✅ 검색/필터링
 
-### Phase 6.2 (Properties Panel)
-1. PropertiesPanel 레이아웃
-2. Accordion 섹션 구조
-3. 기존 Control 컴포넌트를 Section으로 리팩토링
-4. 동적 섹션 표시 로직
-5. 입력 UI 개선 (인라인 편집, 슬라이더+숫자)
-6. EditorPage 레이아웃 통합
-7. 기존 EditorPanel 제거
+### Phase 6.2 (Properties Panel) ✅ 완료
+1. ✅ PropertiesPanel 레이아웃
+2. ✅ Accordion 섹션 구조
+3. ✅ 기존 Control 컴포넌트를 Section으로 리팩토링
+4. ✅ 동적 섹션 표시 로직
+5. ✅ 입력 UI 개선 (인라인 편집, 슬라이더+숫자)
+6. ✅ EditorPage 레이아웃 통합
+7. ✅ 기존 EditorPanel 제거
+
+### Phase 6.3 (Toolbar 및 Undo/Redo) ✅ 완료
+1. ✅ Floating Toolbar 컴포넌트 생성 (`client/src/components/editor/Toolbar.jsx`)
+2. ✅ Transform 모드 버튼 (W: 이동, E: 회전, R: 크기 조절)
+3. ✅ Grid 토글 (backgroundSettings.showGround 연결)
+4. ✅ Snap 토글 (TransformControls snap 적용)
+5. ✅ Undo/Redo 버튼
+6. ✅ 히스토리 관리 시스템 (editorStore)
+   - history 배열 (최대 50개)
+   - saveHistory, undo, redo, canUndo, canRedo 액션
+   - add/delete 액션에 자동 히스토리 저장
+   - TransformControls onMouseUp 시 히스토리 저장
+7. ✅ 단축키 통합 (EditorPage.jsx)
+   - ⌘+Z / Ctrl+Z: Undo
+   - ⌘+Shift+Z / Ctrl+Shift+Z: Redo
+   - W/E/R: Transform 모드
+   - F/C: View 모드
+8. ✅ KeyboardShortcutsCard 업데이트
+9. ✅ Scene.jsx에 Snap 기능 적용
+   - translationSnap: 0.5
+   - rotationSnap: Math.PI / 12
+   - scaleSnap: 0.1
+
+## 구현 완료 사항
+
+**Phase 6.1 (Outliner)**: ✅ 완료
+- Outliner 패널 (좌측)
+- 계층 구조 TreeView
+- 가시성 토글
+- 인라인 이름 편집
+- 컨텍스트 메뉴
+
+**Phase 6.2 (Properties Panel)**: ✅ 완료
+- Properties 패널 (우측 480px)
+- Tabs 기반 섹션
+- 입력 UI 개선
+- EditorPanel 제거
+
+**Phase 6.3 (Toolbar & Undo/Redo)**: ✅ 완료
+- Floating Toolbar (중앙 하단)
+- Transform/Grid/Snap 컨트롤
+- 완전한 Undo/Redo 시스템
+- 단축키 통합
 
 ## 주의사항
 

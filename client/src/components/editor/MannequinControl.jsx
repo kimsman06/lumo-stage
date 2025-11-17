@@ -11,7 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
 import useStore from "../../store/editorStore";
 
-const BoneSlider = ({ boneName, axis, value, mannequinId }) => {
+const BoneSlider = ({ boneName, axis, value, mannequinId, readOnly = false }) => {
   const { setBoneRotation } = useStore();
 
   // [Architecture 시나리오 1: UI 슬라이더로 뼈 회전]
@@ -21,6 +21,7 @@ const BoneSlider = ({ boneName, axis, value, mannequinId }) => {
   // 4. Mannequin.jsx → pose 변경 감지하여 3D 모델 업데이트
   // 참고: docs/LumoStage-Architecture.md 시나리오 1
   const handleValueChange = (v) => {
+    if (readOnly) return;
     setBoneRotation(mannequinId, boneName, axis, v);
   };
 
@@ -38,12 +39,14 @@ const BoneSlider = ({ boneName, axis, value, mannequinId }) => {
           step={0.01}
           onValueChange={(v) => handleValueChange(v[0])}
           className="flex-1"
+          disabled={readOnly}
         />
         <Input
           type="number"
           value={value.toFixed(2)}
           onChange={(e) => handleValueChange(parseFloat(e.target.value))}
           className="w-20 h-8"
+          disabled={readOnly}
         />
       </div>
     </div>
@@ -75,7 +78,7 @@ const boneLabels = {
   r_foot_016: "오른쪽 발",
 };
 
-const MannequinControl = () => {
+const MannequinControl = ({ readOnly = false }) => {
   const { mannequins, selectedMannequinId, highlightedBone } = useStore();
 
   const [openAccordion, setOpenAccordion] = useState("머리 & 허리");
@@ -110,6 +113,7 @@ const MannequinControl = () => {
           className="w-full"
           value={openAccordion}
           onValueChange={setOpenAccordion}
+          disabled={readOnly}
         >
           {Object.entries(boneGroups).map(([groupName, boneNames]) => (
             <AccordionItem key={groupName} value={groupName}>
@@ -130,18 +134,21 @@ const MannequinControl = () => {
                           axis="x"
                           value={pose[boneName].x}
                           mannequinId={selectedMannequinId}
+                          readOnly={readOnly}
                         />
                         <BoneSlider
                           boneName={boneName}
                           axis="y"
                           value={pose[boneName].y}
                           mannequinId={selectedMannequinId}
+                          readOnly={readOnly}
                         />
                         <BoneSlider
                           boneName={boneName}
                           axis="z"
                           value={pose[boneName].z}
                           mannequinId={selectedMannequinId}
+                          readOnly={readOnly}
                         />
                       </div>
                     )

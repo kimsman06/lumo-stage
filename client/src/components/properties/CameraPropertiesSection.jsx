@@ -1,9 +1,9 @@
 import CameraControl from "@/components/editor/CameraControl";
 
-const CameraPropertiesSection = () => {
+const CameraPropertiesSection = ({ readOnly = false }) => {
   return (
     <div className="space-y-4" data-tutorial="camera-section">
-      <CameraControl />
+      <CameraControl readOnly={readOnly} />
     </div>
   );
 };

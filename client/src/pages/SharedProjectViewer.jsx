@@ -6,8 +6,11 @@ import { useEditorStore, useAuthStore } from '@/store';
 import { toast } from 'sonner';
 import { SHARE_MESSAGES } from '@/lib/toast-messages';
 import Scene from '@/components/Scene';
+import Outliner from '@/components/outliner/Outliner';
+import PropertiesPanel from '@/components/properties/PropertiesPanel';
+import ToolPanel from '@/components/editor/ToolPanel';
+import Toolbar from '@/components/editor/Toolbar';
 import ViewerHeader from './SharedProjectViewer/ViewerHeader';
-import ViewerEditorPanel from './SharedProjectViewer/ViewerEditorPanel';
 import ExpiredMessage from './SharedProjectViewer/ExpiredMessage';
 
 /**
@@ -103,15 +106,31 @@ export default function SharedProjectViewer() {
         sceneData={project.sceneData}
       />
 
-      {/* 메인 콘텐츠: Scene + Panel */}
+      {/* 메인 콘텐츠: Scene + ToolPanel + (Outliner/Properties) */}
       <div className="flex flex-1 overflow-hidden">
-        {/* 3D Scene */}
-        <div className="flex-1">
+        {/* Scene - 좌측 남은 공간 (Toolbar floating 포함) */}
+        <div className="flex-1 overflow-hidden relative">
           <Scene readOnly={isViewOnly} />
+          {/* Toolbar - Scene 위에 floating */}
+          <Toolbar />
         </div>
 
-        {/* Editor Panel */}
-        <ViewerEditorPanel permission={permission} />
+        {/* ToolPanel - 세로 전체 */}
+        <div className="flex-shrink-0">
+          <ToolPanel projectId={project._id} readOnly={isViewOnly} />
+        </div>
+
+        {/* 우측 패널 - Outliner + PropertiesPanel */}
+        <div className="w-[480px] flex flex-col overflow-hidden border-l">
+          {/* Outliner - 상단 */}
+          <div className="h-80 flex-shrink-0">
+            <Outliner readOnly={isViewOnly} />
+          </div>
+          {/* PropertiesPanel - 하단 (남은 공간) */}
+          <div className="flex-1 overflow-hidden">
+            <PropertiesPanel projectId={project._id} readOnly={isViewOnly} />
+          </div>
+        </div>
       </div>
     </div>
   );

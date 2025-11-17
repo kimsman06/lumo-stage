@@ -1,4 +1,4 @@
-import { Github, Twitter } from 'lucide-react';
+import { Github, Twitter } from "lucide-react";
 
 const Footer = () => {
   return (
@@ -8,10 +8,20 @@ const Footer = () => {
           © 2025 LumoStage. All Rights Reserved.
         </p>
         <div className="flex items-center gap-4">
-          <a href="#" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+          <a
+            href="#"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-primary transition-colors"
+          >
             <Twitter className="h-5 w-5" />
           </a>
-          <a href="https://github.com/s-man-kim/ajou-pwd-2025" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+          <a
+            href="https://github.com/kimsman06/lumo-stage"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-primary transition-colors"
+          >
             <Github className="h-5 w-5" />
           </a>
         </div>

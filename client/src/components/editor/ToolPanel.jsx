@@ -47,7 +47,7 @@ function validateFileExtension(file, allowedExtensions) {
   return allowedExtensions.some((ext) => fileName.endsWith(ext));
 }
 
-function ToolPanel({ projectId }) {
+function ToolPanel({ projectId, readOnly = false }) {
   const { addLight, addMannequin } = useStore();
   const { uploadHdri, uploadGltf, setCurrentHdri, addGltfModel } =
     useAssetStore();
@@ -60,16 +60,19 @@ function ToolPanel({ projectId }) {
 
   // 조명 추가
   const handleAddLight = () => {
+    if (readOnly) return;
     addLight("spot");
   };
 
   // 마네킹 추가
   const handleAddMannequin = () => {
+    if (readOnly) return;
     addMannequin();
   };
 
   // HDRI 파일 선택
   const handleHdriFileSelect = async (event) => {
+    if (readOnly) return;
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -115,6 +118,7 @@ function ToolPanel({ projectId }) {
 
   // GLTF 파일 선택
   const handleGltfFileSelect = async (event) => {
+    if (readOnly) return;
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -172,28 +176,28 @@ function ToolPanel({ projectId }) {
       label: "조명 추가",
       icon: Lightbulb,
       onClick: handleAddLight,
-      disabled: false,
+      disabled: readOnly,
     },
     {
       id: "add-mannequin",
       label: "마네킹 추가",
       icon: User,
       onClick: handleAddMannequin,
-      disabled: false,
+      disabled: readOnly,
     },
     {
       id: "upload-hdri",
       label: "HDRI 업로드",
       icon: Image,
       onClick: handleHdriUpload,
-      disabled: uploadingHdri,
+      disabled: readOnly || uploadingHdri,
     },
     {
       id: "upload-gltf",
       label: "GLTF 업로드",
       icon: Box,
       onClick: handleGltfUpload,
-      disabled: uploadingGltf,
+      disabled: readOnly || uploadingGltf,
     },
   ];
 

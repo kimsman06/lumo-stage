@@ -13,7 +13,7 @@ import { Trash2, CheckCircle } from "lucide-react";
 import useAssetStore from "@/store/assetStore";
 import toast from "@/lib/toast";
 
-const HdriPropertiesSection = ({ asset }) => {
+const HdriPropertiesSection = ({ asset, readOnly = false }) => {
   const { assets, currentHdri, setCurrentHdri, deleteAsset } = useAssetStore();
   const NO_HDRI_VALUE = "__none__";
 
@@ -35,6 +35,7 @@ const HdriPropertiesSection = ({ asset }) => {
   const selectValue = currentHdri || NO_HDRI_VALUE;
 
   const handleHdriChange = (value) => {
+    if (readOnly) return;
     if (value === NO_HDRI_VALUE) {
       setCurrentHdri(null);
       return;
@@ -43,6 +44,7 @@ const HdriPropertiesSection = ({ asset }) => {
   };
 
   const handleDeleteAsset = async (assetId) => {
+    if (readOnly) return;
     if (!assetId) return;
 
     const deletePromise = deleteAsset(assetId);
@@ -66,7 +68,7 @@ const HdriPropertiesSection = ({ asset }) => {
       <div className="space-y-1.5">
         <Label className="text-xs font-medium">HDRI 선택</Label>
         {hdriAssets.length > 0 ? (
-          <Select value={selectValue} onValueChange={handleHdriChange}>
+          <Select value={selectValue} onValueChange={handleHdriChange} disabled={readOnly}>
             <SelectTrigger className="h-8 text-xs">
               <SelectValue placeholder="HDRI 선택" />
             </SelectTrigger>
@@ -121,14 +123,16 @@ const HdriPropertiesSection = ({ asset }) => {
                           isActive ? NO_HDRI_VALUE : candidate.id
                         )
                       }
+                      disabled={readOnly}
                     >
                       {isActive ? "해제" : "적용"}
                     </Button>
                     <button
                       type="button"
-                      className="h-8 w-8 flex items-center justify-center text-destructive/70 hover:text-destructive"
+                      className={`h-8 w-8 flex items-center justify-center ${!readOnly ? 'text-destructive/70 hover:text-destructive' : 'cursor-not-allowed opacity-50'}`}
                       onClick={() => handleDeleteAsset(candidate.id)}
                       aria-label="Delete HDRI"
+                      disabled={readOnly}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -177,6 +181,7 @@ const HdriPropertiesSection = ({ asset }) => {
           size="sm"
           className="w-full"
           onClick={() => setCurrentHdri(null)}
+          disabled={readOnly}
         >
           HDRI 제거
         </Button>

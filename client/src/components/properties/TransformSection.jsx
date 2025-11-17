@@ -4,8 +4,9 @@ import { Separator } from "@/components/ui/separator";
 import useStore from "@/store/editorStore";
 import useAssetStore from "@/store/assetStore";
 
-const Vector3Input = ({ label, value, onChange }) => {
+const Vector3Input = ({ label, value, onChange, disabled = false }) => {
   const handleChange = (index, newValue) => {
+    if (disabled) return;
     const updated = [...value];
     updated[index] = parseFloat(newValue) || 0;
     onChange(updated);
@@ -22,6 +23,7 @@ const Vector3Input = ({ label, value, onChange }) => {
             step="0.01"
             value={value[0]}
             onChange={(e) => handleChange(0, e.target.value)}
+            disabled={disabled}
             className="h-8 text-xs"
           />
         </div>
@@ -32,6 +34,7 @@ const Vector3Input = ({ label, value, onChange }) => {
             step="0.01"
             value={value[1]}
             onChange={(e) => handleChange(1, e.target.value)}
+            disabled={disabled}
             className="h-8 text-xs"
           />
         </div>
@@ -42,6 +45,7 @@ const Vector3Input = ({ label, value, onChange }) => {
             step="0.01"
             value={value[2]}
             onChange={(e) => handleChange(2, e.target.value)}
+            disabled={disabled}
             className="h-8 text-xs"
           />
         </div>
@@ -50,7 +54,7 @@ const Vector3Input = ({ label, value, onChange }) => {
   );
 };
 
-const TransformSection = ({ objectType, objectId }) => {
+const TransformSection = ({ objectType, objectId, readOnly = false }) => {
   const {
     lights,
     mannequins,
@@ -126,6 +130,7 @@ const TransformSection = ({ objectType, objectId }) => {
         label="Position"
         value={object.position || [0, 0, 0]}
         onChange={handlePositionChange}
+        disabled={readOnly}
       />
 
       {/* Target Position - Light의 Spot/Directional */}
@@ -136,6 +141,7 @@ const TransformSection = ({ objectType, objectId }) => {
             label="Target Position"
             value={object.targetPosition || [0, 0, 0]}
             onChange={handleTargetPositionChange}
+            disabled={readOnly}
           />
         </>
       )}
@@ -148,6 +154,7 @@ const TransformSection = ({ objectType, objectId }) => {
             label="Rotation"
             value={object.rotation || [0, 0, 0]}
             onChange={handleRotationChange}
+            disabled={readOnly}
           />
         </>
       )}
@@ -160,6 +167,7 @@ const TransformSection = ({ objectType, objectId }) => {
             label="Scale"
             value={object.scale || [1, 1, 1]}
             onChange={handleScaleChange}
+            disabled={readOnly}
           />
         </>
       )}

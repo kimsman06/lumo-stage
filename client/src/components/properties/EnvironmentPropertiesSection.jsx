@@ -16,7 +16,7 @@ const BACKGROUND_OPTIONS = [
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
-const EnvironmentPropertiesSection = () => {
+const EnvironmentPropertiesSection = ({ readOnly = false }) => {
   const backgroundSettings = useStore((state) => state.backgroundSettings);
   const updateBackgroundSettings = useStore(
     (state) => state.updateBackgroundSettings
@@ -32,16 +32,19 @@ const EnvironmentPropertiesSection = () => {
   }, [type]);
 
   const handleColorInput = (nextColor) => {
+    if (readOnly) return;
     if (!nextColor) return;
     updateBackgroundSettings({ color: nextColor });
   };
 
   const handleGroundColorInput = (nextColor) => {
+    if (readOnly) return;
     if (!nextColor) return;
     updateBackgroundSettings({ groundColor: nextColor });
   };
 
   const openColorPicker = (currentValue, onChange) => {
+    if (readOnly) return;
     const input = document.createElement("input");
     input.type = "color";
     input.value = currentValue || "#000000";
@@ -63,6 +66,7 @@ const EnvironmentPropertiesSection = () => {
         <Select
           value={type}
           onValueChange={(value) => updateBackgroundSettings({ type: value })}
+          disabled={readOnly}
         >
           <SelectTrigger className="h-8 text-xs">
             <SelectValue placeholder="배경 타입 선택" />
@@ -83,16 +87,18 @@ const EnvironmentPropertiesSection = () => {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="w-10 h-8 rounded border cursor-pointer flex-shrink-0"
+              className={`w-10 h-8 rounded border flex-shrink-0 ${!readOnly ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
               style={{ backgroundColor: color }}
               onClick={() => openColorPicker(color, handleColorInput)}
               aria-label="배경 색상 선택"
+              disabled={readOnly}
             />
             <Input
               value={color || ""}
               onChange={(event) => handleColorInput(event.target.value)}
               className="h-8 text-xs flex-1"
               placeholder="#000000"
+              disabled={readOnly}
             />
           </div>
         </div>
@@ -114,6 +120,7 @@ const EnvironmentPropertiesSection = () => {
             onValueChange={([value]) =>
               updateBackgroundSettings({ hdriIntensity: value })
             }
+            disabled={readOnly}
           />
           {!currentHdri && (
             <p className="text-[11px] text-muted-foreground">
@@ -138,6 +145,7 @@ const EnvironmentPropertiesSection = () => {
           onCheckedChange={(checked) =>
             updateBackgroundSettings({ showGround: checked })
           }
+          disabled={readOnly}
         />
       </div>
 
@@ -148,16 +156,18 @@ const EnvironmentPropertiesSection = () => {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="w-10 h-8 rounded border cursor-pointer flex-shrink-0"
+                className={`w-10 h-8 rounded border flex-shrink-0 ${!readOnly ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
                 style={{ backgroundColor: groundColor }}
                 onClick={() => openColorPicker(groundColor, handleGroundColorInput)}
                 aria-label="그라운드 색상 선택"
+                disabled={readOnly}
               />
               <Input
                 value={groundColor || ""}
                 onChange={(event) => handleGroundColorInput(event.target.value)}
                 className="h-8 text-xs flex-1"
                 placeholder="#1f1f1f"
+                disabled={readOnly}
               />
             </div>
           </div>
@@ -177,6 +187,7 @@ const EnvironmentPropertiesSection = () => {
               onValueChange={([value]) =>
                 updateBackgroundSettings({ groundReflectivity: value })
               }
+              disabled={readOnly}
             />
           </div>
         </div>

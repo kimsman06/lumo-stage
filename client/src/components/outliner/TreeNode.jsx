@@ -20,6 +20,7 @@ const TreeNode = ({
   showVisibilityToggle = true,
   showContextMenu = true,
   actions = null,
+  readOnly = false,
 }) => {
   const {
     selectedLight,
@@ -95,7 +96,7 @@ const TreeNode = ({
 
   // 가시성 토글
   const handleVisibilityToggle = (e) => {
-    if (!showVisibilityToggle) {
+    if (!showVisibilityToggle || readOnly) {
       return;
     }
     e.stopPropagation();
@@ -108,6 +109,8 @@ const TreeNode = ({
 
   // 삭제
   const handleDelete = () => {
+    if (readOnly) return;
+
     switch (type) {
       case "light":
         deleteLight(id);
@@ -132,6 +135,8 @@ const TreeNode = ({
 
   // 이름 변경 시작
   const handleRenameStart = () => {
+    if (readOnly) return;
+
     setIsEditing(true);
     setEditedName(name);
   };
@@ -195,9 +200,13 @@ const TreeNode = ({
       {showVisibilityToggle && (
         <button
           onClick={handleVisibilityToggle}
+          disabled={readOnly}
           className={cn(
-            "flex-shrink-0 p-0.5 rounded hover:bg-accent transition-opacity",
-            visible ? "opacity-60 hover:opacity-100" : "opacity-30 hover:opacity-60"
+            "flex-shrink-0 p-0.5 rounded transition-opacity",
+            readOnly
+              ? "cursor-not-allowed opacity-30"
+              : "hover:bg-accent cursor-pointer",
+            !readOnly && (visible ? "opacity-60 hover:opacity-100" : "opacity-30 hover:opacity-60")
           )}
         >
           {visible ? (
@@ -210,7 +219,8 @@ const TreeNode = ({
     </div>
   );
 
-  if (!showContextMenu) {
+  // readOnly이거나 showContextMenu가 false면 컨텍스트 메뉴 없이 반환
+  if (!showContextMenu || readOnly) {
     return content;
   }
 

@@ -13,7 +13,7 @@ const formatFileSize = (bytes) => {
   return `${mb.toFixed(2)} MB`;
 };
 
-const ModelLibrarySection = ({ model }) => {
+const ModelLibrarySection = ({ model, readOnly = false }) => {
   const {
     assets,
     currentGltfModels,
@@ -42,6 +42,7 @@ const ModelLibrarySection = ({ model }) => {
     asset?.fileName || asset?.metadata?.originalName || "Untitled";
 
   const handleToggleModel = (asset) => {
+    if (readOnly) return;
     const assetId = asset.id;
     if (isAssetAdded(assetId)) {
       removeGltfModel(assetId);
@@ -52,6 +53,7 @@ const ModelLibrarySection = ({ model }) => {
   };
 
   const handleDeleteAsset = async (asset) => {
+    if (readOnly) return;
     const label = getAssetLabel(asset);
     await toast.promise(deleteAsset(asset.id), {
       loading: `"${label}" 모델을 삭제하는 중...`,
@@ -99,14 +101,16 @@ const ModelLibrarySection = ({ model }) => {
                       variant={added ? "secondary" : "outline"}
                       onClick={() => handleToggleModel(asset)}
                       className="shrink-0 whitespace-nowrap min-w-[112px]"
+                      disabled={readOnly}
                     >
                       {added ? "씬에서 제거" : "씬에 추가"}
                     </Button>
                     <button
                       type="button"
-                      className="h-8 w-8 flex items-center justify-center text-destructive/70 hover:text-destructive shrink-0"
+                      className={`h-8 w-8 flex items-center justify-center shrink-0 ${!readOnly ? 'text-destructive/70 hover:text-destructive' : 'cursor-not-allowed opacity-50'}`}
                       onClick={() => handleDeleteAsset(asset)}
                       aria-label="Delete asset"
+                      disabled={readOnly}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
