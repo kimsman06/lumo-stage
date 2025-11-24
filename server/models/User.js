@@ -11,7 +11,14 @@ const UserSchema = new mongoose.Schema(
     profileImage: { type: String, default: null },
     bio: { type: String, default: null, maxlength: 500 },
     // OAuth 제공자별 추가 정보
-    oauthProvider: { type: String, enum: ["local", "google", "naver"], default: "local" }
+    oauthProvider: { type: String, enum: ["local", "google", "naver"], default: "local" },
+    aiApiKey: { type: String, default: null, select: false },
+    aiUsageStats: {
+      totalGenerations: { type: Number, default: 0 },
+      lastGeneratedAt: { type: Date, default: null },
+      monthlyGenerations: { type: Number, default: 0 },
+      monthlyWindow: { type: String, default: null }
+    }
   },
   { timestamps: true }
 );
