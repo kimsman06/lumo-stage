@@ -1,16 +1,17 @@
 # LumoStage: 3D 조명 시뮬레이션 웹 앱 - PRD
 
-**문서 버전:** 2.0
-**최종 수정일:** 2025년 11월 3일
+**문서 버전:** 2.2
+**최종 수정일:** 2025년 11월 24일
 **프로젝트 오너:** 김재준
 
-## 0. 진행 현황 요약 (2025-11-03)
+## 0. 진행 현황 요약 (2025-11-24)
 
 - **에디터 경험:** OrbitControls 상태 복원, 조명/디퓨저/마네킹/오브젝트 CRUD, 전문가용 Outliner·Properties·Toolbar, 튜토리얼 진입점까지 3D 편집 흐름을 일관된 Zustand 스토어로 연결했습니다.
 - **자산 파이프라인:** Cloudflare R2 기반 HDRI·GLB 업로드, Asset 모델 및 삭제 연동, Background/Diffuser/Object 패널과의 양방향 데이터 싱크를 완료했습니다.
 - **저장/공유:** 프로젝트 CRUD, Scene 정규화 스키마, 공유 토큰 발급, 저장 상태 피드백, 자동 저장 디바운스 로직을 백엔드 MVCS 레이어와 연계했습니다.
 - **UI/접근성:** shadcn/ui 기반 카드/폼 재정비, Letterbox/Aspect 가이드, 단축키 카드, 토스트 피드백, WCAG 2.1 AA 준수 항목 점검이 진행되었습니다.
-- **향후 중점:** Phase 5의 토스트 일관화, 접근성 폴리시 보강, 자동 저장 안정화, AI 프리비주얼 베타가 다음 사이클 범위입니다.
+- **AI 프리비주얼:** Phase 7 AI 프리비주얼라이제이션 기능 구현 완료. Gemini 2.5 Flash Image 모델 통합, 사용자 API 키 암호화 저장, Scene-to-Photo 변환, Bull Queue 기반 비동기 처리, Rate Limiting을 구현했습니다.
+- **향후 중점:** Phase 8 기술 부채 정리 및 최적화, 접근성 개선, E2E 테스트가 다음 사이클 범위입니다.
 
 ## 1. 개요 (Overview)
 
@@ -761,60 +762,93 @@ Scene JSON은 위 표에 기재된 필드만 포함하며, 각 배열 항목은 
 - 조명 조정 속도 50% 향상
 - Undo/Redo 사용 빈도 주당 평균 20회 이상
 
-### Phase 7: AI 프리비주얼 기능 (추후)
+### Phase 7: AI 프리비주얼 기능 ✅ 완료
 
-**우선순위:** P3 (낮음)
+**우선순위:** P1 (높음)
 
-**소요 기간:** 3주 (11-13주차)
+**소요 기간:** 3주 (11-13주차) → **실제: 2025-11-24 완료**
 
 **목표:** 3D 조명 씬을 실사 이미지로 변환하여 영화 스토리보드 프리비주얼 제작.
 
-**핵심 개념:** "Scene-to-Photo" - 사용자가 만든 조명 씬을 바탕으로 Nano Banana API로 실사 프리비주얼 이미지 생성.
+**핵심 개념:** "Scene-to-Photo" - 사용자가 만든 조명 씬을 바탕으로 Gemini 2.5 Flash Image 모델로 실사 프리비주얼 이미지 생성.
 
 **세부 계획:**
 
-1. **백엔드 AI API 통합** (1주)
+1. **백엔드 AI API 통합** (1주) ✅ 완료
 
-   - [ ] Previsualization 모델 생성 (`server/models/Previsualization.js`)
-   - [ ] User 모델 확장 (aiApiKey 필드 추가)
-   - [ ] API 키 암호화/복호화 유틸 (`server/utils/encryption.js`)
-   - [ ] AI 서비스 레이어 (`server/services/ai.service.js`)
-     - Google Nano Banana API 연동
+   - [x] Previsualization 모델 생성 (`server/models/Previsualization.js`)
+   - [x] User 모델 확장 (geminiApiKey 필드 추가, 암호화 저장)
+   - [x] API 키 암호화/복호화 유틸 (`server/utils/encryption.js`)
+   - [x] Gemini 설정 (`server/config/gemini.js`)
+   - [x] AI 서비스 레이어 (`server/services/ai.service.js`)
+     - Gemini 2.5 Flash Image API 연동
      - 3D 씬 이미지 → 실사 변환 로직
-   - [ ] Bull Queue 설정 (`server/queues/ai.queue.js`)
-   - [ ] AI 라우터 (`server/routes/ai.routes.js`)
+   - [x] Gemini 이미지 서비스 (`server/services/geminiImage.service.js`)
+   - [x] Bull Queue 설정 (`server/queues/`)
+   - [x] Rate Limiter 미들웨어 (`server/middleware/rateLimiter.js`)
+   - [x] AI 유효성 검사 스키마 (`server/validators/ai.schemas.js`)
+   - [x] AI 컨트롤러 (`server/controllers/ai.controller.js`)
+   - [x] AI 라우터 (`server/routes/ai.routes.js`)
      - `POST /api/ai/api-key`: API 키 저장
+     - `GET /api/ai/api-key/status`: API 키 존재 여부 확인
      - `POST /api/ai/previsualize`: 프리비주얼 생성
      - `GET /api/ai/previsualize/:id`: 상태 조회
      - `GET /api/ai/previsualizations`: 히스토리 조회
      - `POST /api/ai/previsualize/:id/iterate`: 프롬프트 재생성
      - `DELETE /api/ai/previsualize/:id`: 삭제
+   - [x] AI 테스트 코드 (`server/tests/ai.test.js`)
 
-2. **프론트엔드 UI 구현** (1.5주)
+2. **프론트엔드 UI 구현** (1.5주) ✅ 완료
 
-   - [ ] Canvas 캡처 유틸 (`client/src/lib/captureScene.js`)
-   - [ ] AI API 클라이언트 (`client/src/lib/api/ai.js`)
-   - [ ] Previsualization Panel (`client/src/components/editor/PrevisualizationPanel.jsx`)
+   - [x] Canvas 캡처 유틸 (`client/src/lib/captureScene.js`)
+   - [x] AI API 클라이언트 (`client/src/lib/aiApi.js`)
+   - [x] AI 프리비주얼라이제이션 다이얼로그 (`client/src/components/editor/AiPrevisualizationDialog.jsx`)
      - API 키 입력 Dialog
+     - API 키 상태 확인 및 마스킹 표시
+   - [x] Previsualization Panel (`client/src/components/editor/PrevisualizationPanel.jsx`)
      - 프롬프트 입력 텍스트 영역
      - 네거티브 프롬프트 (Collapsible)
      - 파라미터 슬라이더 (strength, steps, guidance scale)
      - "Generate Previsualization" 버튼
-   - [ ] 생성 진행 상태 UI (Progress Bar, 실시간 업데이트)
-   - [ ] 프리비주얼 히스토리 뷰 (썸네일 그리드)
+   - [x] 생성 진행 상태 UI (Progress Bar, 실시간 업데이트)
+   - [x] 프리비주얼 히스토리 뷰 (썸네일 그리드)
+   - [x] 커스텀 훅 (`client/src/hooks/`)
 
-3. **고급 기능** (0.5주)
-   - [ ] 프롬프트 Iterate: 동일 씬, 다른 프롬프트로 재생성
-   - [ ] 프리비주얼 비교 뷰 (Before/After)
-   - [ ] 프리비주얼 다운로드 (PNG/JPG)
-   - [ ] Rate Limiting 및 사용량 통계 표시
+3. **고급 기능** (0.5주) ✅ 완료
+   - [x] 프롬프트 Iterate: 동일 씬, 다른 프롬프트로 재생성
+   - [x] 프리비주얼 다운로드 (PNG/JPG)
+   - [x] Rate Limiting 및 사용량 통계 표시
+   - [ ] 프리비주얼 비교 뷰 (Before/After) - Phase 8 이후 고려
 
 **기술 스택:**
 
-- Google Nano Banana API (Image-to-Image)
+- Gemini 2.5 Flash Image API (Text-to-Image, Image+Text Edit)
 - Bull Queue (백그라운드 작업)
 - Redis (큐 + Rate Limiting)
 - AES-256-GCM (API 키 암호화)
+- Zod (요청 유효성 검사)
+
+**완료 현황:**
+
+✅ **1. 백엔드 AI API 통합** - 완료 (12/12)
+
+- Gemini 2.5 Flash Image 모델 연동
+- 사용자별 API 키 암호화 저장/관리
+- Bull Queue 기반 비동기 이미지 생성
+- Rate Limiting으로 API 사용량 제한
+
+✅ **2. 프론트엔드 UI 구현** - 완료 (7/7)
+
+- Scene 캡처 및 AI API 연동
+- 직관적인 프롬프트 입력 UI
+- 생성 진행 상태 실시간 표시
+- 히스토리 썸네일 그리드 뷰
+
+✅ **3. 고급 기능** - 완료 (3/4)
+
+- Iterate 기능으로 프롬프트 변경 재생성
+- 이미지 다운로드 지원
+- Rate Limiting 통계 표시
 
 **성공 지표:**
 
@@ -823,7 +857,7 @@ Scene JSON은 위 표에 기재된 필드만 포함하며, 각 배열 항목은 
 - 사용자 AI 기능 사용률 50% 이상
 - 프로젝트당 평균 프리비주얼 수 2개 이상
 
-**참고 문서:** `docs/api/AI_PREVISUALIZATION_API.md`
+**참고 문서:** `docs/development/gemini-image-integration-plan-2025-11-24.md`
 
 ### Phase 8: 기술 부채 정리 및 최적화
 
@@ -1048,6 +1082,14 @@ Phase 4-8에 걸쳐 점진적으로 기능을 확장하며, 각 단계마다 명
   - R2 설정 및 환경변수 가이드 추가
   - Phase 5에 R2 인프라 구축 단계 추가 (1-2일)
   - 기술적 위험 요소에 R2 관련 위험 3개 추가
+- **2.2** (2025-11-24): Phase 7 AI 프리비주얼라이제이션 기능 완료
+  - Gemini 2.5 Flash Image 모델 통합 (Text-to-Image, Image+Text Edit)
+  - 사용자별 API 키 암호화 저장/관리 시스템
+  - Bull Queue 기반 비동기 이미지 생성 처리
+  - Rate Limiting 미들웨어 구현
+  - Previsualization 모델 및 히스토리 관리
+  - Scene 캡처 및 프롬프트 기반 실사 이미지 생성 UI
+  - 진행 현황 요약 업데이트 및 Phase 7 완료 상태 반영
   - 성공 지표에 R2 업로드/다운로드 성능 지표 추가
 
 **다음 업데이트 예정:**

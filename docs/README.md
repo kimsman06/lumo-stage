@@ -124,6 +124,11 @@ docs/
 - Phase별 작업 항목 및 예상 시간
 - 의존성 및 체크포인트
 
+#### `gemini-image-integration-plan-2025-11-24.md`
+- Gemini 2.5 Flash 이미지 생성 통합 계획
+- 프롬프트 엔지니어링 가이드 및 API 설계
+- 필요한 라이브러리/환경 설정 안내
+
 #### `frontend-refactor-plan-2025-10-26.md`
 - 프론트엔드 리팩토링 계획
 - 코드 개선 항목
