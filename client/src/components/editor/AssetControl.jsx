@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CenteredAlertDialogContent } from "@/components/ui/centered-alert-dialog";
 import useAssetStore from "@/store/assetStore";
+import useStore from "@/store/editorStore";
 import toast from "@/lib/toast";
 import { getAssetId } from "@/lib/assetUtils";
 
@@ -73,6 +74,7 @@ function AssetControl({ projectId }) {
     addGltfModel,
     removeGltfModel,
   } = useAssetStore();
+  const saveHistory = useStore((state) => state.saveHistory);
 
   const hdriInputRef = useRef(null);
   const gltfInputRef = useRef(null);
@@ -126,6 +128,7 @@ function AssetControl({ projectId }) {
     // 업로드 성공 시 자동으로 Scene에 적용
     if (result.success && result.asset) {
       setCurrentHdri(result.asset);
+      setTimeout(() => saveHistory(), 0);
     }
   };
 
@@ -169,6 +172,7 @@ function AssetControl({ projectId }) {
     // 업로드 성공 시 자동으로 Scene에 추가
     if (result.success && result.asset) {
       addGltfModel(result.asset);
+      setTimeout(() => saveHistory(), 0);
     }
   };
 
@@ -356,6 +360,7 @@ function AssetControl({ projectId }) {
                           } else {
                             addGltfModel(assetId);
                           }
+                          setTimeout(() => saveHistory(), 0);
                         }}
                         className="flex-1 text-left flex items-center gap-2"
                       >

@@ -61,10 +61,12 @@ const TransformSection = ({ objectType, objectId, readOnly = false }) => {
     diffusers,
     updateLight,
     setMannequinPosition,
+    setMannequinRotation,
     setMannequinScale,
     setDiffuserPosition,
     setDiffuserRotation,
     setDiffuserScale,
+    saveHistory,
   } = useStore();
 
   const { currentGltfModels, updateGltfModel } = useAssetStore();
@@ -92,6 +94,7 @@ const TransformSection = ({ objectType, objectId, readOnly = false }) => {
       setDiffuserPosition(objectId, newPosition);
     } else if (objectType === "gltfModel") {
       updateGltfModel(objectId, "position", newPosition);
+      setTimeout(() => saveHistory(), 0);
     }
   };
 
@@ -102,10 +105,13 @@ const TransformSection = ({ objectType, objectId, readOnly = false }) => {
   };
 
   const handleRotationChange = (newRotation) => {
-    if (objectType === "diffuser") {
+    if (objectType === "mannequin") {
+      setMannequinRotation(objectId, newRotation);
+    } else if (objectType === "diffuser") {
       setDiffuserRotation(objectId, newRotation);
     } else if (objectType === "gltfModel") {
       updateGltfModel(objectId, "rotation", newRotation);
+      setTimeout(() => saveHistory(), 0);
     }
   };
 
@@ -116,11 +122,13 @@ const TransformSection = ({ objectType, objectId, readOnly = false }) => {
       setDiffuserScale(objectId, newScale);
     } else if (objectType === "gltfModel") {
       updateGltfModel(objectId, "scale", newScale);
+      setTimeout(() => saveHistory(), 0);
     }
   };
 
   const showTarget = objectType === "light" && (object.type === "spot" || object.type === "directional");
-  const showRotation = objectType === "diffuser" || objectType === "gltfModel";
+  const showRotation =
+    objectType === "mannequin" || objectType === "diffuser" || objectType === "gltfModel";
   const showScale = objectType === "mannequin" || objectType === "diffuser" || objectType === "gltfModel";
 
   return (

@@ -3,6 +3,7 @@ const {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
 } = require("@aws-sdk/client-s3");
 
 const memoryStore = new Map();
@@ -113,6 +114,38 @@ const deleteObject = async (key) => {
   );
 };
 
+const downloadBuffer = async (key) => {
+  if (!key) {
+    return null;
+  }
+
+  if (isMockMode()) {
+    const stored = memoryStore.get(key);
+    return stored ? Buffer.from(stored.body) : null;
+  }
+
+  const client = ensureClient();
+  const bucket = getBucketName();
+
+  const response = await client.send(
+    new GetObjectCommand({
+      Bucket: bucket,
+      Key: key,
+    })
+  );
+
+  if (!response.Body) {
+    return null;
+  }
+
+  const chunks = [];
+  for await (const chunk of response.Body) {
+    chunks.push(Buffer.from(chunk));
+  }
+
+  return Buffer.concat(chunks);
+};
+
 const sanitizeSegment = (segment) =>
   String(segment || "")
     .replace(/[^a-zA-Z0-9-_]/g, "")
@@ -132,6 +165,7 @@ const __memoryStore = memoryStore;
 
 module.exports = {
   deleteObject,
+  downloadBuffer,
   generateAssetKey,
   getPublicUrl,
   uploadBuffer,

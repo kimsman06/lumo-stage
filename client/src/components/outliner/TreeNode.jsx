@@ -44,6 +44,7 @@ const TreeNode = ({
     deleteDiffuser,
     setObjectVisibility,
     renameObject,
+    saveHistory,
   } = useStore();
 
   const { setGltfModelVisibility, removeGltfModel } = useAssetStore();
@@ -102,6 +103,7 @@ const TreeNode = ({
     e.stopPropagation();
     if (type === "gltfModel") {
       setGltfModelVisibility(id, !visible);
+      setTimeout(() => saveHistory(), 0);
     } else {
       setObjectVisibility(id, type, !visible);
     }
@@ -123,6 +125,7 @@ const TreeNode = ({
         break;
       case "gltfModel":
         removeGltfModel(id);
+        setTimeout(() => saveHistory(), 0);
         break;
       case "camera":
       case "hdri":

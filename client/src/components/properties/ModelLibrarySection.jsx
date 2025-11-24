@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Trash2, CheckCircle } from "lucide-react";
 import useAssetStore from "@/store/assetStore";
+import useStore from "@/store/editorStore";
 import toast from "@/lib/toast";
 
 const formatFileSize = (bytes) => {
@@ -21,6 +22,7 @@ const ModelLibrarySection = ({ model, readOnly = false }) => {
     removeGltfModel,
     deleteAsset,
   } = useAssetStore();
+  const saveHistory = useStore((state) => state.saveHistory);
 
   const gltfAssets = useMemo(
     () =>
@@ -50,6 +52,7 @@ const ModelLibrarySection = ({ model, readOnly = false }) => {
     } else {
       addGltfModel(assetId);
     }
+    setTimeout(() => saveHistory(), 0);
   };
 
   const handleDeleteAsset = async (asset) => {

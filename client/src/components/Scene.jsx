@@ -248,6 +248,7 @@ function Experience({ readOnly = false }) {
   // 액션 함수들
   const updateLight = useStore((state) => state.updateLight);
   const setMannequinPosition = useStore((state) => state.setMannequinPosition);
+  const setMannequinRotation = useStore((state) => state.setMannequinRotation);
   const setMannequinScale = useStore((state) => state.setMannequinScale);
   const setDiffuserPosition = useStore((state) => state.setDiffuserPosition);
   const setDiffuserScale = useStore((state) => state.setDiffuserScale);
@@ -914,6 +915,13 @@ function Experience({ readOnly = false }) {
                     obj.scale.z,
                   ];
                   setMannequinScale(state.selectedMannequinId, newScale);
+                } else if (mode === "rotate") {
+                  const newRotation = [
+                    obj.rotation.x,
+                    obj.rotation.y,
+                    obj.rotation.z,
+                  ];
+                  setMannequinRotation(state.selectedMannequinId, newRotation);
                 } else {
                   const newPosition = [
                     obj.position.x,
@@ -1078,6 +1086,7 @@ function Scene({ readOnly = false }) {
       <Canvas
         shadows
         className="w-full h-full"
+        gl={{ preserveDrawingBuffer: true }}
         onPointerMissed={(event) => {
           // 기즈모 드래그 중일 때는 Canvas 클릭 이벤트 무시
           if (isTransformInteracting) {

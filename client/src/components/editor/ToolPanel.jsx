@@ -10,7 +10,7 @@
  */
 
 import React, { useRef, useState } from "react";
-import { Lightbulb, User, Image, Box } from "lucide-react";
+import { Lightbulb, User, Image, Box, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -47,8 +47,8 @@ function validateFileExtension(file, allowedExtensions) {
   return allowedExtensions.some((ext) => fileName.endsWith(ext));
 }
 
-function ToolPanel({ projectId, readOnly = false }) {
-  const { addLight, addMannequin } = useStore();
+function ToolPanel({ projectId, readOnly = false, onOpenAiPanel }) {
+  const { addLight, addMannequin, saveHistory } = useStore();
   const { uploadHdri, uploadGltf, setCurrentHdri, addGltfModel } =
     useAssetStore();
 
@@ -113,6 +113,7 @@ function ToolPanel({ projectId, readOnly = false }) {
     // 업로드 성공 시 자동으로 Scene에 적용
     if (result.success && result.asset) {
       setCurrentHdri(result.asset);
+      setTimeout(() => saveHistory(), 0);
     }
   };
 
@@ -157,6 +158,7 @@ function ToolPanel({ projectId, readOnly = false }) {
     // 업로드 성공 시 자동으로 Scene에 추가
     if (result.success && result.asset) {
       addGltfModel(result.asset);
+      setTimeout(() => saveHistory(), 0);
     }
   };
 
@@ -198,6 +200,13 @@ function ToolPanel({ projectId, readOnly = false }) {
       icon: Box,
       onClick: handleGltfUpload,
       disabled: readOnly || uploadingGltf,
+    },
+    {
+      id: "ai-previsualization",
+      label: "AI 프리비주얼",
+      icon: Sparkles,
+      onClick: onOpenAiPanel,
+      disabled: readOnly || !onOpenAiPanel,
     },
   ];
 

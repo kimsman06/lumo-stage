@@ -21,6 +21,8 @@ beforeAll(async () => {
   process.env.NODE_ENV = "test";
   process.env.R2_BUCKET_NAME = "test-bucket";
   process.env.R2_PUBLIC_URL = "https://r2.test-bucket.local";
+  process.env.ENCRYPTION_KEY = "0123456789abcdef0123456789abcdef";
+  process.env.AI_MOCK_MODE = "true";
 
   await mongoose.connect(uri);
 });
