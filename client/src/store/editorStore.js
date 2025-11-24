@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { nanoid } from "nanoid";
+import useAssetStore from "./assetStore";
 
 const BACKGROUND_TYPES = ["color", "hdri", "none"];
 
@@ -209,6 +210,7 @@ const sanitizePose = (pose) => {
 const sanitizeMannequin = (mannequin = {}, fallbackIndex = 0) => {
   const defaultPosition = [0, -1.5, 0];
   const defaultScale = [1, 1, 1];
+  const defaultRotation = [0, 0, 0];
 
   return {
     ...mannequin,
@@ -216,9 +218,32 @@ const sanitizeMannequin = (mannequin = {}, fallbackIndex = 0) => {
     name: mannequin.name || `Mannequin ${fallbackIndex + 1}`,
     visible: mannequin.visible !== undefined ? mannequin.visible : true,
     position: isValidVector3(mannequin.position) ? mannequin.position : defaultPosition,
+    rotation: isValidVector3(mannequin.rotation) ? mannequin.rotation : defaultRotation,
     scale: isValidVector3(mannequin.scale) ? mannequin.scale : defaultScale,
     pose: sanitizePose(mannequin.pose),
+    // 서버에서 로드된 포즈는 이미 유효하므로 다시 초기화하지 않음
+    poseInitialized: mannequin.poseInitialized !== undefined ? mannequin.poseInitialized : true,
   };
+};
+
+const cloneAssetHistoryState = () => {
+  const assetState = useAssetStore.getState();
+  return {
+    currentHdri: assetState.currentHdri || null,
+    currentGltfModels: JSON.parse(
+      JSON.stringify(assetState.currentGltfModels || [])
+    ),
+  };
+};
+
+const restoreAssetHistoryState = (snapshot) => {
+  const nextState = snapshot || {};
+  useAssetStore.setState({
+    currentHdri: nextState.currentHdri || null,
+    currentGltfModels: JSON.parse(
+      JSON.stringify(nextState.currentGltfModels || [])
+    ),
+  });
 };
 
 const sanitizeLight = (light, fallbackIndex = 0) => {
@@ -258,8 +283,10 @@ const useStore = create((set, get) => {
       name: "Mannequin",
       visible: true,
       position: [0, -1.5, 0],
+      rotation: [0, 0, 0],
       scale: [1, 1, 1],
       pose: createInitialPose(),
+      poseInitialized: false,
     },
   ],
   selectedMannequinId: firstMannequinId,
@@ -305,6 +332,20 @@ const useStore = create((set, get) => {
   selectedDiffuser: null,
   selectedGltfModelId: null,
 
+  // AI Previsualization State
+  aiPrevisualization: {
+    isGenerating: false,
+    currentGenerationId: null,
+    progress: 0,
+    lastPrompt: "",
+    lastNegativePrompt: "",
+    lastParams: {
+      strength: 0.75,
+      steps: 30,
+      guidanceScale: 7.5,
+    },
+  },
+
   // --- ACTIONS ---
 
   // Mannequin Actions
@@ -318,8 +359,10 @@ const useStore = create((set, get) => {
           name: `Mannequin ${state.mannequins.length + 1}`,
           visible: true,
           position: [Math.random() * 4 - 2, -1.5, Math.random() * 4 - 2],
+          rotation: [0, 0, 0],
           scale: [1, 1, 1],
           pose: createInitialPose(),
+          poseInitialized: false,
         },
       ],
     }));
@@ -362,7 +405,15 @@ const useStore = create((set, get) => {
   initializePose: (id, pose) =>
     set((state) => ({
       mannequins: state.mannequins.map((m) =>
-        m.id === id ? { ...m, pose } : m
+        m.id === id
+          ? m.poseInitialized
+            ? m
+            : {
+                ...m,
+                pose: sanitizePose(pose || m.pose),
+                poseInitialized: true,
+              }
+          : m
       ),
     })),
   // [Architecture 시나리오 1: UI 슬라이더로 뼈 회전 - 상태 업데이트]
@@ -388,6 +439,12 @@ const useStore = create((set, get) => {
     set((state) => ({
       mannequins: state.mannequins.map((m) =>
         m.id === id ? { ...m, position } : m
+      ),
+    })),
+  setMannequinRotation: (id, rotation) =>
+    set((state) => ({
+      mannequins: state.mannequins.map((m) =>
+        m.id === id ? { ...m, rotation } : m
       ),
     })),
   setMannequinScale: (id, scale) =>
@@ -816,8 +873,11 @@ const useStore = create((set, get) => {
   // Scene Data 추출 (저장용)
   getSceneData: () => {
     const state = get();
+    const serializedMannequins = state.mannequins.map(({ poseInitialized, ...rest }) => ({
+      ...rest,
+    }));
     return {
-      mannequins: state.mannequins,
+      mannequins: serializedMannequins,
       lights: state.lights,
       diffusers: state.diffusers,
       cameraState: state.cameraState,
@@ -837,6 +897,7 @@ const useStore = create((set, get) => {
       cameraState: JSON.parse(JSON.stringify(state.cameraState)),
       orbitControlState: JSON.parse(JSON.stringify(state.orbitControlState)),
       backgroundSettings: JSON.parse(JSON.stringify(state.backgroundSettings)),
+      assetState: cloneAssetHistoryState(),
     };
 
     set((s) => {
@@ -885,6 +946,7 @@ const useStore = create((set, get) => {
       selectedModelLibrary: false,
       selectedEnvironment: false,
     });
+    restoreAssetHistoryState(snapshot.assetState);
   },
 
   redo: () => {
@@ -912,6 +974,7 @@ const useStore = create((set, get) => {
       selectedModelLibrary: false,
       selectedEnvironment: false,
     });
+    restoreAssetHistoryState(snapshot.assetState);
   },
 
   canUndo: () => {
@@ -923,6 +986,47 @@ const useStore = create((set, get) => {
     const state = get();
     return state.historyIndex < state.history.length - 1;
   },
+
+  // AI Previsualization Actions
+  setAiGenerating: (isGenerating, generationId = null) =>
+    set((state) => ({
+      aiPrevisualization: {
+        ...state.aiPrevisualization,
+        isGenerating,
+        currentGenerationId: generationId,
+        progress: isGenerating ? 0 : state.aiPrevisualization.progress,
+      },
+    })),
+
+  setAiProgress: (progress) =>
+    set((state) => ({
+      aiPrevisualization: {
+        ...state.aiPrevisualization,
+        progress,
+      },
+    })),
+
+  setAiLastPrompt: (prompt, negativePrompt, params) =>
+    set((state) => ({
+      aiPrevisualization: {
+        ...state.aiPrevisualization,
+        lastPrompt: prompt,
+        lastNegativePrompt: negativePrompt || "",
+        lastParams: params || state.aiPrevisualization.lastParams,
+      },
+    })),
+
+  resetAiState: () =>
+    set((state) => ({
+      aiPrevisualization: {
+        isGenerating: false,
+        currentGenerationId: null,
+        progress: 0,
+        lastPrompt: state.aiPrevisualization.lastPrompt,
+        lastNegativePrompt: state.aiPrevisualization.lastNegativePrompt,
+        lastParams: state.aiPrevisualization.lastParams,
+      },
+    })),
   };
 });
 

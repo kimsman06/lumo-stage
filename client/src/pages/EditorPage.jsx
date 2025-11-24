@@ -6,6 +6,7 @@ import Outliner from "../components/outliner/Outliner";
 import PropertiesPanel from "../components/properties/PropertiesPanel";
 import ToolPanel from "../components/editor/ToolPanel";
 import Toolbar from "../components/editor/Toolbar";
+import AiPrevisualizationDialog from "../components/editor/AiPrevisualizationDialog";
 import useStore from "../store/editorStore";
 import useProjectStore from "../store/projectStore";
 import useAssetStore from "../store/assetStore";
@@ -31,6 +32,7 @@ function EditorPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
 
   // 프로젝트 로드
   useEffect(() => {
@@ -255,7 +257,7 @@ function EditorPage() {
 
           {/* ToolPanel - 세로 전체 */}
           <div className="flex-shrink-0">
-            <ToolPanel projectId={id} />
+            <ToolPanel projectId={id} onOpenAiPanel={() => setAiPanelOpen(true)} />
           </div>
 
           {/* 우측 패널 - Outliner + PropertiesPanel */}
@@ -274,6 +276,13 @@ function EditorPage() {
         {/* Tutorial Overlay */}
         <TutorialOverlay />
       </div>
+
+      {/* AI Previsualization Dialog */}
+      <AiPrevisualizationDialog
+        projectId={id}
+        open={aiPanelOpen}
+        onOpenChange={setAiPanelOpen}
+      />
     </TutorialProvider>
   );
 }
