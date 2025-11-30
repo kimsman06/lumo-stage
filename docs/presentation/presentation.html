@@ -1,0 +1,2411 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LumoStage 프로젝트 발표</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      /* ===== 글로벌 프레젠테이션 스타일 ===== */
+      @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui,
+          Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo",
+          "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji",
+          "Segoe UI Symbol", sans-serif;
+        overflow: hidden;
+        background: #0a0a0f;
+      }
+
+      .slide-container {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        padding: 2vh 2vh 7vh;
+      }
+
+      .slide {
+        width: 100%;
+        height: 100%;
+        max-width: min(177.78vh, 100vw);
+        max-height: min(56.25vw, 100vh);
+        aspect-ratio: 16 / 9;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        padding: 2.5%;
+        padding-bottom: 4.5rem;
+        display: none;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .slide.active {
+        display: flex;
+      }
+
+      .slide-header {
+        border-bottom: 2px solid #3b82f6;
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .slide-title {
+        font-size: clamp(1.5rem, 3vw, 2.5rem);
+        font-weight: 800;
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .slide-footer {
+        position: absolute;
+        bottom: 1.5rem;
+        left: 2.5%;
+        right: 2.5%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.8rem;
+        color: #0f172a;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 0.75rem;
+      }
+
+      .slide-footer div:first-child {
+        flex: 1;
+        font-weight: 600;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .slide-number {
+        background: #f1f5f9;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+      }
+
+      .controls {
+        position: fixed;
+        bottom: 1.25rem;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 1rem;
+        z-index: 1000;
+        background: rgba(15, 23, 42, 0.75);
+        padding: 0.5rem 0.75rem;
+        border-radius: 9999px;
+        box-shadow: 0 20px 45px -15px rgba(15, 23, 42, 0.7);
+      }
+
+      @media (min-width: 1100px) {
+        .controls {
+          left: auto;
+          right: 2.5rem;
+          transform: none;
+        }
+      }
+
+      .control-btn {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 50%;
+        background: white;
+        border: 2px solid #3b82f6;
+        color: #3b82f6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      }
+
+      .control-btn:hover {
+        background: #3b82f6;
+        color: white;
+        transform: scale(1.1);
+      }
+
+      .code-block {
+        background: #1e293b;
+        border-radius: 8px;
+        padding: 1rem;
+        color: #e2e8f0;
+        font-family: "Monaco", "Courier New", monospace;
+        font-size: clamp(0.75rem, 1.05vw, 1rem);
+        line-height: 1.6;
+        border: 1px solid #334155;
+        overflow-x: auto;
+        overflow-y: auto;
+        width: 100%;
+        display: block;
+        white-space: pre;
+      }
+
+      .code-section {
+        flex: 1;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+
+      .code-section .code-block {
+        flex: 1;
+        height: 100%;
+      }
+
+      .code-block::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      .code-block::-webkit-scrollbar-thumb {
+        background: #475569;
+        border-radius: 9999px;
+      }
+
+      .code-block::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .keyword {
+        color: #60a5fa;
+      }
+      .string {
+        color: #fbbf24;
+      }
+      .function {
+        color: #a78bfa;
+      }
+      .comment {
+        color: #94a3b8;
+      }
+      .property {
+        color: #34d399;
+      }
+
+      .feature-card {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1rem;
+        transition: all 0.3s;
+      }
+
+      .feature-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.2);
+        border-color: #3b82f6;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 9999px;
+        font-size: clamp(0.85rem, 1.1vw, 1.05rem);
+        font-weight: 600;
+      }
+
+      .badge-blue {
+        background: #dbeafe;
+        color: #1e40af;
+      }
+      .badge-purple {
+        background: #ede9fe;
+        color: #6d28d9;
+      }
+      .badge-green {
+        background: #d1fae5;
+        color: #065f46;
+      }
+      .badge-yellow {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .badge-red {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+
+      .tech-stack-item {
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 0.75rem;
+        text-align: center;
+        transition: all 0.3s;
+      }
+
+      .tech-stack-item:hover {
+        border-color: #3b82f6;
+        transform: scale(1.05);
+      }
+
+      .schema-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: clamp(0.85rem, 1vw, 1rem);
+      }
+
+      .schema-table th {
+        background: #f1f5f9;
+        padding: 0.5rem;
+        text-align: left;
+        font-weight: 600;
+        border-bottom: 2px solid #cbd5e1;
+        color: #1e293b;
+      }
+
+      .schema-table td {
+        padding: 0.5rem;
+        border-bottom: 1px solid #e2e8f0;
+        color: #475569;
+      }
+
+      .schema-table tr:hover {
+        background: #f8fafc;
+      }
+
+      .progress-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
+        transition: width 0.3s;
+        z-index: 1001;
+      }
+
+      .stat-box {
+        text-align: center;
+        padding: 1rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-radius: 12px;
+        border: 2px solid #e2e8f0;
+      }
+
+      .stat-number {
+        font-size: clamp(1.5rem, 3vw, 2.5rem);
+        font-weight: 800;
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .challenge-box {
+        background: white;
+        border-left: 4px solid #3b82f6;
+        border-radius: 8px;
+        padding: 0.65rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+      }
+
+      .api-endpoint {
+        background: #f8fafc;
+        border-radius: 6px;
+        padding: 0.5rem 0.75rem;
+        font-family: "Monaco", monospace;
+        font-size: clamp(0.85rem, 1vw, 1rem);
+        border: 1px solid #e2e8f0;
+        margin-bottom: 0.375rem;
+      }
+
+      .method-badge {
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        font-weight: 700;
+        font-size: clamp(0.8rem, 0.95vw, 0.9rem);
+        margin-right: 0.375rem;
+      }
+
+      .method-get {
+        background: #dbeafe;
+        color: #1e40af;
+      }
+      .method-post {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .method-patch {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .method-delete {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+
+      .diagram-section {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        min-height: 0;
+      }
+
+      .mermaid {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        border: 1px solid #e2e8f0;
+        overflow: auto;
+        width: 100%;
+        max-width: 100%;
+        display: block;
+      }
+
+      .diagram-section .mermaid {
+        flex: 1;
+        min-height: 0;
+      }
+
+      .slide .flex-1 {
+        min-height: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Progress Bar -->
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- Slide Container -->
+    <div class="slide-container">
+      <!-- Slide 1: Title -->
+      <div class="slide active" data-slide="1">
+        <div
+          class="flex-1 flex flex-col items-center justify-center text-center"
+        >
+          <div class="mb-6">
+            <i
+              class="fas fa-lightbulb text-yellow-500"
+              style="font-size: clamp(3rem, 6vw, 5rem)"
+            ></i>
+          </div>
+          <h1
+            style="
+              font-size: clamp(2.5rem, 5vw, 4rem);
+              font-weight: 900;
+              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+            "
+          >
+            LumoStage
+          </h1>
+          <p
+            style="
+              font-size: clamp(1rem, 2vw, 1.5rem);
+              color: #64748b;
+              margin-top: 0.75rem;
+              font-weight: 600;
+            "
+          >
+            웹 기반 실시간 3D 조명 시뮬레이션 플랫폼
+          </p>
+          <div
+            style="
+              margin-top: 2rem;
+              display: flex;
+              gap: 2rem;
+              font-size: clamp(0.8rem, 1.2vw, 1rem);
+              color: #64748b;
+            "
+          >
+            <div class="flex items-center gap-2">
+              <span>디지털미디어학과 | 김재준</span>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <div>LumoStage 프로젝트 발표</div>
+          <div class="slide-number">1 / 14</div>
+        </div>
+      </div>
+
+      <!-- Slide 2: Overview -->
+      <div class="slide" data-slide="2">
+        <div class="slide-header">
+          <h2 class="slide-title">프로젝트 개요</h2>
+        </div>
+        <div class="flex-1 grid grid-cols-2 gap-4">
+          <div>
+            <h3
+              class="text-xl font-bold mb-3 text-red-600 flex items-center gap-2"
+            >
+              <i class="fas fa-exclamation-triangle"></i>
+              문제점
+            </h3>
+            <ul
+              class="space-y-2 text-gray-700"
+              style="font-size: clamp(0.75rem, 0.9vw, 0.9rem)"
+            >
+              <li class="flex items-start gap-2">
+                <i class="fas fa-times text-red-500 mt-1"></i>
+                <span
+                  >실제 촬영 현장에서 조명 설치와 테스트에
+                  <strong>많은 시간과 비용</strong> 소모</span
+                >
+              </li>
+              <li class="flex items-start gap-2">
+                <i class="fas fa-times text-red-500 mt-1"></i>
+                <span
+                  >Cinema 4D, Blender 같은 전문 3D 소프트웨어는
+                  <strong>고가</strong>이고 <strong>학습 곡선</strong>이
+                  가파름</span
+                >
+              </li>
+              <li class="flex items-start gap-2">
+                <i class="fas fa-times text-red-500 mt-1"></i>
+                <span
+                  >영상 제작 팀 간 조명 구도 <strong>커뮤니케이션</strong>의
+                  어려움</span
+                >
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h3
+              class="text-xl font-bold mb-3 text-green-600 flex items-center gap-2"
+            >
+              <i class="fas fa-check-circle"></i>
+              해결책: LumoStage
+            </h3>
+            <ul
+              class="space-y-2 text-gray-700"
+              style="font-size: clamp(0.75rem, 0.9vw, 0.9rem)"
+            >
+              <li class="flex items-start gap-2">
+                <i class="fas fa-check text-green-500 mt-1"></i>
+                <span
+                  ><strong>웹 브라우저</strong>에서 바로 사용 (설치
+                  불필요)</span
+                >
+              </li>
+              <li class="flex items-start gap-2">
+                <i class="fas fa-check text-green-500 mt-1"></i>
+                <span
+                  >조명과 카메라 구도를 <strong>실시간 시뮬레이션</strong></span
+                >
+              </li>
+              <li class="flex items-start gap-2">
+                <i class="fas fa-check text-green-500 mt-1"></i>
+                <span
+                  >초보자부터 전문가까지 <strong>접근성 높은 도구</strong></span
+                >
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="mt-4">
+          <h3 class="text-lg font-bold mb-2 text-gray-800">타겟 사용자</h3>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="feature-card text-center">
+              <i
+                class="fas fa-graduation-cap text-3xl text-purple-500 mb-2"
+              ></i>
+              <p
+                class="font-semibold text-gray-800"
+                style="font-size: clamp(0.85rem, 1.05vw, 1rem)"
+              >
+                영화/영상 전공 학생
+              </p>
+            </div>
+            <div class="feature-card text-center">
+              <i class="fas fa-film text-3xl text-blue-500 mb-2"></i>
+              <p
+                class="font-semibold text-gray-800"
+                style="font-size: clamp(0.85rem, 1.05vw, 1rem)"
+              >
+                독립 영화 제작자
+              </p>
+            </div>
+            <div class="feature-card text-center">
+              <i class="fas fa-video text-3xl text-red-500 mb-2"></i>
+              <p
+                class="font-semibold text-gray-800"
+                style="font-size: clamp(0.85rem, 1.05vw, 1rem)"
+              >
+                영상 크리에이터
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <div>프로젝트 개요</div>
+          <div class="slide-number">2 / 14</div>
+        </div>
+      </div>
+
+      <!-- Slide 3: Tech Stack -->
+      <div class="slide" data-slide="3">
+        <div class="slide-header">
+          <h2 class="slide-title">기술 스택</h2>
+        </div>
+        <div class="flex-1 grid grid-cols-2 gap-4">
+          <div>
+            <h3
+              class="text-xl font-bold mb-3 text-blue-600 flex items-center gap-2"
+            >
+              <i class="fas fa-laptop-code"></i>
+              Frontend
+            </h3>
+            <div
+              class="space-y-2"
+              style="font-size: clamp(0.7rem, 0.85vw, 0.85rem)"
+            >
+              <div>
+                <p class="font-semibold text-gray-700 mb-1">Core Framework</p>
+                <div class="flex flex-wrap gap-2">
+                  <span class="badge badge-blue">React 18</span>
+                  <span class="badge badge-blue">Vite 5</span>
+                  <span class="badge badge-blue">Zustand</span>
+                </div>
+              </div>
+              <div>
+                <p class="font-semibold text-gray-700 mb-1">3D Rendering</p>
+                <div class="flex flex-wrap gap-2">
+                  <span class="badge badge-purple">Three.js r162</span>
+                  <span class="badge badge-purple">React-Three-Fiber</span>
+                  <span class="badge badge-purple">React-Three-Drei</span>
+                </div>
+              </div>
+              <div>
+                <p class="font-semibold text-gray-700 mb-1">UI/Styling</p>
+                <div class="flex flex-wrap gap-2">
+                  <span class="badge badge-blue">Tailwind CSS</span>
+                  <span class="badge badge-blue">shadcn/ui</span>
+                  <span class="badge badge-blue">Framer Motion</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <h3
+              class="text-xl font-bold mb-3 text-green-600 flex items-center gap-2"
+            >
+              <i class="fas fa-server"></i>
+              Backend
+            </h3>
+            <div
+              class="space-y-2"
+              style="font-size: clamp(0.7rem, 0.85vw, 0.85rem)"
+            >
+              <div>
+                <p class="font-semibold text-gray-700 mb-1">Core</p>
+                <div class="flex flex-wrap gap-2">
+                  <span class="badge badge-green">Node.js 18+</span>
+                  <span class="badge badge-green">Express 4</span>
+                  <span class="badge badge-green">MVCS 패턴</span>
+                </div>
+              </div>
+              <div>
+                <p class="font-semibold text-gray-700 mb-1">
+                  Database & Storage
+                </p>
+                <div class="flex flex-wrap gap-2">
+                  <span class="badge badge-green">MongoDB</span>
+                  <span class="badge badge-green">Cloudflare R2</span>
+                </div>
+              </div>
+              <div>
+                <p class="font-semibold text-gray-700 mb-1">Authentication</p>
+                <div class="flex flex-wrap gap-2">
+                  <span class="badge badge-green">Session + MongoDB</span>
+                  <span class="badge badge-green">Passport.js</span>
+                  <span class="badge badge-green">OAuth (Google/Naver)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-3">
+          <h3
+            class="text-xl font-bold mb-2 text-orange-600 flex items-center gap-2"
+          >
+            <i class="fas fa-brain"></i>
+            AI Integration (Phase 7)
+          </h3>
+          <div class="grid grid-cols-4 gap-2">
+            <div class="tech-stack-item">
+              <i class="fas fa-magic text-2xl text-orange-500 mb-1"></i>
+              <p class="text-xs font-semibold text-gray-800">
+                Gemini 2.5 Flash
+              </p>
+            </div>
+            <div class="tech-stack-item">
+              <i class="fas fa-tasks text-2xl text-orange-500 mb-1"></i>
+              <p class="text-xs font-semibold text-gray-800">Bull Queue</p>
+            </div>
+            <div class="tech-stack-item">
+              <i class="fas fa-lock text-2xl text-orange-500 mb-1"></i>
+              <p class="text-xs font-semibold text-gray-800">AES-256-GCM</p>
+            </div>
+            <div class="tech-stack-item">
+              <i
+                class="fas fa-tachometer-alt text-2xl text-orange-500 mb-1"
+              ></i>
+              <p class="text-xs font-semibold text-gray-800">Rate Limiting</p>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <div>기술 스택</div>
+          <div class="slide-number">3 / 14</div>
+        </div>
+      </div>
+
+      <!-- Slide 4: Architecture with Mermaid -->
+      <div class="slide" data-slide="4">
+        <div class="slide-header">
+          <h2 class="slide-title">시스템 아키텍처</h2>
+        </div>
+        <div class="flex-1 grid grid-cols-2 gap-4">
+          <div class="diagram-section">
+            <h3 class="text-lg font-bold mb-2 text-blue-600">
+              컴포넌트 업데이트 시퀀스
+            </h3>
+            <pre class="mermaid" style="font-size: 10px">
+sequenceDiagram
+    autonumber
+    participant UI as React Component
+    participant Store as Zustand Store
+    participant Hook as API Hook (fetch/axios)
+    participant Server as Express Controller/Service
+    participant DB as MongoDB
+
+    UI->>Store: 사용자 입력 (포즈 이동, 조명 값 등)
+    Store-->>UI: subscribe 콜백으로 즉시 렌더
+    Store->>Hook: scene dirty flag 전달
+    Hook->>Server: PATCH /projects/:id (sceneData)
+    Server->>DB: upsertScene(sceneData)
+    DB-->>Server: 저장 성공
+    Server-->>Hook: 200 OK + 정규화된 sceneData
+    Hook->>Store: 병합 업데이트 & history push
+    Store-->>UI: 정규화된 상태로 재렌더
+    UI-->>UI: 카메라/씬 컴포넌트에 반영
+            </pre>
+          </div>
+          <div class="diagram-section">
+            <h3 class="text-lg font-bold mb-2 text-green-600">
+              MVCS + R2 Storage
+            </h3>
+            <pre class="mermaid" style="font-size: 10px">
+graph LR
+    A[Routes] -->|HTTP Request| B[Controllers]
+    B -->|Business Logic| C[Services]
+    C -->|Data Access| D[Models]
+    D -->|MongoDB| E[(Database)]
+    C -->|Asset Upload| F[(R2 Storage)]
+
+    style A fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
+    style B fill:#dcfce7,stroke:#10b981,stroke-width:2px
+    style C fill:#fef3c7,stroke:#f59e0b,stroke-width:2px
+    style D fill:#ede9fe,stroke:#8b5cf6,stroke-width:2px
+    style E fill:#fee2e2,stroke:#ef4444,stroke-width:2px
+    style F fill:#cffafe,stroke:#0ea5e9,stroke-width:2px
+            </pre>
+          </div>
+        </div>
+        <div class="mt-3">
+          <h3 class="text-lg font-bold mb-2 text-purple-600">
+            핵심 상태 관리 (editorStore)
+          </h3>
+          <div
+            class="grid grid-cols-3 gap-2"
+            style="font-size: clamp(0.65rem, 0.75vw, 0.75rem)"
+          >
+            <div class="bg-white p-2 rounded-lg border border-gray-200">
+              <p class="font-semibold text-gray-800 mb-1">Scene State</p>
+              <ul class="text-gray-600 text-xs space-y-0.5">
+                <li>• lights (조명 배열)</li>
+                <li>• mannequins (마네킹)</li>
+                <li>• objects (3D 오브젝트)</li>
+              </ul>
+            </div>
+            <div class="bg-white p-2 rounded-lg border border-gray-200">
+              <p class="font-semibold text-gray-800 mb-1">Camera State</p>
+              <ul class="text-gray-600 text-xs space-y-0.5">
+                <li>• cameraState (카메라)</li>
+                <li>• orbitControlState (컨트롤)</li>
+                <li>• aspectRatio (화면 비율)</li>
+                <li>• viewMode (뷰 모드)</li>
+              </ul>
+            </div>
+            <div class="bg-white p-2 rounded-lg border border-gray-200">
+              <p class="font-semibold text-gray-800 mb-1">Environment</p>
+              <ul class="text-gray-600 text-xs space-y-0.5">
+                <li>• backgroundSettings (배경)</li>
+                <li>• selectedObjectId (선택)</li>
+                <li>• transformMode (변환)</li>
+                <li>• history (히스토리)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <div>시스템 아키텍처</div>
+          <div class="slide-number">4 / 14</div>
+        </div>
+      </div>
+
+      <!-- Slide 5: Database ERD with Mermaid -->
+      <div class="slide" data-slide="5">
+        <div class="slide-header">
+          <h2 class="slide-title">데이터베이스 ERD</h2>
+        </div>
+        <div class="flex-1 grid grid-cols-2 gap-4 items-stretch">
+          <div
+            class="diagram-section bg-slate-50 border border-slate-200 rounded-xl p-4"
+          >
+            <h3
+              class="text-lg font-bold mb-3 text-slate-900 flex items-center gap-2"
+            >
+              <i class="fas fa-database text-blue-500"></i>
+              ERD 다이어그램 (Mermaid)
+            </h3>
+            <pre class="mermaid" style="font-size: 11px">
+%%{init: {'er': {'diagramPadding': 30, 'layoutDirection': 'LR'}}}%%
+erDiagram
+    USER ||--o{ PROJECT : owns
+    USER ||--o{ ASSET : owns
+    USER ||--o{ PREVIS : owns
+    PROJECT ||--o{ ASSET : contains
+    PROJECT ||--o{ PREVIS : generates
+
+    USER {
+        ObjectId _id
+        String username
+        String email
+        String aiApiKey
+        Object aiUsageStats
+    }
+
+    PROJECT {
+        ObjectId _id
+        String name
+        String description
+        Object sceneData
+        String thumbnail
+        Date createdAt
+    }
+
+    ASSET {
+        ObjectId _id
+        ObjectId projectId
+        String type
+        String fileKey
+        String fileUrl
+        Number fileSize
+        String mimeType
+    }
+
+    PREVIS {
+        ObjectId _id
+        ObjectId project
+        String prompt
+        String sceneRenderUrl
+        String generatedImageUrl
+        String status
+    }
+            </pre>
+          </div>
+          <div
+            class="bg-white rounded-lg border border-gray-200 p-4 text-sm text-gray-700 space-y-4"
+          >
+            <div>
+              <h3 class="font-bold text-gray-900 mb-1">관계 요약</h3>
+              <ul class="list-disc pl-5 space-y-1">
+                <li>
+                  <strong>USER → PROJECT</strong>: 사용자가 다수의 프로젝트를
+                  소유하며 접근 제어는 ObjectId 기반.
+                </li>
+                <li>
+                  <strong>PROJECT → ASSET / PREVIS</strong>: 씬 데이터 저장소와
+                  AI 파이프라인 산출물이 동일 프로젝트에서 파생.
+                </li>
+                <li>
+                  <strong>USER → ASSET / PREVIS</strong>: 개인별 사용량 추적을
+                  위한 직접 소유 관계를 유지해 비용 및 AI 크레딧 계산 가능.
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h3 class="font-bold text-gray-900 mb-1">핵심 속성</h3>
+              <div class="grid grid-cols-2 gap-2 text-xs leading-relaxed">
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-2">
+                  <p class="font-semibold text-slate-800 mb-1">USER</p>
+                  <p>
+                    <strong>username / email</strong>: 고유 식별과 소셜 로그인
+                    매핑 기준.
+                  </p>
+                  <p>
+                    <strong>aiApiKey</strong>: 사용자 개인의 Gemini 키를
+                    암호화해 저장.
+                  </p>
+                  <p>
+                    <strong>aiUsageStats</strong>: 월간 호출 횟수/비용을 JSON
+                    메타로 누적.
+                  </p>
+                </div>
+                <div
+                  class="bg-emerald-50 border border-emerald-200 rounded-lg p-2"
+                >
+                  <p class="font-semibold text-emerald-800 mb-1">PROJECT</p>
+                  <p>
+                    <strong>sceneData</strong>: Three.js 편집 상태를 그대로
+                    직렬화한 JSON.
+                  </p>
+                  <p>
+                    <strong>thumbnail</strong>: 프리뷰 이미지 URL, 리스트 UX
+                    향상.
+                  </p>
+                  <p>
+                    <strong>createdAt</strong>: 프로젝트 타임라인/정렬 기준.
+                  </p>
+                </div>
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-2">
+                  <p class="font-semibold text-amber-800 mb-1">ASSET</p>
+                  <p>
+                    <strong>fileKey / fileUrl</strong>: R2 스토리지 접근 키와
+                    CDN URL.
+                  </p>
+                  <p>
+                    <strong>mimeType</strong>: 렌더러/다운로드 시 안전한
+                    Content-Type 결정.
+                  </p>
+                  <p>
+                    <strong>fileSize</strong>: 업로드 제한·요금 측정을 위한
+                    기준.
+                  </p>
+                </div>
+                <div
+                  class="bg-indigo-50 border border-indigo-200 rounded-lg p-2"
+                >
+                  <p class="font-semibold text-indigo-800 mb-1">PREVIS</p>
+                  <p>
+                    <strong>prompt</strong>: AI 호출에 사용된 자연어 프롬프트
+                    기록.
+                  </p>
+                  <p>
+                    <strong>sceneRenderUrl</strong>: 편집 장면을 캡처한 참고
+                    이미지.
+                  </p>
+                  <p>
+                    <strong>generatedImageUrl</strong>: Gemini 결과물을 저장한
+                    URL.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <div>데이터베이스 ERD</div>
+          <div class="slide-number">5 / 14</div>
+        </div>
+      </div>
+
+      <!-- Slide 6: API Structure -->
+      <div class="slide" data-slide="6">
+        <div class="slide-header">
+          <h2 class="slide-title">API 구조</h2>
+        </div>
+        <div class="flex-1">
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <h3 class="text-base font-bold mb-2 text-blue-600">인증 API</h3>
+              <div class="space-y-1">
+                <div class="api-endpoint">
+                  <span class="method-badge method-post">POST</span>
+                  <span class="font-mono text-gray-700"
+                    >/api/auth/register</span
+                  >
+                </div>
+                <div class="api-endpoint">
+                  <span class="method-badge method-post">POST</span>
+                  <span class="font-mono text-gray-700">/api/auth/login</span>
+                </div>
+                <div class="api-endpoint">
+                  <span class="method-badge method-get">GET</span>
+                  <span class="font-mono text-gray-700">/api/auth/google</span>
+                </div>
+                <div class="api-endpoint">
+                  <span class="method-badge method-get">GET</span>
+                  <span class="font-mono text-gray-700">/api/auth/naver</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 class="text-base font-bold mb-2 text-green-600">
+                프로젝트 API
+              </h3>
+              <div class="space-y-1">
+                <div class="api-endpoint">
+                  <span class="method-badge method-get">GET</span>
+                  <span class="font-mono text-gray-700">/api/projects</span>
+                </div>
+                <div class="api-endpoint">
+                  <span class="method-badge method-post">POST</span>
+                  <span class="font-mono text-gray-700">/api/projects</span>
+                </div>
+                <div class="api-endpoint">
+                  <span class="method-badge method-get">GET</span>
+                  <span class="font-mono text-gray-700">/api/projects/:id</span>
+                </div>
+                <div class="api-endpoint">
+                  <span class="method-badge method-patch">PATCH</span>
+                  <span class="font-mono text-gray-700">/api/projects/:id</span>
+                </div>
+                <div class="api-endpoint">
+                  <span class="method-badge method-delete">DELETE</span>
+                  <span class="font-mono text-gray-700">/api/projects/:id</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <h3 class="text-base font-bold mb-2 text-purple-600">
+                Asset API (Phase 5)
+              </h3>
+              <div class="space-y-1">
+                <div class="api-endpoint">
+                  <span class="method-badge method-post">POST</span>
+                  <span class="font-mono text-gray-700"
+                    >/api/assets/upload-hdri</span
+                  >
+                </div>
+                <div class="api-endpoint">
+                  <span class="method-badge method-post">POST</span>
+                  <span class="font-mono text-gray-700"
+                    >/api/assets/upload-gltf</span
+                  >
+                </div>
+                <div class="api-endpoint">
+                  <span class="method-badge method-get">GET</span>
+                  <span class="font-mono text-gray-700"
+                    >/api/assets/project/:projectId</span
+                  >
+                </div>
+                <div class="api-endpoint">
+                  <span class="method-badge method-delete">DELETE</span>
+                  <span class="font-mono text-gray-700"
+                    >/api/assets/:assetId</span
+                  >
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 class="text-base font-bold mb-2 text-orange-600">
+                AI API (Phase 7)
+              </h3>
+              <div class="space-y-1">
+                <div class="api-endpoint">
+                  <span class="method-badge method-post">POST</span>
+                  <span class="font-mono text-gray-700">/api/ai/api-key</span>
+                </div>
+                <div class="api-endpoint">
+                  <span class="method-badge method-get">GET</span>
+                  <span class="font-mono text-gray-700"
+                    >/api/ai/api-key/status</span
+                  >
+                </div>
+                <div class="api-endpoint">
+                  <span class="method-badge method-post">POST</span>
+                  <span class="font-mono text-gray-700"
+                    >/api/ai/previsualize</span
+                  >
+                </div>
+                <div class="api-endpoint">
+                  <span class="method-badge method-get">GET</span>
+                  <span class="font-mono text-gray-700"
+                    >/api/ai/previsualizations</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <div>API 구조</div>
+          <div class="slide-number">6 / 14</div>
+        </div>
+      </div>
+
+      <!-- Slide 7: Scene Data Schema -->
+      <div class="slide" data-slide="7">
+        <div class="slide-header">
+          <h2 class="slide-title">Scene Data 구조</h2>
+        </div>
+        <div class="flex-1 grid grid-cols-2 gap-4">
+          <div class="code-section">
+            <div class="code-block">
+              <pre style="font-size: clamp(0.55rem, 0.7vw, 0.7rem)"><code>{
+  <span class="property">"schemaVersion"</span>: <span class="string">2</span>,
+  <span class="property">"aspectRatio"</span>: <span class="string">"16:9"</span>,
+
+  <span class="comment">// 마네킹 데이터</span>
+  <span class="property">"mannequins"</span>: [
+    {
+      <span class="property">"id"</span>: <span class="string">"mannequin-1732876543"</span>,
+      <span class="property">"position"</span>: [<span class="string">0</span>, <span class="string">-1.5</span>, <span class="string">0</span>],
+      <span class="property">"rotation"</span>: [<span class="string">0</span>, <span class="string">0</span>, <span class="string">0</span>],
+      <span class="property">"scale"</span>: [<span class="string">1</span>, <span class="string">1</span>, <span class="string">1</span>],
+      <span class="property">"pose"</span>: { <span class="comment">/* 관절 회전값 (BASE_T_POSE) */</span> }
+    }
+  ],
+
+  <span class="comment">// 조명 데이터</span>
+  <span class="property">"lights"</span>: [
+    {
+      <span class="property">"id"</span>: <span class="string">"light-abc123"</span>,
+      <span class="property">"type"</span>: <span class="string">"spot"</span>,
+      <span class="property">"name"</span>: <span class="string">"Key Light"</span>,
+      <span class="property">"position"</span>: [<span class="string">5</span>, <span class="string">7</span>, <span class="string">5</span>],
+      <span class="property">"targetPosition"</span>: [<span class="string">0</span>, <span class="string">1</span>, <span class="string">0</span>],
+      <span class="property">"color"</span>: <span class="string">"#ffffff"</span>,
+      <span class="property">"intensity"</span>: <span class="string">15</span>,
+      <span class="property">"angle"</span>: <span class="string">0.523</span>,
+      <span class="property">"penumbra"</span>: <span class="string">0.5</span>,
+      <span class="property">"castShadow"</span>: <span class="keyword">true</span>
+    }
+  ],
+
+  <span class="comment">// 카메라 상태</span>
+  <span class="property">"cameraState"</span>: {
+    <span class="property">"position"</span>: [<span class="string">0</span>, <span class="string">2</span>, <span class="string">8</span>],
+    <span class="property">"target"</span>: [<span class="string">0</span>, <span class="string">2</span>, <span class="string">0</span>],
+    <span class="property">"focalLength"</span>: <span class="string">50</span>
+  },
+
+  <span class="comment">// OrbitControls 상태 (Phase 4 - Cinema 4D 스타일 동기화)</span>
+  <span class="property">"orbitControlState"</span>: {
+    <span class="property">"cameraPosition"</span>: [<span class="string">0</span>, <span class="string">2</span>, <span class="string">8</span>],
+    <span class="property">"target"</span>: [<span class="string">0</span>, <span class="string">2</span>, <span class="string">0</span>],
+    <span class="property">"zoom"</span>: <span class="string">1</span>
+  },
+
+  <span class="comment">// 배경 설정 (Phase 5)</span>
+  <span class="property">"backgroundSettings"</span>: {
+    <span class="property">"type"</span>: <span class="string">"hdri"</span>,
+    <span class="property">"hdriIntensity"</span>: <span class="string">1</span>,
+    <span class="property">"showGround"</span>: <span class="keyword">true</span>,
+    <span class="property">"groundColor"</span>: <span class="string">"#1f1f1f"</span>,
+    <span class="property">"groundReflectivity"</span>: <span class="string">0.15</span>
+  }
+}</code></pre>
+            </div>
+          </div>
+          <div
+            class="bg-white rounded-lg border border-gray-200 p-4 text-sm text-gray-700 space-y-3"
+          >
+            <div>
+              <h3 class="font-bold text-gray-900 mb-1">데이터 구성</h3>
+              <ul class="list-disc pl-5 space-y-1">
+                <li>
+                  <strong>schemaVersion / aspectRatio</strong>: 저장 포맷 버전을
+                  명시해 역호환.
+                </li>
+                <li>
+                  <strong>mannequins</strong>: 위치·회전을 배열로 유지해 GLTF
+                  리깅과 호환.
+                </li>
+                <li>
+                  <strong>lights</strong>: type/position/target/광량 등 렌더링
+                  핵심 속성.
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h3 class="font-bold text-gray-900 mb-1">카메라 & Orbit</h3>
+              <ul class="list-disc pl-5 space-y-1">
+                <li><strong>cameraState</strong>는 실제 카메라 매개변수.</li>
+                <li>
+                  <strong>orbitControlState</strong>는 사용자 컨트롤 상태를
+                  저장해 복원.
+                </li>
+                <li>두 상태를 분리해 UI 조작과 렌더 카메라가 엉키지 않음.</li>
+              </ul>
+            </div>
+            <div>
+              <h3 class="font-bold text-gray-900 mb-1">환경 설정</h3>
+              <ul class="list-disc pl-5 space-y-1">
+                <li>
+                  <strong>backgroundSettings</strong>는 HDRI/ground 옵션 묶음.
+                </li>
+                <li>최소 필드만 포함해 API payload를 가볍게 유지.</li>
+                <li>추가 컴포넌트 도입 시에도 동일 구조로 확장 가능.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <div>Scene Data 구조</div>
+          <div class="slide-number">7 / 14</div>
+        </div>
+      </div>
+
+      <!-- Slide 8: Core Features -->
+      <div class="slide" data-slide="8">
+        <div class="slide-header">
+          <h2 class="slide-title">주요 기능 (Phase 1-7 완료)</h2>
+        </div>
+        <div
+          class="flex-1 bg-white rounded-2xl border border-slate-100 shadow-sm shadow-slate-100/80 p-4 overflow-x-auto"
+        >
+          <table class="w-full text-xs md:text-sm text-left text-slate-700">
+            <thead
+              class="text-[0.65rem] uppercase tracking-wide text-slate-400 border-b border-slate-100"
+            >
+              <tr class="bg-slate-50/60">
+                <th class="py-2 pr-3 font-semibold">Phase</th>
+                <th class="py-2 pr-3 font-semibold">주요 TODO 리스트</th>
+                <th class="py-2 pr-3 font-semibold">진행 과정</th>
+                <th class="py-2 pr-3 font-semibold">사용 라이브러리</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-[0.7rem] md:text-xs">
+              <tr class="bg-slate-50/60">
+                <td class="py-3 font-semibold text-slate-900">
+                  Phase 1<br /><span class="font-normal text-slate-500"
+                    >MVP Scene</span
+                  >
+                </td>
+                <td class="py-3">
+                  <ul class="list-disc pl-4 space-y-0.5 text-slate-600">
+                    <li>씬 캔버스/레이아웃</li>
+                    <li>Zustand 상태 스키마</li>
+                    <li>기본 조명/카메라</li>
+                  </ul>
+                </td>
+                <td class="py-3">
+                  와이어프레임 → 상태 다이어그램 → `editorStore` 프로토타입으로
+                  UI와 3D 계층 동기화.
+                </td>
+                <td class="py-3">
+                  <ul class="list-disc pl-4 space-y-0.5 text-slate-600">
+                    <li>React 18 / Vite</li>
+                    <li>Zustand</li>
+                    <li>@react-three/fiber</li>
+                  </ul>
+                </td>
+              </tr>
+              <tr>
+                <td class="py-3 font-semibold text-slate-900">
+                  Phase 2<br /><span class="font-normal text-slate-500"
+                    >Lighting & Camera</span
+                  >
+                </td>
+                <td class="py-3">
+                  <ul class="list-disc pl-4 space-y-0.5 text-slate-600">
+                    <li>Spot/Rect 라이트</li>
+                    <li>Cinema4D 스타일 카메라</li>
+                    <li>Undo/Redo 파이프</li>
+                  </ul>
+                </td>
+                <td class="py-3">
+                  라이트 액션을 분리하고 OrbitControls를 history queue와 결합해
+                  스냅샷 저장.
+                </td>
+                <td class="py-3">
+                  <ul class="list-disc pl-4 space-y-0.5 text-slate-600">
+                    <li>three.js / @react-three/drei</li>
+                    <li>zustand/middleware</li>
+                  </ul>
+                </td>
+              </tr>
+              <tr class="bg-slate-50/60">
+                <td class="py-3 font-semibold text-slate-900">
+                  Phase 3<br /><span class="font-normal text-slate-500"
+                    >Project CRUD</span
+                  >
+                </td>
+                <td class="py-3">
+                  <ul class="list-disc pl-4 space-y-0.5 text-slate-600">
+                    <li>프로젝트 생성/불러오기</li>
+                    <li>씬 직렬화/정규화</li>
+                    <li>썸네일 자동화</li>
+                  </ul>
+                </td>
+                <td class="py-3">
+                  REST 스키마 정의 → `scene.service.js` 정규화 레이어 → Express
+                  라우트 통합.
+                </td>
+                <td class="py-3">
+                  <ul class="list-disc pl-4 space-y-0.5 text-slate-600">
+                    <li>Express / MongoDB</li>
+                    <li>Mongoose</li>
+                    <li>Sharp, Multer</li>
+                  </ul>
+                </td>
+              </tr>
+              <tr>
+                <td class="py-3 font-semibold text-slate-900">
+                  Phase 4<br /><span class="font-normal text-slate-500"
+                    >튜토리얼 & Onboarding</span
+                  >
+                </td>
+                <td class="py-3">
+                  <ul class="list-disc pl-4 space-y-0.5 text-slate-600">
+                    <li>8단계 가이드</li>
+                    <li>핫키 카드</li>
+                    <li>진행도 저장</li>
+                  </ul>
+                </td>
+                <td class="py-3">
+                  사용자 여정 맵 → 오버레이 컴포넌트 → localStorage 동기화로
+                  완성.
+                </td>
+                <td class="py-3">
+                  <ul class="list-disc pl-4 space-y-0.5 text-slate-600">
+                    <li>framer-motion</li>
+                    <li>react-hotkeys-hook</li>
+                    <li>localStorage API</li>
+                  </ul>
+                </td>
+              </tr>
+              <tr class="bg-slate-50/60">
+                <td class="py-3 font-semibold text-slate-900">
+                  Phase 5<br /><span class="font-normal text-slate-500"
+                    >Asset Pipeline</span
+                  >
+                </td>
+                <td class="py-3">
+                  <ul class="list-disc pl-4 space-y-0.5 text-slate-600">
+                    <li>R2 업로드 API</li>
+                    <li>GLB/HDRI 검증</li>
+                    <li>파일 메타 관리</li>
+                  </ul>
+                </td>
+                <td class="py-3">
+                  서명된 URL 흐름 설계 → 업로드 버퍼 변환 → 상태에 asset 참조
+                  주입.
+                </td>
+                <td class="py-3">
+                  <ul class="list-disc pl-4 space-y-0.5 text-slate-600">
+                    <li>Cloudflare R2</li>
+                    <li>multer / sharp</li>
+                    <li>zod</li>
+                  </ul>
+                </td>
+              </tr>
+              <tr>
+                <td class="py-3 font-semibold text-slate-900">
+                  Phase 6<br /><span class="font-normal text-slate-500"
+                    >전문가용 UI</span
+                  >
+                </td>
+                <td class="py-3">
+                  <ul class="list-disc pl-4 space-y-0.5 text-slate-600">
+                    <li>Outliner/Inspector</li>
+                    <li>Docking Panel</li>
+                    <li>상태 기반 단축키</li>
+                  </ul>
+                </td>
+                <td class="py-3">
+                  UI spacing 가이드를 준수하며 컴포넌트화 → selector 기반 focus
+                  관리.
+                </td>
+                <td class="py-3">
+                  <ul class="list-disc pl-4 space-y-0.5 text-slate-600">
+                    <li>shadcn/ui</li>
+                    <li>Tailwind / cmdk</li>
+                    <li>Zustand selectors</li>
+                  </ul>
+                </td>
+              </tr>
+              <tr class="bg-slate-50/60">
+                <td class="py-3 font-semibold text-slate-900">
+                  Phase 7<br /><span class="font-normal text-slate-500"
+                    >AI Previs</span
+                  >
+                </td>
+                <td class="py-3">
+                  <ul class="list-disc pl-4 space-y-0.5 text-slate-600">
+                    <li>Scene-to-Photo 파이프</li>
+                    <li>Queue & 재시도</li>
+                    <li>AI 키 관리</li>
+                  </ul>
+                </td>
+                <td class="py-3">
+                  Prompt 설계 → 큐 기반 비동기 처리 → Toast로 상태 변화를 노출.
+                </td>
+                <td class="py-3">
+                  <ul class="list-disc pl-4 space-y-0.5 text-slate-600">
+                    <li>Gemini API</li>
+                    <li>Bull Queue / Redis</li>
+                    <li>AES-256-GCM</li>
+                  </ul>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="slide-footer">
+          <div>주요 기능</div>
+          <div class="slide-number">8 / 14</div>
+        </div>
+      </div>
+
+      <!-- Slide 9: Code - Actual Zustand Implementation -->
+      <div class="slide" data-slide="9">
+        <div class="slide-header">
+          <h2 class="slide-title">핵심 코드: Zustand 상태 관리 (실제 구현)</h2>
+        </div>
+        <div class="flex-1 grid grid-cols-2 gap-4">
+          <div class="code-section">
+            <div class="code-block">
+              <pre
+                style="
+                  font-size: clamp(0.7rem, 0.95vw, 0.9rem);
+                  line-height: 1.6;
+                "
+              ><code><span class="comment">// client/src/store/editorStore.js - Zustand 전역 상태 관리</span>
+<span class="comment">// 모든 3D Scene 상태를 중앙에서 관리하여 컴포넌트 간 데이터 공유</span>
+
+<span class="keyword">const</span> <span class="function">useStore</span> = <span class="function">create</span>((<span class="property">set</span>, <span class="property">get</span>) => ({
+  <span class="comment">// ===== 상태 정의 =====</span>
+  <span class="property">lights</span>: <span class="function">createDefaultLights</span>(),
+  <span class="property">mannequins</span>: [{ <span class="property">id</span>: <span class="function">nanoid</span>(), <span class="property">position</span>: [<span class="string">0</span>, <span class="string">-1.5</span>, <span class="string">0</span>], <span class="property">pose</span>: <span class="function">createInitialPose</span>() }],
+  <span class="property">cameraState</span>: { <span class="property">position</span>: [<span class="string">0</span>, <span class="string">2</span>, <span class="string">8</span>], <span class="property">target</span>: [<span class="string">0</span>, <span class="string">2</span>, <span class="string">0</span>], <span class="property">focalLength</span>: <span class="string">50</span> },
+  <span class="property">orbitControlState</span>: { <span class="property">cameraPosition</span>: [<span class="string">0</span>, <span class="string">2</span>, <span class="string">8</span>], <span class="property">target</span>: [<span class="string">0</span>, <span class="string">2</span>, <span class="string">0</span>], <span class="property">zoom</span>: <span class="string">1</span> },
+  <span class="property">backgroundSettings</span>: <span class="function">sanitizeBackgroundSettings</span>(),
+
+  <span class="comment">// ===== 액션: 조명 관리 =====</span>
+  <span class="function">addLight</span>: (<span class="property">type</span> = <span class="string">'point'</span>) => {
+    <span class="function">set</span>((<span class="property">state</span>) => {
+      <span class="keyword">const</span> <span class="property">lightCount</span> = <span class="property">state.lights.length</span> + <span class="string">1</span>;
+      <span class="keyword">const</span> <span class="property">commonProps</span> = {
+        <span class="property">id</span>: <span class="function">nanoid</span>(),
+        <span class="property">visible</span>: <span class="keyword">true</span>,
+        <span class="property">position</span>: [<span class="string">0</span>, <span class="string">3</span>, <span class="string">0</span>],
+        <span class="property">color</span>: <span class="string">'#ffffff'</span>,
+        <span class="property">intensity</span>: <span class="string">10</span>,
+        <span class="property">castShadow</span>: <span class="keyword">true</span>
+      };
+      <span class="keyword">let</span> <span class="property">newLight</span>;
+      <span class="keyword">switch</span> (<span class="property">type</span>) {
+        <span class="keyword">case</span> <span class="string">'spot'</span>:
+          <span class="property">newLight</span> = {
+            ...<span class="property">commonProps</span>,
+            <span class="property">type</span>: <span class="string">'spot'</span>,
+            <span class="property">name</span>: <span class="string">`Spot Light ${lightCount}`</span>,
+            <span class="property">angle</span>: <span class="property">Math.PI</span> / <span class="string">4</span>,
+            <span class="property">penumbra</span>: <span class="string">0.5</span>,
+            <span class="property">targetPosition</span>: [<span class="string">0</span>, <span class="string">0</span>, <span class="string">0</span>]
+          };
+          <span class="keyword">break</span>;
+      }
+      <span class="keyword">return</span> { <span class="property">lights</span>: [...<span class="property">state.lights</span>, <span class="property">newLight</span>] };
+    });
+    <span class="function">setTimeout</span>(() => <span class="function">get</span>().<span class="function">saveHistory</span>(), <span class="string">0</span>);
+  },
+
+  <span class="function">updateLight</span>: (<span class="property">id</span>, <span class="property">property</span>, <span class="property">value</span>) =>
+    <span class="function">set</span>((<span class="property">state</span>) => ({
+      <span class="property">lights</span>: <span class="property">state.lights</span>.<span class="function">map</span>((<span class="property">light</span>) =>
+        <span class="property">light.id</span> === <span class="property">id</span> ? { ...<span class="property">light</span>, [<span class="property">property</span>]: <span class="property">value</span> } : <span class="property">light</span>
+      )
+    })),
+
+  <span class="function">deleteLight</span>: (<span class="property">id</span>) => {
+    <span class="function">set</span>((<span class="property">state</span>) => ({
+      <span class="property">lights</span>: <span class="property">state.lights</span>.<span class="function">filter</span>((<span class="property">light</span>) => <span class="property">light.id</span> !== <span class="property">id</span>)
+    }));
+    <span class="function">setTimeout</span>(() => <span class="function">get</span>().<span class="function">saveHistory</span>(), <span class="string">0</span>);
+  },
+
+  <span class="comment">// ===== Scene 데이터 직렬화 (저장용) =====</span>
+  <span class="function">getSceneData</span>: () => {
+    <span class="keyword">const</span> <span class="property">state</span> = <span class="function">get</span>();
+    <span class="keyword">return</span> {
+      <span class="property">mannequins</span>: <span class="property">state.mannequins</span>.<span class="function">map</span>(({ <span class="property">poseInitialized</span>, ...<span class="property">rest</span> }) => ({ ...<span class="property">rest</span> })),
+      <span class="property">lights</span>: <span class="property">state.lights</span>,
+      <span class="property">cameraState</span>: <span class="property">state.cameraState</span>,
+      <span class="property">orbitControlState</span>: <span class="property">state.orbitControlState</span>,
+      <span class="property">aspectRatio</span>: <span class="property">state.aspectRatio</span>,
+      <span class="property">backgroundSettings</span>: <span class="property">state.backgroundSettings</span>
+    };
+  },
+
+  <span class="comment">// ===== Scene 데이터 로드 (API에서 받은 데이터로 초기화) =====</span>
+  <span class="function">loadSceneData</span>: (<span class="property">sceneData</span>) => {
+    <span class="keyword">if</span> (!<span class="property">sceneData</span>) <span class="keyword">return</span>;
+    <span class="function">set</span>((<span class="property">state</span>) => {
+      <span class="keyword">const</span> <span class="property">updates</span> = {};
+      <span class="keyword">if</span> (<span class="property">sceneData.mannequins</span>) {
+        <span class="property">updates.mannequins</span> = <span class="property">sceneData.mannequins</span>.<span class="function">map</span>((<span class="property">m</span>, <span class="property">i</span>) => <span class="function">sanitizeMannequin</span>(<span class="property">m</span>, <span class="property">i</span>));
+      }
+      <span class="keyword">if</span> (<span class="property">sceneData.lights</span>) {
+        <span class="property">updates.lights</span> = <span class="property">sceneData.lights</span>.<span class="function">map</span>((<span class="property">l</span>, <span class="property">i</span>) => <span class="function">sanitizeLight</span>(<span class="property">l</span>, <span class="property">i</span>)).<span class="function">filter</span>(<span class="property">Boolean</span>);
+      }
+      <span class="keyword">if</span> (<span class="property">sceneData.cameraState</span>) <span class="property">updates.cameraState</span> = <span class="property">sceneData.cameraState</span>;
+      <span class="keyword">if</span> (<span class="property">sceneData.orbitControlState</span>) <span class="property">updates.orbitControlState</span> = <span class="property">sceneData.orbitControlState</span>;
+      <span class="property">updates.backgroundSettings</span> = <span class="function">sanitizeBackgroundSettings</span>(<span class="property">sceneData.backgroundSettings</span>);
+      <span class="keyword">return</span> <span class="property">updates</span>;
+    });
+    <span class="function">setTimeout</span>(() => <span class="function">get</span>().<span class="function">saveHistory</span>(), <span class="string">0</span>);
+  }
+}));
+
+<span class="keyword">export default</span> <span class="property">useStore</span>;</code></pre>
+            </div>
+          </div>
+          <div
+            class="bg-white rounded-lg border border-gray-200 p-4 text-sm text-gray-700 space-y-3"
+          >
+            <div>
+              <h3 class="font-bold text-gray-900 mb-1">상태 구조</h3>
+              <ul class="list-disc pl-5 space-y-1">
+                <li>
+                  <strong>lights / mannequins</strong>: 시각 요소를 배열로
+                  관리해 Three.js 객체와 싱크.
+                </li>
+                <li>
+                  <strong>cameraState / orbitControlState</strong>: 카메라와
+                  OrbitControls를 분리 저장해 동기화 루프 방지.
+                </li>
+                <li>
+                  <strong>backgroundSettings</strong>: HDRIㆍground 옵션을 묶어
+                  Scene 저장/로드 시 누락 방지.
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h3 class="font-bold text-gray-900 mb-1">액션 흐름</h3>
+              <ul class="list-disc pl-5 space-y-1">
+                <li>
+                  <strong>addLight</strong>는 타입별 공통 속성을 생성하고
+                  history에 비동기 저장.
+                </li>
+                <li>
+                  <strong>updateLight / deleteLight</strong>는 불변 업데이트로
+                  diff 추적이 쉬움.
+                </li>
+                <li>
+                  <strong>getSceneData</strong>는 API 전송용 순수 객체로 직렬화.
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h3 class="font-bold text-gray-900 mb-1">데이터 정화</h3>
+              <ul class="list-disc pl-5 space-y-1">
+                <li>
+                  <strong>loadSceneData</strong>에서 sanitize 함수로 구버전과
+                  호환.
+                </li>
+                <li>
+                  <strong>setTimeout(...saveHistory)</strong>는 UI 업데이트
+                  이후에 기록해 스로틀링.
+                </li>
+                <li>모든 액션은 동기적으로 상태를 바꿔 Zustand 철학을 유지.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <div>핵심 코드: Zustand (실제 구현)</div>
+          <div class="slide-number">9 / 14</div>
+        </div>
+      </div>
+
+      <!-- Slide 10: Code - Actual Backend Implementation -->
+      <div class="slide" data-slide="10">
+        <div class="slide-header">
+          <h2 class="slide-title">
+            핵심 코드: Scene 데이터 정규화 (실제 구현)
+          </h2>
+        </div>
+        <div class="flex-1 grid grid-cols-2 gap-4">
+          <div class="code-section">
+            <div class="code-block">
+              <pre
+                style="
+                  font-size: clamp(0.7rem, 0.95vw, 0.9rem);
+                  line-height: 1.6;
+                "
+              ><code><span class="comment">// server/services/scene.service.js - Scene 데이터 정규화</span>
+<span class="comment">// API에서 받은 데이터를 검증하여 프로젝트 간 상태 오염 방지</span>
+
+<span class="keyword">const</span> <span class="property">DEFAULT_SCHEMA_VERSION</span> = <span class="string">2</span>;
+<span class="keyword">const</span> <span class="property">DEFAULT_ASPECT_RATIO</span> = <span class="string">"16:9"</span>;
+<span class="keyword">const</span> <span class="property">DEFAULT_ORBIT_CONTROL_STATE</span> = {
+  <span class="property">cameraPosition</span>: [<span class="string">0</span>, <span class="string">2</span>, <span class="string">8</span>],
+  <span class="property">target</span>: [<span class="string">0</span>, <span class="string">2</span>, <span class="string">0</span>],
+  <span class="property">zoom</span>: <span class="string">1</span>
+};
+
+<span class="keyword">const</span> <span class="function">ensureVector3</span> = (<span class="property">value</span>, <span class="property">fallback</span>, <span class="property">dirtyRef</span>) => {
+  <span class="keyword">if</span> (
+    !<span class="property">Array</span>.<span class="function">isArray</span>(<span class="property">value</span>) ||
+    <span class="property">value.length</span> !== <span class="string">3</span> ||
+    <span class="property">value</span>.<span class="function">some</span>((<span class="property">c</span>) => <span class="keyword">typeof</span> <span class="property">c</span> !== <span class="string">'number'</span>)
+  ) {
+    <span class="property">dirtyRef.dirty</span> = <span class="keyword">true</span>;
+    <span class="keyword">return</span> <span class="property">fallback</span>;
+  }
+  <span class="keyword">return</span> <span class="property">value</span>;
+};
+
+<span class="keyword">const</span> <span class="function">normalizeLight</span> = (<span class="property">light</span>, <span class="property">dirtyRef</span>) => {
+  <span class="keyword">if</span> (!<span class="property">light</span>) {
+    <span class="property">dirtyRef.dirty</span> = <span class="keyword">true</span>;
+    <span class="keyword">return</span> { <span class="property">id</span>: <span class="string">`light-${Date.now()}`</span>, <span class="property">type</span>: <span class="string">'spot'</span> };
+  }
+  <span class="keyword">const</span> <span class="property">normalized</span> = { ...<span class="property">light</span> };
+  <span class="keyword">if</span> (!<span class="property">normalized.id</span>) {
+    <span class="property">normalized.id</span> = <span class="string">`light-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`</span>;
+    <span class="property">dirtyRef.dirty</span> = <span class="keyword">true</span>;
+  }
+  <span class="keyword">return</span> <span class="property">normalized</span>;
+};
+
+<span class="keyword">const</span> <span class="function">normalizeOrbitControlState</span> = (<span class="property">orbitControlState</span>, <span class="property">dirtyRef</span>) => {
+  <span class="keyword">if</span> (!<span class="property">orbitControlState</span>) {
+    <span class="property">dirtyRef.dirty</span> = <span class="keyword">true</span>;
+    <span class="keyword">return</span> { ...<span class="property">DEFAULT_ORBIT_CONTROL_STATE</span> };
+  }
+  <span class="keyword">const</span> <span class="property">normalized</span> = { ...<span class="property">orbitControlState</span> };
+  <span class="property">normalized.cameraPosition</span> = <span class="function">ensureVector3</span>(
+    <span class="property">normalized.cameraPosition</span>,
+    <span class="property">DEFAULT_ORBIT_CONTROL_STATE.cameraPosition</span>,
+    <span class="property">dirtyRef</span>
+  );
+  <span class="property">normalized.target</span> = <span class="function">ensureVector3</span>(
+    <span class="property">normalized.target</span>,
+    <span class="property">DEFAULT_ORBIT_CONTROL_STATE.target</span>,
+    <span class="property">dirtyRef</span>
+  );
+  <span class="keyword">return</span> <span class="property">normalized</span>;
+};
+
+<span class="comment">// 메인 정규화 함수</span>
+<span class="keyword">const</span> <span class="function">normalizeSceneData</span> = (<span class="property">sceneData</span> = {}) => {
+  <span class="keyword">const</span> <span class="property">dirtyRef</span> = { <span class="property">dirty</span>: <span class="keyword">false</span> };
+
+  <span class="keyword">if</span> (!<span class="property">sceneData</span> || <span class="keyword">typeof</span> <span class="property">sceneData</span> !== <span class="string">'object'</span>) {
+    <span class="property">dirtyRef.dirty</span> = <span class="keyword">true</span>;
+    <span class="property">sceneData</span> = {};
+  }
+
+  <span class="keyword">const</span> <span class="property">normalized</span> = { ...<span class="property">sceneData</span> };
+
+  <span class="comment">// 스키마 버전 확인</span>
+  <span class="keyword">if</span> (<span class="property">normalized.schemaVersion</span> !== <span class="property">DEFAULT_SCHEMA_VERSION</span>) {
+    <span class="property">normalized.schemaVersion</span> = <span class="property">DEFAULT_SCHEMA_VERSION</span>;
+    <span class="property">dirtyRef.dirty</span> = <span class="keyword">true</span>;
+  }
+
+  <span class="comment">// Aspect Ratio 정규화</span>
+  <span class="keyword">if</span> (!<span class="property">normalized.aspectRatio</span>) {
+    <span class="property">normalized.aspectRatio</span> = <span class="property">DEFAULT_ASPECT_RATIO</span>;
+    <span class="property">dirtyRef.dirty</span> = <span class="keyword">true</span>;
+  }
+
+  <span class="comment">// OrbitControls 상태 정규화</span>
+  <span class="property">normalized.orbitControlState</span> = <span class="function">normalizeOrbitControlState</span>(
+    <span class="property">normalized.orbitControlState</span>,
+    <span class="property">dirtyRef</span>
+  );
+
+  <span class="comment">// Lights 배열 정규화</span>
+  <span class="keyword">if</span> (!<span class="property">Array</span>.<span class="function">isArray</span>(<span class="property">normalized.lights</span>)) {
+    <span class="property">normalized.lights</span> = [];
+    <span class="property">dirtyRef.dirty</span> = <span class="keyword">true</span>;
+  } <span class="keyword">else</span> {
+    <span class="property">normalized.lights</span> = <span class="property">normalized.lights</span>.<span class="function">map</span>((<span class="property">light</span>) => <span class="function">normalizeLight</span>(<span class="property">light</span>, <span class="property">dirtyRef</span>));
+  }
+
+  <span class="comment">// Mannequins 배열 정규화</span>
+  <span class="keyword">if</span> (!<span class="property">Array</span>.<span class="function">isArray</span>(<span class="property">normalized.mannequins</span>)) {
+    <span class="property">normalized.mannequins</span> = [];
+    <span class="property">dirtyRef.dirty</span> = <span class="keyword">true</span>;
+  }
+
+  <span class="keyword">return</span> {
+    <span class="property">data</span>: <span class="property">normalized</span>,
+    <span class="property">dirty</span>: <span class="property">dirtyRef.dirty</span>
+  };
+};
+
+<span class="keyword">const</span> <span class="function">applySceneDefaults</span> = (<span class="property">projectDoc</span>) => {
+  <span class="keyword">const</span> { <span class="property">data</span>, <span class="property">dirty</span> } = <span class="function">normalizeSceneData</span>(<span class="property">projectDoc.sceneData</span>);
+  <span class="keyword">if</span> (<span class="property">dirty</span>) {
+    <span class="property">projectDoc.sceneData</span> = <span class="property">data</span>;
+    <span class="property">projectDoc</span>.<span class="function">markModified</span>(<span class="string">'sceneData'</span>);
+  }
+};
+
+<span class="property">module.exports</span> = {
+  <span class="function">normalizeSceneData</span>,
+  <span class="function">applySceneDefaults</span>
+};</code></pre>
+            </div>
+          </div>
+          <div
+            class="bg-white rounded-lg border border-gray-200 p-4 text-sm text-gray-700 space-y-3"
+          >
+            <div>
+              <h3 class="font-bold text-gray-900 mb-1">정규화 목적</h3>
+              <ul class="list-disc pl-5 space-y-1">
+                <li>S3/R2에서 불완전한 Scene을 로드해도 기본값으로 복구.</li>
+                <li>
+                  <strong>dirtyRef</strong>로 보정 여부를 추적해 API 응답에 안내
+                  가능.
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h3 class="font-bold text-gray-900 mb-1">검증 포인트</h3>
+              <ul class="list-disc pl-5 space-y-1">
+                <li>
+                  <strong>ensureVector3</strong>: 좌표 배열 길이/타입을 엄격히
+                  검사.
+                </li>
+                <li>
+                  <strong>normalizeLight</strong>: ID 없음 → 타임스탬프 기반 ID
+                  부여.
+                </li>
+                <li>
+                  <strong>normalizeOrbitControlState</strong>: 카메라 좌표를
+                  Vector3 보정.
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h3 class="font-bold text-gray-900 mb-1">적용 흐름</h3>
+              <ul class="list-disc pl-5 space-y-1">
+                <li>API에서 Scene 수신 → 정규화 후 MongoDB 저장.</li>
+                <li>dirty 상태면 프론트로 플래그 전달해 사용자에게 경고.</li>
+                <li>Schema version 업데이트 시에도 최소한의 필드로 유지.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <div>핵심 코드: Scene 정규화 (실제 구현)</div>
+          <div class="slide-number">10 / 14</div>
+        </div>
+      </div>
+
+      <!-- Slide 11: Challenges -->
+      <div class="slide" data-slide="11">
+        <div class="slide-header">
+          <h2 class="slide-title">어려웠던 점</h2>
+        </div>
+        <div class="flex-1">
+          <div class="space-y-1.5">
+            <div class="challenge-box">
+              <div class="flex items-start gap-2">
+                <div
+                  class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0"
+                >
+                  <span class="text-lg font-bold text-red-600">1</span>
+                </div>
+                <div class="flex-1">
+                  <h3
+                    class="font-bold mb-0.5 text-gray-800"
+                    style="font-size: clamp(0.8rem, 0.95vw, 0.95rem)"
+                  >
+                    OrbitControls와 Camera 상태 동기화
+                  </h3>
+                  <div
+                    class="grid grid-cols-2 gap-2"
+                    style="font-size: clamp(0.7rem, 0.85vw, 0.85rem)"
+                  >
+                    <div>
+                      <p class="font-semibold text-red-600 mb-0.5">문제</p>
+                      <ul class="text-gray-600 space-y-0">
+                        <li>• Three.js OrbitControls는 자체 카메라 조작</li>
+                        <li>• 탐색한 시점을 "카메라 뷰"로 설정 필요</li>
+                        <li>• 프로젝트 저장/로드 시 정확한 복원 필요</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <p class="font-semibold text-green-600 mb-0.5">해결</p>
+                      <ul class="text-gray-600 space-y-0">
+                        <li>• Cinema 4D 스타일 양방향 동기화 구현</li>
+                        <li>• setOrbitToCameraView 함수로 변환</li>
+                        <li>• OrbitControlState 저장으로 100% 복원</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="challenge-box" style="border-left-color: #3b82f6">
+              <div class="flex items-start gap-2">
+                <div
+                  class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0"
+                >
+                  <span class="text-lg font-bold text-blue-600">2</span>
+                </div>
+                <div class="flex-1">
+                  <h3
+                    class="font-bold mb-0.5 text-gray-800"
+                    style="font-size: clamp(0.8rem, 0.95vw, 0.95rem)"
+                  >
+                    Zustand Store 관리 및 리팩토링 시행착오
+                  </h3>
+                  <div
+                    class="grid grid-cols-2 gap-2"
+                    style="font-size: clamp(0.7rem, 0.85vw, 0.85rem)"
+                  >
+                    <div>
+                      <p class="font-semibold text-blue-600 mb-0.5">문제</p>
+                      <ul class="text-gray-600 space-y-0">
+                        <li>• editorStore가 8000+ 라인으로 비대화</li>
+                        <li>• Scene/UI/History 로직 뒤섞임</li>
+                        <li>• Store 분리 시도 중 순환 참조 발생</li>
+                        <li>• Immer 도입 시 성능 저하 및 History 버그</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <p class="font-semibold text-orange-600 mb-0.5">교훈</p>
+                      <ul class="text-gray-600 space-y-0">
+                        <li>• 초기 설계가 중요 (리팩토링 비용 ↑)</li>
+                        <li>• 점진적 리팩토링 전략 필요</li>
+                        <li>• 테스트 코드 부재로 회귀 버그 다수</li>
+                        <li>• → 향후 계획: Store 분리 + Immer 재도입</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="challenge-box" style="border-left-color: #8b5cf6">
+              <div class="flex items-start gap-2">
+                <div
+                  class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0"
+                >
+                  <span class="text-lg font-bold text-purple-600">3</span>
+                </div>
+                <div class="flex-1">
+                  <h3
+                    class="font-bold mb-0.5 text-gray-800"
+                    style="font-size: clamp(0.8rem, 0.95vw, 0.95rem)"
+                  >
+                    Scene 데이터 정규화 및 역호환성
+                  </h3>
+                  <div
+                    class="grid grid-cols-2 gap-2"
+                    style="font-size: clamp(0.7rem, 0.85vw, 0.85rem)"
+                  >
+                    <div>
+                      <p class="font-semibold text-purple-600 mb-0.5">문제</p>
+                      <ul class="text-gray-600 space-y-0">
+                        <li>• 프로젝트 간 상태 오염 버그 (조명 중복 등)</li>
+                        <li>• API 응답에 불필요한 필드 포함</li>
+                        <li>• 구버전 프로젝트 로드 시 깨짐</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <p class="font-semibold text-green-600 mb-0.5">해결</p>
+                      <ul class="text-gray-600 space-y-0">
+                        <li>• normalizeSceneData() 함수로 필드 검증</li>
+                        <li>• sanitizeLight/Mannequin으로 정화</li>
+                        <li>• schemaVersion 기반 마이그레이션</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="challenge-box" style="border-left-color: #f59e0b">
+              <div class="flex items-start gap-2">
+                <div
+                  class="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0"
+                >
+                  <span class="text-lg font-bold text-orange-600">4</span>
+                </div>
+                <div class="flex-1">
+                  <h3
+                    class="font-bold mb-0.5 text-gray-800"
+                    style="font-size: clamp(0.8rem, 0.95vw, 0.95rem)"
+                  >
+                    대용량 파일 업로드 및 클라우드 스토리지 전환
+                  </h3>
+                  <div
+                    class="grid grid-cols-2 gap-2"
+                    style="font-size: clamp(0.7rem, 0.85vw, 0.85rem)"
+                  >
+                    <div>
+                      <p class="font-semibold text-orange-600 mb-0.5">문제</p>
+                      <ul class="text-gray-600 space-y-0">
+                        <li>• HDRI 최대 50MB, GLB 최대 100MB</li>
+                        <li>• 로컬 서버 디스크 용량 한계</li>
+                        <li>• 프로젝트 삭제 시 Cascade 삭제 구현 필요</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <p class="font-semibold text-green-600 mb-0.5">해결</p>
+                      <ul class="text-gray-600 space-y-0">
+                        <li>• Cloudflare R2 스토리지로 전환</li>
+                        <li>• Multer → R2 직접 업로드 파이프라인</li>
+                        <li>• Asset 모델 + Mongoose cascade hook</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <div>어려웠던 점</div>
+          <div class="slide-number">11 / 14</div>
+        </div>
+      </div>
+
+      <!-- Slide 12: Advanced Implementation -->
+      <div class="slide" data-slide="12">
+        <div class="slide-header">
+          <h2 class="slide-title">난이도 높은 구현 요소</h2>
+        </div>
+        <div
+          class="flex-1 grid grid-cols-3 gap-3"
+          style="grid-template-rows: 1fr 1.4fr"
+        >
+          <div class="feature-card h-full">
+            <div class="flex items-center gap-2 mb-1">
+              <i class="fas fa-cube text-2xl text-blue-500"></i>
+              <h3 class="text-sm font-bold text-gray-800">
+                실시간 3D 프리비주얼 뷰포트
+              </h3>
+            </div>
+            <div class="text-xs text-gray-600 space-y-1">
+              <p><strong>난이도: ⭐⭐⭐⭐⭐</strong></p>
+              <ul class="space-y-0.5">
+                <li>• React-Three-Fiber + OrbitControls 동기화</li>
+                <li>• HDRI/EXR 동시 로드 & 컬러 매핑</li>
+                <li>• Transform ↔ Orbit 상호 잠금</li>
+                <li>• Light ↔ Diffuser 블로킹 로직</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="feature-card h-full">
+            <div class="flex items-center gap-2 mb-1">
+              <i class="fas fa-history text-2xl text-purple-500"></i>
+              <h3 class="text-sm font-bold text-gray-800">
+                Zustand 히스토리/Undo-Redo
+              </h3>
+            </div>
+            <div class="text-xs text-gray-600 space-y-1">
+              <p><strong>난이도: ⭐⭐⭐⭐⭐</strong></p>
+              <ul class="space-y-0.5">
+                <li>• 50 스냅샷 제한 + 순환 메모리</li>
+                <li>• Light/Camera/Asset Deep Clone</li>
+                <li>• Transform 종료 시점에만 saveHistory()</li>
+                <li>• assetState 복원으로 동기화 유지</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="feature-card h-full">
+            <div class="flex items-center gap-2 mb-1">
+              <i
+                class="fas fa-wand-magic-sparkles text-2xl text-orange-500"
+              ></i>
+              <h3 class="text-sm font-bold text-gray-800">
+                Gemini AI 프리비주얼 파이프라인
+              </h3>
+            </div>
+            <div class="text-xs text-gray-600 space-y-1">
+              <p><strong>난이도: ⭐⭐⭐⭐⭐</strong></p>
+              <ul class="space-y-0.5">
+                <li>• Scene snapshot → prompt 세부 합성</li>
+                <li>• 사용자 API 키 보안 검증</li>
+                <li>• imageConfig 동적 빌드 (비율/사이즈)</li>
+                <li>• Gemini 응답에서 binary 추출</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="feature-card code-section">
+            <h3 class="text-sm font-bold mb-1 text-pink-600">
+              Prompt 빌더 (mergePrompt)
+            </h3>
+            <div class="code-block">
+              <pre
+                style="font-size: clamp(0.65rem, 0.85vw, 0.85rem)"
+              ><code><span class="keyword">const</span> <span class="property">SYSTEM_INSTRUCTIONS</span> = [
+  <span class="string">"You are rendering photorealistic stage visuals for LumoStage."</span>,
+  <span class="string">"Use the uploaded render strictly as the camera guide."</span>
+].<span class="function">join</span>(<span class="string">" "</span>);
+
+<span class="keyword">const</span> <span class="property">DEFAULT_NEGATIVE</span> = <span class="string">"plastic skin, mannequin, distorted lens"</span>;
+
+<span class="keyword">const</span> <span class="function">mergePrompt</span> = (<span class="property">prompt</span>, <span class="property">negativePrompt</span>, <span class="property">sceneSnapshot</span>) => {
+  <span class="keyword">let</span> <span class="property">instructions</span> = <span class="property">SYSTEM_INSTRUCTIONS</span>;
+
+  <span class="keyword">if</span> (<span class="property">sceneSnapshot</span>?.<span class="property">environment</span>?.<span class="property">hdriName</span>) {
+    <span class="property">instructions</span> += <span class="string">`\nUse the ${sceneSnapshot.environment.hdriName} environment map cues.`</span>;
+  }
+  <span class="keyword">if</span> (<span class="property">sceneSnapshot</span>?.<span class="property">environment</span>?.<span class="property">color</span>) {
+    <span class="property">instructions</span> += <span class="string">`\nAmbient color should match ${sceneSnapshot.environment.color}.`</span>;
+  }
+
+  <span class="keyword">const</span> <span class="property">combinedPrompt</span> = <span class="string">`</span>${<span class="property">instructions</span>}<span class="string">\n\n`</span> + <span class="property">prompt</span>;
+  <span class="keyword">const</span> <span class="property">negatives</span> = [<span class="property">DEFAULT_NEGATIVE</span>];
+  <span class="keyword">if</span> (<span class="property">negativePrompt</span>?.<span class="function">trim</span>()) {
+    <span class="property">negatives</span>.<span class="function">push</span>(<span class="property">negativePrompt</span>.<span class="function">trim</span>());
+  }
+
+  <span class="keyword">return</span> <span class="string">`</span>${<span class="property">combinedPrompt</span>}<span class="string">\n\nAvoid: `</span> + <span class="property">negatives</span>.<span class="function">join</span>(<span class="string">", "</span>);
+};</code></pre>
+            </div>
+          </div>
+
+          <div class="feature-card code-section">
+            <h3 class="text-sm font-bold mb-1 text-orange-600">
+              Prompt → Gemini 요청 (buildContents & request)
+            </h3>
+            <div class="code-block">
+              <pre
+                style="font-size: clamp(0.65rem, 0.85vw, 0.85rem)"
+              ><code><span class="keyword">const</span> <span class="function">buildContents</span> = ({ <span class="property">prompt</span>, <span class="property">imageBuffer</span>, <span class="property">mimeType</span> }) => {
+  <span class="keyword">const</span> <span class="property">parts</span> = [{ <span class="property">text</span>: <span class="property">prompt</span> }];
+  <span class="keyword">if</span> (<span class="property">imageBuffer</span>) {
+    <span class="property">parts</span>.<span class="function">push</span>({
+      <span class="property">inlineData</span>: {
+        <span class="property">data</span>: <span class="property">imageBuffer</span>.<span class="function">toString</span>(<span class="string">"base64"</span>),
+        <span class="property">mimeType</span>: <span class="property">mimeType</span> || <span class="string">"image/png"</span>
+      }
+    });
+  }
+  <span class="keyword">return</span> [{ <span class="property">role</span>: <span class="string">"user"</span>, <span class="property">parts</span> }];
+};
+
+<span class="keyword">const</span> <span class="property">requestPrompt</span> = <span class="function">mergePrompt</span>(<span class="property">prompt</span>, <span class="property">negativePrompt</span>, <span class="property">sceneSnapshot</span>);
+<span class="keyword">const</span> <span class="property">request</span> = {
+  <span class="property">model</span>: <span class="property">model</span> || <span class="property">DEFAULT_GEMINI_IMAGE_MODEL</span>,
+  <span class="property">contents</span>: <span class="function">buildContents</span>({ <span class="property">prompt</span>: <span class="property">requestPrompt</span>, <span class="property">imageBuffer</span>, <span class="property">mimeType</span> }),
+  <span class="property">config</span>: { <span class="property">responseModalities</span>: [<span class="string">"TEXT"</span>, <span class="string">"IMAGE"</span>] }
+};
+
+<span class="keyword">const</span> <span class="property">imageConfig</span> = <span class="function">buildImageConfig</span>({ <span class="property">aspectRatio</span>, <span class="property">imageSize</span> });
+<span class="keyword">if</span> (<span class="property">imageConfig</span>) {
+  <span class="property">request</span>.<span class="property">config</span>.<span class="property">imageConfig</span> = <span class="property">imageConfig</span>;
+}
+
+<span class="keyword">const</span> <span class="property">response</span> = <span class="keyword">await</span> <span class="property">ai</span>.<span class="property">models</span>.<span class="function">generateContent</span>(<span class="property">request</span>);
+<span class="keyword">const</span> <span class="property">imagePart</span> = <span class="function">extractImagePart</span>(<span class="property">response</span>);
+</code></pre>
+            </div>
+          </div>
+
+          <div class="feature-card h-full">
+            <h3 class="text-sm font-bold mb-2 text-blue-600">
+              Gemini 프롬프트 가이드
+            </h3>
+            <ul class="list-disc pl-4 text-xs text-gray-600 space-y-1">
+              <li>
+                <strong>카메라</strong>: `sceneSnapshot.cameraState`를 그대로
+                사용해 구도를 고정.
+              </li>
+              <li>
+                <strong>조명</strong>: `environment.hdriName`과 ambient color를
+                prompt에 명시.
+              </li>
+              <li>
+                <strong>피사체</strong>: mannequin 언급 금지, realistic
+                performer 지시어 추가.
+              </li>
+              <li>
+                <strong>안전</strong>: distorted lens, stretched body 등 금지
+                키워드를 negative prompt에 삽입.
+              </li>
+              <li>
+                <strong>출력</strong>: `responseModalities`를 TEXT+IMAGE로
+                지정하고 `buildImageConfig(aspectRatio)` 적용.
+              </li>
+              <li>
+                <strong>메타데이터</strong>: `extractImagePart()` 결과의
+                model/imageConfig를 Scene history와 동기화.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div>난이도 높은 구현 요소</div>
+          <div class="slide-number">12 / 14</div>
+        </div>
+      </div>
+
+      <!-- Slide 13: Development Stats & Future Plans -->
+      <div class="slide" data-slide="13">
+        <div class="slide-header">
+          <h2 class="slide-title">개발 현황 및 향후 계획</h2>
+        </div>
+        <div class="flex-1">
+          <div class="grid grid-cols-4 gap-4 mb-4">
+            <div class="stat-box">
+              <div class="stat-number">18</div>
+              <p
+                class="text-gray-600 font-semibold mt-1"
+                style="font-size: clamp(0.85rem, 1vw, 1rem)"
+              >
+                주
+              </p>
+              <p class="text-xs text-gray-500">개발 기간</p>
+            </div>
+            <div class="stat-box">
+              <div class="stat-number">7</div>
+              <p
+                class="text-gray-600 font-semibold mt-1"
+                style="font-size: clamp(0.85rem, 1vw, 1rem)"
+              >
+                Phase
+              </p>
+              <p class="text-xs text-gray-500">개발 단계</p>
+            </div>
+            <div class="stat-box">
+              <div class="stat-number">26K+</div>
+              <p
+                class="text-gray-600 font-semibold mt-1"
+                style="font-size: clamp(0.85rem, 1vw, 1rem)"
+              >
+                Lines
+              </p>
+              <p class="text-xs text-gray-500">코드 라인</p>
+            </div>
+            <div class="stat-box">
+              <div class="stat-number">55+</div>
+              <p
+                class="text-gray-600 font-semibold mt-1"
+                style="font-size: clamp(0.85rem, 1vw, 1rem)"
+              >
+                Packages
+              </p>
+              <p class="text-xs text-gray-500">라이브러리</p>
+            </div>
+          </div>
+
+          <h3 class="text-lg font-bold mb-2 text-gray-800">
+            향후 개선 및 구현 계획
+          </h3>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="feature-card">
+              <h4
+                class="font-bold text-blue-600 mb-2 flex items-center gap-2"
+                style="font-size: clamp(0.85rem, 1vw, 1rem)"
+              >
+                <i class="fas fa-check-circle"></i>
+                폼 검증 시스템 개선
+              </h4>
+              <ul
+                class="text-gray-700 space-y-1"
+                style="font-size: clamp(0.75rem, 0.95vw, 0.95rem)"
+              >
+                <li>• React Hook Form 도입으로 폼 상태 관리 최적화</li>
+                <li>• Zod 스키마 기반 클라이언트 검증</li>
+                <li>• 에러 메시지 UX 개선</li>
+              </ul>
+            </div>
+
+            <div class="feature-card">
+              <h4
+                class="font-bold text-purple-600 mb-2 flex items-center gap-2"
+                style="font-size: clamp(0.85rem, 1vw, 1rem)"
+              >
+                <i class="fas fa-database"></i>
+                Zustand Store 리팩토링
+              </h4>
+              <ul
+                class="text-gray-700 space-y-1"
+                style="font-size: clamp(0.75rem, 0.95vw, 0.95rem)"
+              >
+                <li>• editorStore 분리 (Scene / UI / History)</li>
+                <li>• Immer 통합으로 불변성 관리 간소화</li>
+                <li>• 순환 참조 문제 해결</li>
+              </ul>
+            </div>
+
+            <div class="feature-card">
+              <h4
+                class="font-bold text-green-600 mb-2 flex items-center gap-2"
+                style="font-size: clamp(0.85rem, 1vw, 1rem)"
+              >
+                <i class="fas fa-lightbulb"></i>
+                조명 시스템 확장
+              </h4>
+              <ul
+                class="text-gray-700 space-y-1"
+                style="font-size: clamp(0.75rem, 0.95vw, 0.95rem)"
+              >
+                <li>• Area Light, Directional Light 추가</li>
+                <li>• IES 프로파일 지원</li>
+                <li>• Light Group 및 프리셋 관리</li>
+              </ul>
+            </div>
+
+            <div class="feature-card">
+              <h4
+                class="font-bold text-orange-600 mb-2 flex items-center gap-2"
+                style="font-size: clamp(0.85rem, 1vw, 1rem)"
+              >
+                <i class="fas fa-cog"></i>
+                성능 최적화
+              </h4>
+              <ul
+                class="text-gray-700 space-y-1"
+                style="font-size: clamp(0.75rem, 0.95vw, 0.95rem)"
+              >
+                <li>• React Three Fiber 렌더링 최적화</li>
+                <li>• Shadow Map 해상도 동적 조정</li>
+                <li>• HDRI 로딩 지연 개선</li>
+              </ul>
+            </div>
+
+            <div class="feature-card">
+              <h4
+                class="font-bold text-red-600 mb-2 flex items-center gap-2"
+                style="font-size: clamp(0.85rem, 1vw, 1rem)"
+              >
+                <i class="fas fa-users"></i>
+                협업 기능
+              </h4>
+              <ul
+                class="text-gray-700 space-y-1"
+                style="font-size: clamp(0.75rem, 0.95vw, 0.95rem)"
+              >
+                <li>• 프로젝트 공유 및 권한 관리</li>
+                <li>• 실시간 협업 (Socket.IO)</li>
+                <li>• 버전 히스토리 관리</li>
+              </ul>
+            </div>
+
+            <div class="feature-card">
+              <h4
+                class="font-bold text-indigo-600 mb-2 flex items-center gap-2"
+                style="font-size: clamp(0.85rem, 1vw, 1rem)"
+              >
+                <i class="fas fa-graduation-cap"></i>
+                사용자 경험 개선
+              </h4>
+              <ul
+                class="text-gray-700 space-y-1"
+                style="font-size: clamp(0.75rem, 0.95vw, 0.95rem)"
+              >
+                <li>• 인터랙티브 튜토리얼 강화</li>
+                <li>• 키보드 단축키 커스터마이징</li>
+                <li>• 다국어 지원 (i18n)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="slide-footer">
+          <div>개발 현황 및 향후 계획</div>
+          <div class="slide-number">13 / 14</div>
+        </div>
+      </div>
+
+      <!-- Slide 14: Closing (formerly Slide 15) -->
+      <div class="slide" data-slide="14">
+        <div
+          class="flex-1 flex flex-col items-center justify-center text-center"
+        >
+          <h2
+            style="
+              font-size: clamp(2.5rem, 4vw, 3.5rem);
+              font-weight: 900;
+              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              margin-bottom: 0.75rem;
+            "
+          >
+            감사합니다
+          </h2>
+        </div>
+        <div class="slide-footer">
+          <div>감사합니다</div>
+          <div class="slide-number">14 / 14</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 슬라이드 탐색 컨트롤: 푸터와 겹침 방지를 위해 고정 패널로 분리 -->
+    <div class="controls" role="group" aria-label="슬라이드 탐색 컨트롤">
+      <button
+        class="control-btn"
+        type="button"
+        aria-label="이전 슬라이드"
+        onclick="previousSlide()"
+      >
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <button
+        class="control-btn"
+        type="button"
+        aria-label="다음 슬라이드"
+        onclick="nextSlide()"
+      >
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+
+    <script>
+      // ===== 발표 제어 스크립트 =====
+      let currentSlide = 1;
+      const totalSlides = 14;
+
+      // 슬라이드 이동 시에도 재사용할 수 있도록 Mermaid 원본 문자열을 캐싱
+      function normalizeMermaidSource(text) {
+        return text
+          .split("\n")
+          .map((line) => line.replace(/^\s+/, ""))
+          .filter((line, index, arr) => {
+            const isFirst = index === 0;
+            const isLast = index === arr.length - 1;
+            if ((isFirst || isLast) && line.trim() === "") return false;
+            return true;
+          })
+          .join("\n")
+          .trim();
+      }
+
+      function prepareMermaidSources() {
+        return Array.from(document.querySelectorAll(".mermaid")).map(
+          (diagram) => {
+            if (!diagram.dataset.source) {
+              diagram.dataset.source = normalizeMermaidSource(
+                diagram.textContent || ""
+              );
+            }
+            return diagram;
+          }
+        );
+      }
+
+      // 주어진 Mermaid 노드를 SVG로 렌더링 (display:none에서도 동작하도록 init 사용)
+      function renderMermaidNodes(nodeList) {
+        if (!window.mermaid || !nodeList) return;
+        const nodes = Array.from(nodeList);
+        if (!nodes.length) return;
+
+        nodes.forEach((node) => {
+          const source = node.dataset.source || "";
+          node.innerHTML = source;
+          node.removeAttribute("data-processed");
+        });
+
+        try {
+          window.mermaid.init(undefined, nodes);
+        } catch (error) {
+          console.error(
+            "Mermaid 노드를 렌더링하는 동안 오류가 발생했습니다.",
+            error
+          );
+        }
+      }
+
+      // Mermaid 전역 초기화 및 다이어그램 캐싱
+      function initializeMermaidDiagrams() {
+        if (!window.mermaid) {
+          console.warn(
+            "Mermaid 스크립트를 불러오지 못했습니다. 다이어그램이 표시되지 않을 수 있습니다."
+          );
+          return [];
+        }
+
+        try {
+          mermaid.initialize({
+            startOnLoad: false,
+            theme: "default",
+            securityLevel: "loose",
+            fontSize: 12,
+          });
+        } catch (error) {
+          console.error("Mermaid 전역 초기화 중 오류가 발생했습니다.", error);
+        }
+
+        return prepareMermaidSources();
+      }
+
+      // 슬라이드 전환 및 진행률/다이어그램 갱신
+      function showSlide(n) {
+        const slides = document.querySelectorAll(".slide");
+        const progressBar = document.getElementById("progressBar");
+
+        if (n > totalSlides) currentSlide = totalSlides;
+        else if (n < 1) currentSlide = 1;
+        else currentSlide = n;
+
+        slides.forEach((slide) => slide.classList.remove("active"));
+        const activeSlide = slides[currentSlide - 1];
+        activeSlide.classList.add("active");
+
+        const progress = (currentSlide / totalSlides) * 100;
+        progressBar.style.width = progress + "%";
+
+        const activeDiagrams = activeSlide.querySelectorAll(".mermaid");
+        renderMermaidNodes(activeDiagrams);
+      }
+
+      function nextSlide() {
+        showSlide(currentSlide + 1);
+      }
+
+      function previousSlide() {
+        showSlide(currentSlide - 1);
+      }
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight" || e.key === " ") {
+          e.preventDefault();
+          nextSlide();
+        } else if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          previousSlide();
+        }
+      });
+
+      function bootstrapPresentation() {
+        const mermaidNodes = initializeMermaidDiagrams();
+        renderMermaidNodes(
+          (mermaidNodes || []).filter((node) => node.closest(".slide.active"))
+        );
+        showSlide(1);
+      }
+
+      if (
+        document.readyState === "complete" ||
+        document.readyState === "interactive"
+      ) {
+        bootstrapPresentation();
+      } else {
+        document.addEventListener("DOMContentLoaded", bootstrapPresentation);
+      }
+    </script>
+  </body>
+</html>
