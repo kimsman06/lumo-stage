@@ -2,7 +2,12 @@ const mongoose = require("mongoose");
 
 const Asset = require("../models/Asset");
 const Project = require("../models/Project");
-const { uploadBuffer, deleteObject, generateAssetKey } = require("./storage.service");
+const {
+  uploadBuffer,
+  deleteObject,
+  generateAssetKey,
+  getPublicUrl
+} = require("./storage.service");
 
 const isValidObjectId = (value) => mongoose.Types.ObjectId.isValid(value);
 
@@ -87,6 +92,42 @@ const createAssetFromBuffer = async ({
   return formatAsset(asset);
 };
 
+const createAssetFromKey = async ({
+  ownerId,
+  projectId,
+  type,
+  fileName,
+  mimeType,
+  fileSize,
+  fileKey,
+  metadata
+}) => {
+  if (!fileKey) {
+    const error = new Error("fileKey가 필요합니다.");
+    error.status = 400;
+    throw error;
+  }
+
+  const project = await resolveProjectForOwner(projectId, ownerId, {
+    optional: true
+  });
+  const normalizedMetadata = metadata || {};
+
+  const asset = await Asset.create({
+    owner: ownerId,
+    projectId: project ? project._id : null,
+    type,
+    fileName,
+    fileKey,
+    fileUrl: getPublicUrl(fileKey),
+    fileSize,
+    mimeType,
+    metadata: normalizedMetadata
+  });
+
+  return formatAsset(asset);
+};
+
 const getAssetsForProject = async (projectId, ownerId) => {
   const project = await resolveProjectForOwner(projectId, ownerId);
 
@@ -141,6 +182,7 @@ const removeAssetsByProject = async (projectId, ownerId) => {
 
 module.exports = {
   createAssetFromBuffer,
+  createAssetFromKey,
   getAssetsForProject,
   removeAsset,
   removeAssetsByProject

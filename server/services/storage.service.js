@@ -5,6 +5,7 @@ const {
   DeleteObjectCommand,
   GetObjectCommand,
 } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
 const memoryStore = new Map();
 let s3Client;
@@ -93,6 +94,43 @@ const uploadBuffer = async ({ key, body, contentType }) => {
   };
 };
 
+const createUploadUrl = async ({ key, contentType, expiresIn = 60 * 5 }) => {
+  if (!key) {
+    const error = new Error("업로드 키가 필요합니다.");
+    error.status = 400;
+    throw error;
+  }
+
+  if (isMockMode()) {
+    return {
+      url: `https://mock-upload.local/${key}`,
+      headers: {
+        "x-mock-upload": "true",
+      },
+    };
+  }
+
+  const client = ensureClient();
+  const bucket = getBucketName();
+
+  const command = new PutObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    ContentType: contentType || "application/octet-stream",
+  });
+
+  const uploadUrl = await getSignedUrl(client, command, {
+    expiresIn,
+  });
+
+  return {
+    url: uploadUrl,
+    headers: {
+      "Content-Type": contentType || "application/octet-stream",
+    },
+  };
+};
+
 const deleteObject = async (key) => {
   if (!key) {
     return;
@@ -164,6 +202,7 @@ const generateAssetKey = ({ type, ownerId, projectId, originalName }) => {
 const __memoryStore = memoryStore;
 
 module.exports = {
+  createUploadUrl,
   deleteObject,
   downloadBuffer,
   generateAssetKey,

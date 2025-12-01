@@ -2,9 +2,14 @@ const path = require("node:path");
 const mime = require("mime-types");
 const {
   createAssetFromBuffer,
+  createAssetFromKey,
   getAssetsForProject,
   removeAsset
 } = require("../services/asset.service");
+const {
+  generateAssetKey,
+  createUploadUrl
+} = require("../services/storage.service");
 
 const HDRI_EXTENSIONS = new Set([".hdr", ".exr"]);
 const HDRI_MIME_TYPES = new Set([
@@ -15,11 +20,13 @@ const HDRI_MIME_TYPES = new Set([
   "image/jpeg",
   "application/octet-stream"
 ]);
+const HDRI_MAX_SIZE = 50 * 1024 * 1024;
 const GLTF_EXTENSIONS = new Set([".glb"]);
 const GLTF_MIME_TYPES = new Set([
   "model/gltf-binary",
   "application/octet-stream"
 ]);
+const GLTF_MAX_SIZE = 100 * 1024 * 1024;
 
 const buildOwnerId = (user) => user.id || user._id.toString();
 
@@ -51,6 +58,29 @@ const validateFile = (file, { extensions, mimeTypes, maxSize }) => {
   }
 };
 
+const createVirtualFile = ({ fileName, fileSize, mimeType }) => ({
+  originalname: fileName,
+  size: fileSize,
+  mimetype: mimeType
+});
+
+const resolveHdriMimeType = (file) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (ext === ".exr") {
+    return "image/x-exr";
+  }
+
+  if (ext === ".hdr") {
+    return "image/vnd.radiance";
+  }
+
+  return (
+    file.mimetype ||
+    mime.lookup(file.originalname) ||
+    "application/octet-stream"
+  );
+};
+
 const uploadHdri = async (req, res, next) => {
   try {
     const ownerId = buildOwnerId(req.user);
@@ -58,19 +88,10 @@ const uploadHdri = async (req, res, next) => {
     validateFile(req.file, {
       extensions: HDRI_EXTENSIONS,
       mimeTypes: HDRI_MIME_TYPES,
-      maxSize: 50 * 1024 * 1024
+      maxSize: HDRI_MAX_SIZE
     });
 
-    // EXR/HDR 파일에 대한 올바른 MIME 타입 설정
-    const ext = path.extname(req.file.originalname).toLowerCase();
-    let mimeType;
-    if (ext === '.exr') {
-      mimeType = 'image/x-exr';
-    } else if (ext === '.hdr') {
-      mimeType = 'image/vnd.radiance';
-    } else {
-      mimeType = req.file.mimetype || mime.lookup(req.file.originalname) || "application/octet-stream";
-    }
+    const mimeType = resolveHdriMimeType(req.file);
 
     const asset = await createAssetFromBuffer({
       ownerId,
@@ -92,6 +113,94 @@ const uploadHdri = async (req, res, next) => {
   }
 };
 
+const initiateHdriUpload = async (req, res, next) => {
+  try {
+    const ownerId = buildOwnerId(req.user);
+    const { projectId, fileName, fileSize, mimeType } = req.body || {};
+
+    const virtualFile = createVirtualFile({
+      fileName,
+      fileSize,
+      mimeType
+    });
+
+    validateFile(virtualFile, {
+      extensions: HDRI_EXTENSIONS,
+      mimeTypes: HDRI_MIME_TYPES,
+      maxSize: HDRI_MAX_SIZE
+    });
+
+    const resolvedMimeType = resolveHdriMimeType(virtualFile);
+
+    const fileKey = generateAssetKey({
+      type: "hdri",
+      ownerId,
+      projectId,
+      originalName: fileName
+    });
+
+    const { url: uploadUrl, headers } = await createUploadUrl({
+      key: fileKey,
+      contentType: resolvedMimeType
+    });
+
+    res.status(200).json({
+      uploadUrl,
+      fileKey,
+      headers,
+      mimeType: resolvedMimeType,
+      maxSize: HDRI_MAX_SIZE
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const completeHdriUpload = async (req, res, next) => {
+  try {
+    const ownerId = buildOwnerId(req.user);
+    const { projectId, fileName, fileSize, mimeType, fileKey } = req.body || {};
+
+    if (!fileKey) {
+      const error = new Error("fileKey가 필요합니다.");
+      error.status = 400;
+      throw error;
+    }
+
+    const virtualFile = createVirtualFile({
+      fileName,
+      fileSize,
+      mimeType
+    });
+
+    validateFile(virtualFile, {
+      extensions: HDRI_EXTENSIONS,
+      mimeTypes: HDRI_MIME_TYPES,
+      maxSize: HDRI_MAX_SIZE
+    });
+
+    const resolvedMimeType = resolveHdriMimeType(virtualFile);
+
+    const asset = await createAssetFromKey({
+      ownerId,
+      projectId,
+      type: "hdri",
+      fileName,
+      mimeType: resolvedMimeType,
+      fileSize,
+      fileKey,
+      metadata: {}
+    });
+
+    res.status(201).json({
+      message: "HDRI가 업로드되었습니다.",
+      asset
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const uploadGltf = async (req, res, next) => {
   try {
     const ownerId = buildOwnerId(req.user);
@@ -99,7 +208,7 @@ const uploadGltf = async (req, res, next) => {
     validateFile(req.file, {
       extensions: GLTF_EXTENSIONS,
       mimeTypes: GLTF_MIME_TYPES,
-      maxSize: 100 * 1024 * 1024
+      maxSize: GLTF_MAX_SIZE
     });
 
     const mimeType = req.file.mimetype || mime.lookup(req.file.originalname) || "application/octet-stream";
@@ -149,6 +258,8 @@ const remove = async (req, res, next) => {
 };
 
 module.exports = {
+  completeHdriUpload,
+  initiateHdriUpload,
   uploadHdri,
   uploadGltf,
   listByProject,

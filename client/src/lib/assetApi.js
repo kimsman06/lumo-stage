@@ -15,17 +15,45 @@ import api from './api';
  */
 export async function uploadHdri(projectId, file) {
   try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('projectId', projectId);
+    const mimeType = file.type || 'application/octet-stream';
 
-    // axios는 FormData를 감지하면 자동으로 Content-Type을 설정합니다.
-    // 수동으로 설정하면 boundary가 포함되지 않아 오류가 발생할 수 있습니다.
-    const response = await api.post('/assets/upload-hdri', formData);
+    const initResponse = await api.post('/assets/upload-hdri/init', {
+      projectId,
+      fileName: file.name,
+      fileSize: file.size,
+      mimeType,
+    });
+
+    const { uploadUrl, headers, fileKey } = initResponse.data || {};
+
+    if (!uploadUrl || !fileKey) {
+      throw new Error('업로드 URL을 생성하지 못했습니다.');
+    }
+
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        ...(headers || {}),
+      },
+      body: file,
+    });
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      throw new Error(errorText || '스토리지 업로드에 실패했습니다.');
+    }
+
+    const finalizeResponse = await api.post('/assets/upload-hdri/complete', {
+      projectId,
+      fileName: file.name,
+      fileSize: file.size,
+      mimeType,
+      fileKey,
+    });
 
     return {
       success: true,
-      asset: response.data.asset,
+      asset: finalizeResponse.data.asset,
     };
   } catch (error) {
     console.error('HDRI 업로드 실패:', error);

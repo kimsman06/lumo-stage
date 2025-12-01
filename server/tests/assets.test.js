@@ -11,6 +11,72 @@ describe("Asset API", () => {
     await connectDatabase();
   });
 
+  describe("HDRI 서명 업로드 플로우", () => {
+    it("서명 URL 발급 후 complete 호출로 에셋을 생성한다", async () => {
+      const { agent } = await createAuthenticatedAgent({
+        email: "hdri-direct@example.com"
+      });
+      const { project } = await createProject(agent, { name: "Direct HDRI" });
+      const csrfToken = await getCsrfToken(agent);
+
+      const initResponse = await agent
+        .post("/api/assets/upload-hdri/init")
+        .set("x-csrf-token", csrfToken)
+        .send({
+          projectId: project.id,
+          fileName: "direct.exr",
+          fileSize: 2048,
+          mimeType: "image/x-exr"
+        });
+
+      expect(initResponse.statusCode).toBe(200);
+      expect(initResponse.body).toEqual(
+        expect.objectContaining({
+          uploadUrl: expect.any(String),
+          fileKey: expect.stringMatching(/^hdri\//)
+        })
+      );
+
+      const completeResponse = await agent
+        .post("/api/assets/upload-hdri/complete")
+        .set("x-csrf-token", csrfToken)
+        .send({
+          projectId: project.id,
+          fileName: "direct.exr",
+          fileSize: 2048,
+          mimeType: "image/x-exr",
+          fileKey: initResponse.body.fileKey
+        });
+
+      expect(completeResponse.statusCode).toBe(201);
+      expect(completeResponse.body.asset).toMatchObject({
+        type: "hdri",
+        fileName: "direct.exr",
+        projectId: project.id
+      });
+    });
+
+    it("fileKey 없이 complete 호출 시 400을 반환한다", async () => {
+      const { agent } = await createAuthenticatedAgent({
+        email: "hdri-missing-key@example.com"
+      });
+      const csrfToken = await getCsrfToken(agent);
+
+      const response = await agent
+        .post("/api/assets/upload-hdri/complete")
+        .set("x-csrf-token", csrfToken)
+        .send({
+          projectId: "507f1f77bcf86cd799439011",
+          fileName: "invalid.exr",
+          fileSize: 100,
+          mimeType: "image/x-exr"
+        });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.body.message).toMatch(/fileKey가 필요/);
+    });
+  });
+
   describe("POST /api/assets/upload-hdri", () => {
     it("인증되지 않은 사용자는 업로드할 수 없다", async () => {
       const response = await request(app).post("/api/assets/upload-hdri");

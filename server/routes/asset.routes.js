@@ -47,6 +47,9 @@ router.post(
   assetController.uploadHdri
 );
 
+router.post("/upload-hdri/init", assetController.initiateHdriUpload);
+router.post("/upload-hdri/complete", assetController.completeHdriUpload);
+
 router.post(
   "/upload-gltf",
   wrapUpload(gltfUpload.single("file")),

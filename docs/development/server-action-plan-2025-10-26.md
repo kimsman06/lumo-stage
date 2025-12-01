@@ -80,12 +80,16 @@
     - `removeAssetsByProject()`: 프로젝트 삭제 시 cascade 삭제
   - ✅ `server/controllers/asset.controller.js`: Asset 컨트롤러
     - `uploadHdri()`: HDRI 업로드 처리 (.hdr, .exr / 최대 50MB)
+    - `initiateHdriUpload()`: 대용량 HDRI 업로드용 서명 URL 발급
+    - `completeHdriUpload()`: R2 업로드 완료 후 Asset 레코드 생성
     - `uploadGltf()`: GLB 업로드 처리 (.glb / 최대 100MB)
     - `listByProject()`: 프로젝트별 Asset 목록 조회
     - `remove()`: Asset 삭제
     - 파일 검증: 확장자, MIME 타입, 크기
   - ✅ `server/routes/asset.routes.js`: Asset 라우터
     - `POST /api/assets/upload-hdri`: HDRI 업로드 (Multer 미들웨어)
+    - `POST /api/assets/upload-hdri/init`: 서명 URL 요청
+    - `POST /api/assets/upload-hdri/complete`: 업로드 완료 후 메타데이터 저장
     - `POST /api/assets/upload-gltf`: GLB 업로드 (Multer 미들웨어)
     - `GET /api/assets/project/:projectId`: 프로젝트별 Asset 목록
     - `DELETE /api/assets/:assetId`: Asset 삭제
