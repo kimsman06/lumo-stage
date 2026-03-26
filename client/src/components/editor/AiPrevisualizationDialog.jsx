@@ -114,6 +114,12 @@ const MODEL_OPTIONS = [
     description: "고품질, 4K 지원, Thinking 모드",
     icon: Crown,
   },
+  {
+    id: "gemini-3.1-flash-image-preview",
+    name: "Gemini 3.1 Flash (Preview)",
+    description: "고품질, 구글 검색도구 활용",
+    icon: Crown,
+  },
 ];
 
 const navItems = [
@@ -142,7 +148,7 @@ export function AiPrevisualizationDialog({ projectId, open, onOpenChange }) {
   const [strength, setStrength] = useState(DEFAULT_PARAMS.strength);
   const [steps, setSteps] = useState(DEFAULT_PARAMS.steps);
   const [guidanceScale, setGuidanceScale] = useState(
-    DEFAULT_PARAMS.guidanceScale
+    DEFAULT_PARAMS.guidanceScale,
   );
 
   // 생성 상태
@@ -204,7 +210,7 @@ export function AiPrevisualizationDialog({ projectId, open, onOpenChange }) {
       loadUsageStats();
     } catch (error) {
       toast.error(
-        error.response?.data?.message || "API 키 저장에 실패했습니다"
+        error.response?.data?.message || "API 키 저장에 실패했습니다",
       );
     } finally {
       setSavingApiKey(false);
@@ -330,7 +336,7 @@ export function AiPrevisualizationDialog({ projectId, open, onOpenChange }) {
         toast.error("Rate limit 초과. 잠시 후 다시 시도해주세요.");
       } else {
         toast.error(
-          error.response?.data?.message || "생성 요청에 실패했습니다"
+          error.response?.data?.message || "생성 요청에 실패했습니다",
         );
       }
     }
@@ -363,7 +369,7 @@ export function AiPrevisualizationDialog({ projectId, open, onOpenChange }) {
       setIsGenerating(false);
       setGenerationProgress(0);
       toast.error(
-        error.response?.data?.message || "재생성 요청에 실패했습니다"
+        error.response?.data?.message || "재생성 요청에 실패했습니다",
       );
     }
   };
@@ -447,8 +453,8 @@ export function AiPrevisualizationDialog({ projectId, open, onOpenChange }) {
                 <SelectItem key={model.id} value={model.id}>
                   <div className="flex items-center gap-2">
                     <Icon className="w-4 h-4" />
-                    <div className="">
-                      <div className="font-medium text-left">{model.name}</div>
+                    <div className="flex flex-col text-left">
+                      <div className="font-medium">{model.name}</div>
                       <div className="text-xs text-muted-foreground">
                         {model.description}
                       </div>
